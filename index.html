@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LawNexa - Location-Based Legal Marketplace & Bar Network</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans & Cinzel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            950: '#060911',
+                            900: '#090d16',
+                            850: '#0d1322',
+                            800: '#131b2e',
+                            700: '#1e293b'
+                        },
+                        sapphire: {
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        },
+                        gold: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        cinzel: ['"Cinzel"', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Alpine.js Core for Reactive UI -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        body {
+            background-color: #060911;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #f1f5f9;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(13, 19, 34, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .gold-glow {
+            box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.35);
+        }
+
+        .sapphire-glow {
+            box-shadow: 0 0 25px -5px rgba(37, 99, 235, 0.4);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(13, 19, 34, 0.5);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 9999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(245, 158, 11, 0.6);
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+        .animate-pulse-glow {
+            animation: pulseGlow 4s ease-in-out infinite;
+        }
+    </style>
+</head>
+
+<body x-data="lawNexaApp()" class="min-h-screen flex flex-col justify-between selection:bg-gold-500 selection:text-navy-950">
+
+    <!-- Ambient Background Lighting -->
+    <div class="fixed top-0 left-1/4 w-[500px] h-[500px] bg-sapphire-600/10 rounded-full blur-[140px] pointer-events-none animate-pulse-glow"></div>
+    <div class="fixed bottom-0 right-1/4 w-[600px] h-[600px] bg-gold-500/10 rounded-full blur-[160px] pointer-events-none animate-pulse-glow"></div>
+
+    <!-- ================= 1. AUTHENTICATION SCREEN ================= -->
+    <div x-show="!isLoggedIn" x-transition:enter="transition ease-out duration-300" class="min-h-screen flex items-center justify-center p-4 relative z-10 my-auto">
+        <div class="glass-panel max-w-md w-full rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl gold-glow space-y-6">
+            
+            <div class="text-center space-y-2">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-gold-600 via-amber-500 to-yellow-300 p-0.5 shadow-xl shadow-gold-500/20 mx-auto">
+                    <div class="w-full h-full bg-navy-950 rounded-[14px] flex items-center justify-center text-gold-400">
+                        <i class="fa-solid fa-scale-balanced text-2xl"></i>
+                    </div>
+                </div>
+                <h2 class="font-cinzel text-2xl font-bold tracking-wider text-white">
+                    Law<span class="text-gold-400">Nexa</span>
+                </h2>
+                <p class="text-xs text-slate-400 font-medium uppercase tracking-widest">Verified Legal Marketplace & Bar Network</p>
+            </div>
+
+            <div class="flex bg-navy-950/80 p-1 rounded-2xl border border-slate-800 text-xs font-bold">
+                <button @click="authTab = 'login'" 
+                        class="w-1/2 py-2.5 rounded-xl transition-all duration-200 text-center"
+                        :class="authTab === 'login' ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-white'">
+                    Sign In
+                </button>
+                <button @click="authTab = 'register'" 
+                        class="w-1/2 py-2.5 rounded-xl transition-all duration-200 text-center"
+                        :class="authTab === 'register' ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-white'">
+                    Create Account
+                </button>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <form x-show="authTab === 'login'" @submit.prevent="handleLogin()" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-2">Select Login Role:</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" @click="loginForm.role = 'client'" 
+                                class="py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
+                                :class="loginForm.role === 'client' ? 'bg-sapphire-600/20 text-sapphire-400 border-sapphire-500 shadow-sm' : 'bg-navy-950/80 text-slate-400 border-slate-800'">
+                            <i class="fa-solid fa-user"></i> Client Portal
+                        </button>
+                        <button type="button" @click="loginForm.role = 'lawyer'" 
+                                class="py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
+                                :class="loginForm.role === 'lawyer' ? 'bg-gold-500/20 text-gold-400 border-gold-500 shadow-sm' : 'bg-navy-950/80 text-slate-400 border-slate-800'">
+                            <i class="fa-solid fa-user-shield"></i> Advocate Portal
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">Phone Number / Email</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input type="text" x-model="loginForm.id" required placeholder="03XX-XXXXXXX or user@bar.pk" 
+                               class="w-full bg-navy-950/90 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">Password</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input type="password" x-model="loginForm.password" required placeholder="••••••••" 
+                               class="w-full bg-navy-950/90 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                    </div>
+                </div>
+
+                <div class="text-right">
+                    <button type="button" @click="openOtpModal()" class="text-xs text-gold-400 hover:underline font-semibold">
+                        Forgot Password?
+                    </button>
+                </div>
+
+                <button type="submit" class="w-full py-3 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg shadow-gold-500/20 hover:from-gold-400 hover:to-amber-500 transition uppercase tracking-wider">
+                    Sign In
+                </button>
+            </form>
+
+            <!-- REGISTER FORM -->
+            <form x-show="authTab === 'register'" @submit.prevent="handleRegister()" class="space-y-3.5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-2">I am registering as:</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" @click="registerForm.role = 'client'" 
+                                class="py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
+                                :class="registerForm.role === 'client' ? 'bg-sapphire-600/20 text-sapphire-400 border-sapphire-500' : 'bg-navy-950/80 text-slate-400 border-slate-800'">
+                            Client
+                        </button>
+                        <button type="button" @click="registerForm.role = 'lawyer'" 
+                                class="py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
+                                :class="registerForm.role === 'lawyer' ? 'bg-gold-500/20 text-gold-400 border-gold-500' : 'bg-navy-950/80 text-slate-400 border-slate-800'">
+                            Advocate
+                        </button>
+                    </div>
+                </div>
+
+                <input type="text" x-model="registerForm.name" required placeholder="Full Name *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                <input type="text" x-model="registerForm.phone" required placeholder="Phone Number (03XX-XXXXXXX) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                <input type="email" x-model="registerForm.email" required placeholder="Email Address *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                <input type="password" x-model="registerForm.password" required placeholder="Password *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+
+                <template x-if="registerForm.role === 'lawyer'">
+                    <div class="space-y-3 pt-2 border-t border-slate-800">
+                        <p class="text-xs font-bold text-gold-400 uppercase tracking-wide">Bar Credentials & Practice Info:</p>
+                        <input type="text" x-model="registerForm.specialty" required placeholder="Specialty (Criminal, Corporate, Tax) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        <input type="text" x-model="registerForm.license" required placeholder="Bar License Number *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        <input type="text" x-model="registerForm.bar" required placeholder="Bar Association (Lahore High Court Bar) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        <input type="number" x-model="registerForm.exp" required placeholder="Years of Experience *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                    </div>
+                </template>
+
+                <button type="submit" class="w-full py-3 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg shadow-gold-500/20 hover:from-gold-400 hover:to-amber-500 transition uppercase tracking-wider">
+                    Create Account
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= 2. MAIN DASHBOARD ================= -->
+    <div x-show="isLoggedIn" x-transition:enter="transition ease-out duration-300" class="flex-1 flex flex-col justify-between">
+        
+        <!-- HEADER -->
+        <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80 px-4 lg:px-8 py-3.5">
+            <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+                
+                <div class="flex items-center gap-3 cursor-pointer" @click="resetDefaultTab()">
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-gold-600 via-amber-500 to-yellow-300 p-0.5 shadow-lg shadow-gold-500/20">
+                        <div class="w-full h-full bg-navy-950 rounded-[10px] flex items-center justify-center text-gold-400">
+                            <i class="fa-solid fa-scale-balanced text-xl"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="font-cinzel text-xl font-bold tracking-wider text-white flex items-center gap-2">
+                            Law<span class="text-gold-400">Nexa</span>
+                            <span class="text-[10px] uppercase font-sans font-extrabold tracking-widest px-2 py-0.5 rounded-full"
+                                  :class="user.role === 'lawyer' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-sapphire-500/20 text-sapphire-400 border border-sapphire-500/30'"
+                                  x-text="user.role === 'lawyer' ? 'ADVOCATE PORTAL' : 'CLIENT PORTAL'"></span>
+                        </h1>
+                        <p class="text-xs text-slate-400 font-medium hidden sm:block">Premier Bar Association Marketplace</p>
+                    </div>
+                </div>
+
+                <div class="hidden md:flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-xs font-medium text-slate-300">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span>GPS Active: <strong class="text-white" x-text="currentLocation">Lahore High Court Sector</strong></span>
+                    <button @click="triggerGpsRefresh()" class="text-slate-400 hover:text-gold-400 transition ml-1" title="Refresh Location">
+                        <i class="fa-solid fa-arrows-rotate text-xs" :class="{'fa-spin': isRefreshingGps}"></i>
+                    </button>
+                </div>
+
+                <!-- QUICK VIRAL ACTION BUTTONS -->
+                <div class="flex items-center gap-2">
+                    <button @click="showAiAnalyzerModal = true" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-extrabold transition shadow-lg flex items-center gap-1.5">
+                        <i class="fa-solid fa-brain text-gold-400"></i>
+                        <span class="hidden sm:inline">AI FIR Analyzer</span>
+                    </button>
+                    <button @click="showDocGeneratorModal = true" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-gold-400 text-xs font-bold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-signature"></i>
+                        <span class="hidden sm:inline">Doc Generator</span>
+                    </button>
+
+                    <div class="relative ml-2" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center gap-3 p-1 rounded-full hover:bg-slate-800/60 transition border border-transparent hover:border-slate-700">
+                            <div class="relative">
+                                <img :src="user.avatar" :alt="user.name" class="w-10 h-10 rounded-full object-cover border-2 border-gold-500/60 shadow-md">
+                                <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-navy-900 rounded-full"></span>
+                            </div>
+                            <div class="text-left hidden lg:block pr-1">
+                                <p class="text-xs font-bold text-slate-100" x-text="user.name"></p>
+                                <p class="text-[11px] font-semibold" :class="user.role === 'lawyer' ? 'text-gold-400' : 'text-sapphire-400'" x-text="user.designation"></p>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-xs text-slate-400 hidden lg:block pr-2"></i>
+                        </button>
+
+                        <div x-show="open" @click.outside="open = false" class="absolute right-0 mt-2 w-64 glass-panel rounded-2xl shadow-2xl py-2 border border-slate-800 z-50">
+                            <div class="px-4 py-3 border-b border-slate-800">
+                                <p class="text-sm font-bold text-white" x-text="user.name"></p>
+                                <p class="text-xs text-slate-400 truncate" x-text="user.email"></p>
+                                <div class="mt-2 flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold border"
+                                          :class="user.role === 'lawyer' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'"
+                                          x-text="user.role === 'lawyer' ? 'Verified Advocate' : 'Verified Client'"></span>
+                                </div>
+                            </div>
+                            <button @click="open = false; showProfileModal = true" class="w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800/80 hover:text-gold-400 flex items-center gap-2.5">
+                                <i class="fa-solid fa-user-pen text-slate-400"></i> Edit Profile & Photo
+                            </button>
+                            <button @click="open = false; openOtpModal()" class="w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800/80 hover:text-gold-400 flex items-center gap-2.5">
+                                <i class="fa-solid fa-key text-slate-400"></i> Reset Password (OTP)
+                            </button>
+                            <div class="border-t border-slate-800 my-1"></div>
+                            <button @click="open = false; logout()" class="w-full text-left px-4 py-2.5 text-xs text-rose-400 hover:bg-rose-950/30 flex items-center gap-2.5 font-semibold">
+                                <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- NAVIGATION TABS -->
+        <nav class="bg-navy-900/90 border-b border-slate-800/80 sticky top-[69px] z-30 backdrop-blur-md">
+            <div class="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4 overflow-x-auto custom-scrollbar">
+                
+                <!-- ADVOCATE TABS -->
+                <div x-show="user.role === 'lawyer'" class="flex items-center space-x-2 py-2">
+                    <button @click="activeTab = 'bookings'" 
+                            class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap"
+                            :class="activeTab === 'bookings' ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'">
+                        <i class="fa-solid fa-clipboard-list text-base"></i>
+                        <span>📋 Client Consultation Requests</span>
+                        <span x-text="myBookings.length" class="ml-1 px-2 py-0.5 rounded-full text-[10px]" :class="activeTab === 'bookings' ? 'bg-navy-950/30 text-navy-950' : 'bg-slate-800 text-slate-300'"></span>
+                    </button>
+
+                    <button @click="activeTab = 'feed'" 
+                            class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap"
+                            :class="activeTab === 'feed' ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'">
+                        <i class="fa-solid fa-scale-balanced text-base"></i>
+                        <span>🏛️ Legal Feed & Campaign Reels</span>
+                    </button>
+
+                    <button @click="activeTab = 'advocates'" 
+                            class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap"
+                            :class="activeTab === 'advocates' ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'">
+                        <i class="fa-solid fa-users text-base"></i>
+                        <span>👨‍⚖️ Nearby Advocates & Colleagues</span>
+                    </button>
+                </div>
+
+                <!-- CLIENT TABS -->
+                <div x-show="user.role === 'client'" class="flex items-center space-x-2 py-2">
+                    <button @click="activeTab = 'advocates'" 
+                            class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap"
+                            :class="activeTab === 'advocates' ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'">
+                        <i class="fa-solid fa-user-shield text-base"></i>
+                        <span>👨‍⚖️ Find Nearby Advocates & AI Match</span>
+                    </button>
+
+                    <button @click="activeTab = 'feed'" 
+                            class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap"
+                            :class="activeTab === 'feed' ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'">
+                        <i class="fa-solid fa-scale-balanced text-base"></i>
+                        <span>🏛️ Legal Insights & Election Feeds</span>
+                    </button>
+
+                    <button @click="activeTab = 'bookings'" 
+                            class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-2.5 whitespace-nowrap"
+                            :class="activeTab === 'bookings' ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'">
+                        <i class="fa-solid fa-calendar-check text-base"></i>
+                        <span>📅 My Consultation Bookings</span>
+                        <span x-text="myBookings.length" class="ml-1 px-2 py-0.5 rounded-full text-[10px]" :class="activeTab === 'bookings' ? 'bg-navy-950/30 text-navy-950' : 'bg-slate-800 text-slate-300'"></span>
+                    </button>
+                </div>
+
+                <div x-show="user.role === 'lawyer'">
+                    <button @click="showNewPostModal = true" class="px-3.5 py-2 rounded-xl bg-sapphire-600 hover:bg-sapphire-500 text-white text-xs font-bold transition flex items-center gap-2 shadow-lg whitespace-nowrap">
+                        <i class="fa-solid fa-bullhorn"></i> Campaign / Insight Post
+                    </button>
+                </div>
+
+            </div>
+        </nav>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="max-w-7xl mx-auto px-4 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+            <!-- ADVOCATE DASHBOARD STATS BAR & LIVE CAUSE LIST -->
+            <div x-show="user.role === 'lawyer'" class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-envelope-open-text"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">New Inquiries</p>
+                            <h3 class="text-lg font-black text-white" x-text="myBookings.length + ' Pending'"></h3>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-sapphire-500/10 text-sapphire-400 flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-gavel"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Active Court Cases</p>
+                            <h3 class="text-lg font-black text-sapphire-400">12 Ongoing Cases</h3>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-gold-500/10 text-gold-400 flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-trophy"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Cases Won & Rating</p>
+                            <h3 class="text-lg font-black text-white">4.9 ★ (120 Won)</h3>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-building-columns"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Bar License</p>
+                            <h3 class="text-xs font-bold text-purple-300">LHC-98421 (Verified)</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LIVE CAUSE LIST TRACKER -->
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white flex items-center gap-2">
+                                Live Cause List Schedule (Today's Hearings)
+                                <span class="animate-pulse px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-400 text-[9px] uppercase font-bold">Live Sync</span>
+                            </h4>
+                            <p class="text-[11px] text-slate-400">Court No. 3 (Lahore High Court) - Item #14: Bail Application @ 11:30 AM</p>
+                        </div>
+                    </div>
+                    <button @click="showToast('Refreshed High Court Cause List Sync!', 'info')" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-gold-400 text-xs font-bold transition border border-slate-700">
+                        <i class="fa-solid fa-arrows-rotate mr-1"></i> Sync Cause List
+                    </button>
+                </div>
+            </div>
+
+            <!-- CLIENT DASHBOARD STATS BAR -->
+            <div x-show="user.role === 'client'" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-sapphire-500/10 text-sapphire-400 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-calendar-check"></i></div>
+                    <div>
+                        <p class="text-[10px] text-slate-400 uppercase font-bold">Active Consultations</p>
+                        <h3 class="text-lg font-black text-white" x-text="myBookings.length + ' Appointments'"></h3>
+                    </div>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-gold-500/10 text-gold-400 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-user-shield"></i></div>
+                    <div>
+                        <p class="text-[10px] text-slate-400 uppercase font-bold">Nearby Advocates</p>
+                        <h3 class="text-lg font-black text-gold-400" x-text="advocates.length + ' Verified Advocates'"></h3>
+                    </div>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-shield-halved"></i></div>
+                    <div>
+                        <p class="text-[10px] text-slate-400 uppercase font-bold">Encrypted Chat</p>
+                        <h3 class="text-xs font-bold text-emerald-400">Direct Consultation Active</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 1: ADVOCATES VIEW -->
+            <section x-show="activeTab === 'advocates'" x-transition:enter="transition ease-out duration-200" class="space-y-6">
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div class="relative flex-1">
+                            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                            <input type="text" x-model="searchQuery" placeholder="Search advocate by name, legal specialty, or Bar Association..." 
+                                   class="w-full bg-navy-950/80 border border-slate-800 rounded-xl pl-11 pr-4 py-3 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        </div>
+
+                        <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 custom-scrollbar">
+                            <template x-for="cat in categories" :key="cat">
+                                <button @click="selectedCategory = cat" 
+                                        class="px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition border"
+                                        :class="selectedCategory === cat ? 'bg-gold-500/20 text-gold-400 border-gold-500/50' : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200'">
+                                    <span x-text="cat"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-center">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1.5 font-medium">
+                                <span class="text-slate-400"><i class="fa-solid fa-location-crosshairs text-gold-400 mr-1"></i> Max Radius (GPS):</span>
+                                <span class="text-gold-400 font-bold" x-text="maxDistance + ' km'"></span>
+                            </div>
+                            <input type="range" min="1" max="50" x-model="maxDistance" class="w-full accent-gold-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1.5 font-medium">
+                                <span class="text-slate-400"><i class="fa-solid fa-award text-gold-400 mr-1"></i> Min Experience:</span>
+                                <span class="text-gold-400 font-bold" x-text="minExperience + ' Years'"></span>
+                            </div>
+                            <input type="range" min="0" max="30" x-model="minExperience" class="w-full accent-gold-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                        </div>
+
+                        <div class="flex items-center justify-end gap-3">
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-300">
+                                <input type="checkbox" x-model="aiTopMatchOnly" class="rounded bg-slate-900 border-slate-700 text-gold-500 focus:ring-gold-500">
+                                <span>✨ AI Top Matches Only (>88%)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="adv in filteredAdvocates" :key="adv.id">
+                        <div class="glass-panel rounded-2xl p-5 border transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl flex flex-col justify-between group"
+                             :class="adv.aiScore >= 88 ? 'border-amber-500/40 hover:border-gold-400 gold-glow' : 'border-slate-800 hover:border-slate-700'">
+                            
+                            <div>
+                                <div class="flex items-start justify-between gap-3 mb-4">
+                                    <div class="relative">
+                                        <img :src="adv.avatar" :alt="adv.name" class="w-16 h-16 rounded-2xl object-cover border-2 border-slate-700 group-hover:border-gold-400 transition">
+                                        <span class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-navy-950 rounded-full"></span>
+                                    </div>
+                                    
+                                    <div class="text-right">
+                                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold tracking-wide"
+                                             :class="adv.aiScore >= 88 ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 shadow-md' : 'bg-sapphire-500/10 text-sapphire-400 border border-sapphire-500/30'">
+                                            <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+                                            <span x-text="adv.aiScore + '% Match'"></span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-400 mt-1" x-text="adv.distance + ' km away'"></p>
+                                    </div>
+                                </div>
+
+                                <h3 class="font-cinzel text-base font-bold text-white group-hover:text-gold-400 transition flex items-center gap-1.5" x-text="adv.name"></h3>
+                                <p class="text-xs text-slate-400 font-medium mb-3" x-text="adv.barAssociation"></p>
+
+                                <div class="flex flex-wrap gap-1.5 mb-4">
+                                    <span class="px-2.5 py-1 rounded-md bg-slate-800/80 text-gold-400 text-[11px] font-semibold border border-slate-700" x-text="adv.specialty"></span>
+                                    <span class="px-2.5 py-1 rounded-md bg-slate-800/80 text-slate-300 text-[11px] font-semibold border border-slate-700" x-text="adv.experience + ' Yrs Exp'"></span>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2 p-3 rounded-xl bg-navy-950/60 border border-slate-800/80 mb-4 text-xs">
+                                    <div>
+                                        <p class="text-slate-500 text-[10px] uppercase font-bold">Consultation</p>
+                                        <p class="text-gold-400 font-extrabold">Fee in Chat</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-slate-500 text-[10px] uppercase font-bold">Rating & Cases</p>
+                                        <p class="text-slate-200 font-bold flex items-center gap-1">
+                                            <i class="fa-solid fa-star text-amber-400 text-[11px]"></i>
+                                            <span x-text="adv.rating + ' (' + adv.casesWon + '+ won)'"></span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button @click="openChatModal(adv)" class="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700">
+                                        <i class="fa-solid fa-comments text-gold-400"></i> Direct Chat
+                                    </button>
+                                    <button @click="openBookingModal(adv)" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-navy-950 text-xs font-extrabold transition shadow-lg flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-calendar-plus"></i> Book Consult
+                                    </button>
+                                </div>
+                                <button @click="openVideoCallModal(adv)" class="w-full py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 text-xs font-bold transition flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-video"></i> Virtual Chamber Call
+                                </button>
+                            </div>
+
+                        </div>
+                    </template>
+                </div>
+            </section>
+
+            <!-- TAB 2: LEGAL FEED, ELECTION CAMPAIGN REELS & LIVE POLLS -->
+            <section x-show="activeTab === 'feed'" x-transition:enter="transition ease-out duration-200" class="space-y-6">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 glass-panel p-4 rounded-2xl border border-slate-800">
+                    <div class="flex items-center gap-2 overflow-x-auto w-full custom-scrollbar">
+                        <button @click="feedCategory = 'All'" class="px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap"
+                                :class="feedCategory === 'All' ? 'bg-gold-500 text-navy-950' : 'bg-slate-900/80 text-slate-400 hover:text-white'">
+                            All Discussions
+                        </button>
+                        <button @click="feedCategory = 'Bar Election Manifesto'" class="px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap"
+                                :class="feedCategory === 'Bar Election Manifesto' ? 'bg-gold-500 text-navy-950' : 'bg-slate-900/80 text-slate-400 hover:text-white'">
+                            🗳️ Election Campaign & Reels
+                        </button>
+                        <button @click="feedCategory = 'Court Judgment'" class="px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap"
+                                :class="feedCategory === 'Court Judgment' ? 'bg-gold-500 text-navy-950' : 'bg-slate-900/80 text-slate-400 hover:text-white'">
+                            ⚖️ Court Judgments
+                        </button>
+                    </div>
+
+                    <button x-show="user.role === 'lawyer'" @click="showNewPostModal = true" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-navy-950 text-xs font-extrabold transition shadow-lg whitespace-nowrap flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Post Update / Campaign Reel
+                    </button>
+                </div>
+
+                <!-- LIVE BAR ELECTION DIGITAL POLL WIDGET -->
+                <div class="glass-panel max-w-4xl mx-auto p-5 rounded-2xl border border-amber-500/30 gold-glow space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-bold text-gold-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-square-poll-vertical"></i> Live Bar Council Opinion Poll 2026
+                        </h4>
+                        <span class="text-[10px] text-slate-400">Total Votes Cast: 552 Advocates</span>
+                    </div>
+                    <p class="text-sm font-bold text-white" x-text="poll.question"></p>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <template x-for="opt in poll.options" :key="opt.id">
+                            <button @click="castPollVote(opt)" 
+                                    class="p-3 rounded-xl border text-left flex items-center justify-between transition"
+                                    :class="poll.votedId === opt.id ? 'bg-gold-500/20 border-gold-500 text-gold-300' : 'bg-navy-950/80 border-slate-800 text-slate-200 hover:border-slate-700'">
+                                <span class="text-xs font-bold" x-text="opt.text"></span>
+                                <span class="text-xs font-extrabold px-2 py-0.5 rounded-md bg-slate-800 text-gold-400" x-text="opt.votes + ' votes'"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="space-y-6 max-w-4xl mx-auto">
+                    <template x-for="post in filteredPosts" :key="post.id">
+                        <article class="glass-panel rounded-2xl p-6 border border-slate-800/80 hover:border-slate-700 transition space-y-4">
+                            
+                            <div class="flex items-center justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <img :src="post.authorAvatar" :alt="post.author" class="w-11 h-11 rounded-full object-cover border-2 border-gold-500/50">
+                                    <div>
+                                        <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                                            <span x-text="post.author"></span>
+                                            <span x-show="post.verified" class="text-sapphire-400"><i class="fa-solid fa-circle-check text-xs"></i></span>
+                                        </h4>
+                                        <p class="text-xs text-slate-400" x-text="post.authorRole + ' • ' + post.timestamp"></p>
+                                    </div>
+                                </div>
+                                <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-slate-800 text-gold-400 border border-slate-700" x-text="post.category"></span>
+                            </div>
+
+                            <div>
+                                <h3 class="font-cinzel text-lg font-bold text-white mb-2" x-text="post.title"></h3>
+                                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line" x-text="post.content"></p>
+                            </div>
+
+                            <!-- Media Display: Image Poster / Video Reel -->
+                            <template x-if="post.mediaType === 'image' && post.mediaUrl">
+                                <div class="rounded-2xl overflow-hidden border border-slate-800 bg-navy-950 max-h-[420px]">
+                                    <img :src="post.mediaUrl" class="w-full h-full object-cover">
+                                </div>
+                            </template>
+
+                            <template x-if="post.mediaType === 'video' && post.mediaUrl">
+                                <div class="rounded-2xl overflow-hidden border border-slate-800 bg-black max-h-[450px]">
+                                    <video controls class="w-full max-h-[450px] object-contain">
+                                        <source :src="post.mediaUrl">
+                                        Your browser does not support video reels.
+                                    </video>
+                                </div>
+                            </template>
+
+                            <div class="flex items-center justify-between pt-4 border-t border-slate-800 text-xs font-medium text-slate-400">
+                                <div class="flex items-center gap-6">
+                                    <button @click="toggleLike(post)" class="flex items-center gap-2 hover:text-rose-400 transition" :class="post.liked ? 'text-rose-500 font-bold' : ''">
+                                        <i class="fa-solid fa-heart" :class="post.liked ? 'text-rose-500' : ''"></i>
+                                        <span x-text="post.likes"></span>
+                                    </button>
+                                    <button @click="post.showComments = !post.showComments" class="flex items-center gap-2 hover:text-gold-400 transition">
+                                        <i class="fa-solid fa-comment"></i>
+                                        <span x-text="post.comments.length + ' Comments'"></span>
+                                    </button>
+                                </div>
+                                <button @click="showToast('Campaign Post link copied!', 'success')" class="hover:text-white transition">
+                                    <i class="fa-solid fa-share-nodes mr-1"></i> Share
+                                </button>
+                            </div>
+
+                            <div x-show="post.showComments" x-transition class="pt-4 border-t border-slate-800/80 space-y-3">
+                                <template x-for="comment in post.comments" :key="comment.id">
+                                    <div class="bg-navy-950/80 p-3 rounded-xl border border-slate-800 text-xs">
+                                        <div class="flex items-center justify-between mb-1">
+                                            <span class="font-bold text-gold-400" x-text="comment.user"></span>
+                                            <span class="text-[10px] text-slate-500" x-text="comment.time"></span>
+                                        </div>
+                                        <p class="text-slate-300" x-text="comment.text"></p>
+                                    </div>
+                                </template>
+
+                                <div class="flex gap-2 pt-2">
+                                    <input type="text" x-model="post.newCommentText" @keydown.enter="addComment(post)" placeholder="Write a comment..." 
+                                           class="flex-1 bg-navy-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                                    <button @click="addComment(post)" class="px-4 py-2 rounded-xl bg-gold-500 hover:bg-gold-400 text-navy-950 font-extrabold text-xs transition">
+                                        Post
+                                    </button>
+                                </div>
+                            </div>
+                        </article>
+                    </template>
+                </div>
+            </section>
+
+            <!-- TAB 3: BOOKINGS VIEW -->
+            <section x-show="activeTab === 'bookings'" x-transition:enter="transition ease-out duration-200" class="space-y-6">
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 space-y-6">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                        <div>
+                            <h2 class="font-cinzel text-lg font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-briefcase text-gold-400"></i>
+                                <span x-text="user.role === 'lawyer' ? '📋 Client Consultation Requests' : '📅 My Consultation Bookings'"></span>
+                            </h2>
+                            <p class="text-xs text-slate-400" x-text="user.role === 'lawyer' ? 'Manage incoming consultation requests from clients' : 'Track your consultation bookings and appointments'"></p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full bg-sapphire-500/10 text-sapphire-400 text-xs font-bold border border-sapphire-500/30"
+                              x-text="myBookings.length + ' Total Requests'"></span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <template x-for="booking in myBookings" :key="booking.id">
+                            <div class="p-4 rounded-xl bg-navy-950/80 border border-slate-800 hover:border-slate-700 transition flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="space-y-1.5 flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-bold text-gold-400" x-text="booking.clientName"></span>
+                                        <span class="text-[10px] text-slate-500">•</span>
+                                        <span class="text-xs text-slate-400" x-text="booking.category"></span>
+                                        <span class="ml-2 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider"
+                                              :class="{
+                                                  'bg-amber-500/20 text-amber-400 border border-amber-500/30': booking.status === 'Pending',
+                                                  'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30': booking.status === 'Accepted',
+                                                  'bg-rose-500/20 text-rose-400 border border-rose-500/30': booking.status === 'Rejected'
+                                              }"
+                                              x-text="booking.status"></span>
+                                    </div>
+                                    <p class="text-xs text-slate-200 font-medium" x-text="'📝 Case Summary: ' + booking.summary"></p>
+                                    
+                                    <div class="flex flex-wrap items-center gap-4 text-[11px] text-slate-400 pt-1">
+                                        <span><i class="fa-regular fa-calendar text-gold-400 mr-1"></i> <span x-text="booking.date"></span></span>
+                                        <span><i class="fa-regular fa-clock text-gold-400 mr-1"></i> <span x-text="booking.time"></span></span>
+                                        <span><i class="fa-solid fa-location-dot text-gold-400 mr-1"></i> <span x-text="booking.location || 'High Court Chamber / Online'"></span></span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
+                                    <template x-if="booking.status === 'Pending' && user.role === 'lawyer'">
+                                        <div class="flex gap-2">
+                                            <button @click="respondBooking(booking, 'Accepted')" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">Accept</button>
+                                            <button @click="respondBooking(booking, 'Rejected')" class="px-3.5 py-1.5 rounded-lg bg-rose-600/30 hover:bg-rose-600 text-rose-300 hover:text-white text-xs font-bold transition">Decline</button>
+                                        </div>
+                                    </template>
+                                    <template x-if="booking.status === 'Accepted'">
+                                        <button @click="openChatModal({id: booking.id, name: booking.clientName, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250'})" 
+                                                class="px-4 py-2 rounded-xl bg-sapphire-600 hover:bg-sapphire-500 text-white text-xs font-bold transition flex items-center gap-1.5">
+                                            <i class="fa-solid fa-comments"></i> Direct Chat Room
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="glass-panel border-t border-slate-800/80 py-6 px-4 mt-12">
+            <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+                <p>© 2026 LawNexa Bar Network. Encrypted & Verified Bar Association Ecosystem.</p>
+                <div class="flex items-center gap-4">
+                    <a href="#" class="hover:text-gold-400 transition">Bar Verification Policy</a>
+                    <a href="#" class="hover:text-gold-400 transition">Privacy Standard</a>
+                    <a href="#" class="hover:text-gold-400 transition">Helpline: 0800-LEGAL</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- UPDATED VIRAL FEATURE 1: AI FIR & CASE ANALYZER MODAL (IMAGE UPLOAD + MULTI-LANGUAGE) -->
+    <div x-show="showAiAnalyzerModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div @click.outside="showAiAnalyzerModal = false" class="glass-panel max-w-xl w-full rounded-2xl border border-purple-500/40 shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                    <h3 class="font-cinzel text-base font-bold text-white">AI Instant FIR & Legal Case Analyzer</h3>
+                </div>
+                <button @click="showAiAnalyzerModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Language Selector Toggle -->
+            <div class="space-y-1.5">
+                <label class="block text-slate-400 text-[11px] font-bold uppercase tracking-wider">Select AI Report Language / زبان منتخب کریں:</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button type="button" @click="aiLanguage = 'roman_urdu'" 
+                            class="py-2 rounded-xl text-xs font-bold transition border"
+                            :class="aiLanguage === 'roman_urdu' ? 'bg-purple-600 text-white border-purple-400 shadow-md' : 'bg-navy-950 text-slate-400 border-slate-800 hover:text-white'">
+                        💬 Roman Urdu
+                    </button>
+                    <button type="button" @click="aiLanguage = 'urdu'" 
+                            class="py-2 rounded-xl text-xs font-bold transition border"
+                            :class="aiLanguage === 'urdu' ? 'bg-purple-600 text-white border-purple-400 shadow-md' : 'bg-navy-950 text-slate-400 border-slate-800 hover:text-white'">
+                        🇵🇰 اردو (Urdu)
+                    </button>
+                    <button type="button" @click="aiLanguage = 'english'" 
+                            class="py-2 rounded-xl text-xs font-bold transition border"
+                            :class="aiLanguage === 'english' ? 'bg-purple-600 text-white border-purple-400 shadow-md' : 'bg-navy-950 text-slate-400 border-slate-800 hover:text-white'">
+                        🌐 English
+                    </button>
+                </div>
+            </div>
+
+            <!-- FIR Document Photo Upload Area -->
+            <div class="p-3 bg-navy-950/80 border border-slate-800 rounded-xl space-y-2">
+                <label class="block text-purple-400 font-bold text-[11px] uppercase tracking-wider">Upload FIR Photo / Scan Image:</label>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="$refs.firImageInput.click()" class="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-camera text-purple-400"></i> Upload FIR Photo / Scan
+                    </button>
+                </div>
+                <input type="file" x-ref="firImageInput" @change="handleFirImageUpload($event)" accept="image/*" class="hidden">
+
+                <!-- FIR Image Preview -->
+                <template x-if="aiCaseImageUrl">
+                    <div class="mt-2 rounded-xl overflow-hidden border border-purple-500/40 relative max-h-40 bg-black">
+                        <img :src="aiCaseImageUrl" class="w-full h-40 object-cover">
+                        <button type="button" @click="aiCaseImageUrl = ''" class="absolute top-2 right-2 w-7 h-7 bg-rose-600/80 text-white rounded-full flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </template>
+            </div>
+
+            <textarea x-model="aiCaseInput" rows="3" placeholder="Or type/paste FIR content here (e.g. Property dispute, theft FIR, or cheque bounce notice)..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-purple-500"></textarea>
+
+            <button @click="runAiAnalysis()" class="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs rounded-xl shadow-lg hover:from-purple-500 hover:to-indigo-500 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-wand-magic-sparkles" :class="{'fa-spin': isAnalyzing}"></i>
+                <span x-text="isAnalyzing ? 'Scanning Document & Analyzing Legal Sections...' : 'Run Instant AI FIR Analysis'"></span>
+            </button>
+
+            <!-- AI ANALYSIS RESULT -->
+            <template x-if="aiAnalysisResult">
+                <div class="p-4 rounded-xl bg-navy-950/90 border border-purple-500/30 space-y-3 text-xs">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <span class="font-bold text-purple-400 uppercase tracking-wider text-[11px]">AI Legal Diagnosis Report</span>
+                        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">Risk Level: Moderate</span>
+                    </div>
+
+                    <div>
+                        <p class="text-slate-400 font-bold">Case Summary / خلاصہ:</p>
+                        <p class="text-slate-200 mt-0.5" x-text="aiAnalysisResult.summary"></p>
+                    </div>
+
+                    <div>
+                        <p class="text-slate-400 font-bold">Applicable Pakistan Laws / PPC Sections:</p>
+                        <div class="flex flex-wrap gap-1.5 mt-1">
+                            <template x-for="sec in aiAnalysisResult.sections" :key="sec">
+                                <span class="px-2.5 py-1 rounded bg-purple-950 text-purple-300 font-bold text-[10px] border border-purple-800" x-text="sec"></span>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-slate-400 font-bold">Recommended Legal Action / تجویز کردہ قدم:</p>
+                        <p class="text-gold-400 font-semibold" x-text="aiAnalysisResult.recommendation"></p>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- VIRAL FEATURE 2: SMART LEGAL DOCUMENT GENERATOR MODAL -->
+    <div x-show="showDocGeneratorModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div @click.outside="showDocGeneratorModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-slate-800 shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-file-signature text-gold-400"></i> Smart Legal Contract Generator
+                </h3>
+                <button @click="showDocGeneratorModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <p class="text-xs text-slate-400">Client aur Lawyer dono seconds mein court-ready legal documents generate kar sakte hain.</p>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Select Template:</label>
+                    <select x-model="docType" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                        <option value="Rent Agreement">🏠 House / Commercial Rent Agreement</option>
+                        <option value="General Affidavit">📜 General Legal Affidavit (Bayan-e-Halafi)</option>
+                        <option value="Power of Attorney">⚖️ Special Power of Attorney (Mukhtar Nama)</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" x-model="docForm.partyA" placeholder="First Party Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                    <input type="text" x-model="docForm.cnicA" placeholder="First Party CNIC *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" x-model="docForm.partyB" placeholder="Second Party Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                    <input type="text" x-model="docForm.cnicB" placeholder="Second Party CNIC *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                </div>
+
+                <input type="text" x-model="docForm.address" placeholder="Property / Matter Address *" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+
+                <button @click="generateDocument()" class="w-full py-2.5 bg-gold-500 text-navy-950 font-extrabold text-xs rounded-xl hover:bg-gold-400 transition shadow-lg">
+                    Generate Print-Ready PDF Draft
+                </button>
+
+                <template x-if="generatedDoc">
+                    <div class="p-4 bg-white text-black rounded-xl space-y-2 text-[11px] font-mono shadow-xl border border-slate-300">
+                        <div class="text-center font-bold underline uppercase text-xs" x-text="docType"></div>
+                        <p x-text="'This agreement made between ' + docForm.partyA + ' (CNIC: ' + docForm.cnicA + ') AND ' + docForm.partyB + ' (CNIC: ' + docForm.cnicB + ').'"></p>
+                        <p x-text="'Subject Property Address: ' + docForm.address"></p>
+                        <p class="text-[10px] text-slate-600">Drafted via LawNexa Bar Network Standards 2026.</p>
+                        <button @click="showToast('Downloading Print-Ready PDF...', 'success')" class="w-full py-1.5 bg-navy-950 text-gold-400 font-bold rounded-lg text-xs mt-2">
+                            <i class="fa-solid fa-download mr-1"></i> Download Stamped PDF
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIRAL FEATURE 3: VIRTUAL CHAMBER VIDEO CALL MODAL -->
+    <div x-show="showVideoCallModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel max-w-2xl w-full rounded-3xl border border-emerald-500/40 shadow-2xl overflow-hidden flex flex-col h-[520px] relative">
+            <div class="p-4 bg-navy-900 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
+                    <h4 class="text-xs font-bold text-white">🔒 Virtual Chamber Active • Encrypted High Court Video Session</h4>
+                </div>
+                <span class="text-xs font-extrabold text-gold-400" x-text="callTimer"></span>
+            </div>
+
+            <div class="flex-1 bg-slate-950 relative flex items-center justify-center">
+                <div class="text-center space-y-3">
+                    <img :src="activeChatAdvocate?.avatar || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250'" class="w-24 h-24 rounded-full object-cover border-4 border-gold-500 shadow-2xl mx-auto">
+                    <h3 class="text-base font-bold text-white" x-text="activeChatAdvocate?.name || 'Advocate Video Stream'"></h3>
+                    <p class="text-xs text-emerald-400 font-medium">Camera & Audio Feed Live</p>
+                </div>
+
+                <div class="absolute bottom-4 right-4 w-28 h-36 bg-slate-900 border-2 border-slate-700 rounded-xl overflow-hidden shadow-2xl flex items-center justify-center">
+                    <span class="text-[10px] text-slate-400 font-bold">Your Video</span>
+                </div>
+            </div>
+
+            <div class="p-4 bg-navy-900 border-t border-slate-800 flex items-center justify-center gap-4">
+                <button @click="isMuted = !isMuted" class="w-12 h-12 rounded-full flex items-center justify-center text-lg transition"
+                        :class="isMuted ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'">
+                    <i class="fa-solid" :class="isMuted ? 'fa-microphone-slash' : 'fa-microphone'"></i>
+                </button>
+                <button @click="showVideoCallModal = false; showToast('Virtual Call ended', 'info')" class="w-14 h-14 rounded-full bg-rose-600 text-white flex items-center justify-center text-xl shadow-xl hover:bg-rose-500 transition">
+                    <i class="fa-solid fa-phone-slash"></i>
+                </button>
+                <button @click="isVideoOff = !isVideoOff" class="w-12 h-12 rounded-full flex items-center justify-center text-lg transition"
+                        :class="isVideoOff ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'">
+                    <i class="fa-solid" :class="isVideoOff ? 'fa-video-slash' : 'fa-video'"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHAT MODAL WITH VOICE NOTE CONSULTATION -->
+    <div x-show="showChatModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div @click.outside="showChatModal = false" class="glass-panel max-w-xl w-full rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col h-[600px]">
+            <div class="p-4 bg-navy-900 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <img :src="activeChatAdvocate?.avatar || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250'" class="w-10 h-10 rounded-full object-cover border border-gold-500/60">
+                    <div>
+                        <h4 class="text-sm font-bold text-white" x-text="activeChatAdvocate?.name || 'User'"></h4>
+                        <p class="text-[10px] text-emerald-400 font-medium">🔒 Encrypted Direct Channel Active</p>
+                    </div>
+                </div>
+                <button @click="showChatModal = false" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="flex-1 p-4 overflow-y-auto space-y-3 custom-scrollbar">
+                <template x-for="msg in chatMessages" :key="msg.id">
+                    <div class="flex flex-col" :class="msg.sender === 'user' ? 'items-end' : 'items-start'">
+                        <div class="max-w-[80%] p-3 rounded-2xl text-xs space-y-1.5"
+                             :class="msg.sender === 'user' ? 'bg-gradient-to-r from-sapphire-600 to-blue-700 text-white rounded-tr-none' : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700'">
+                            <p x-text="msg.text"></p>
+                        </div>
+                        <span class="text-[9px] text-slate-500 mt-1 px-1" x-text="msg.time"></span>
+                    </div>
+                </template>
+            </div>
+
+            <div class="p-3 bg-navy-900 border-t border-slate-800 space-y-2">
+                <div class="flex gap-2 items-center">
+                    <button @click="sendVoiceNote()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-gold-400 transition text-xs" title="Send Voice Note">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                    <input type="text" x-model="chatInput" @keydown.enter="sendChatMessage()" placeholder="Type confidential message..." 
+                           class="flex-1 bg-navy-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                    <button @click="sendChatMessage()" class="px-5 py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl hover:from-gold-400 hover:to-amber-500 transition">
+                        Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- UPDATED BOOK CONSULTATION MODAL (WITH MANUAL TIME & MANUAL LOCATION INPUTS) -->
+    <div x-show="showBookingModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div @click.outside="showBookingModal = false" class="glass-panel max-w-md w-full rounded-2xl border border-slate-800 shadow-2xl p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-plus text-gold-400"></i> Book Consultation
+                </h3>
+                <button @click="showBookingModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div x-show="bookingAdvocate" class="p-3 rounded-xl bg-navy-950/80 border border-slate-800 flex items-center gap-3">
+                <img :src="bookingAdvocate?.avatar" class="w-12 h-12 rounded-xl object-cover border border-gold-500/50">
+                <div>
+                    <h4 class="text-xs font-bold text-white" x-text="bookingAdvocate?.name"></h4>
+                    <p class="text-[11px] text-gold-400 font-medium">Fee: Discussed in Direct Chat</p>
+                </div>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Preferred Date (Kis din milna hai):</label>
+                    <input type="date" x-model="bookingForm.date" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                </div>
+
+                <!-- Manual Time & Location Fields -->
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-400 mb-1 font-semibold">Preferred Time (Kis time milna hai):</label>
+                        <input type="text" x-model="bookingForm.time" placeholder="e.g. 03:30 PM" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-gold-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1 font-semibold">Meeting Venue (Kahan milna hai):</label>
+                        <input type="text" x-model="bookingForm.location" placeholder="e.g. High Court Chamber #4 / Online" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-gold-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Case Brief Summary:</label>
+                    <textarea x-model="bookingForm.summary" rows="3" placeholder="Briefly describe your case or legal problem..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500"></textarea>
+                </div>
+            </div>
+
+            <button @click="confirmBooking()" class="w-full py-3 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg shadow-gold-500/20 hover:from-gold-400 hover:to-amber-500 transition">
+                Confirm Consultation Appointment
+            </button>
+        </div>
+    </div>
+
+    <!-- PUBLISH POST & ELECTION REEL MODAL -->
+    <div x-show="showNewPostModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div @click.outside="showNewPostModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-slate-800 shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-bullhorn text-gold-400"></i> Broadcast Campaign / Legal Post
+                </h3>
+                <button @click="showNewPostModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Post Title / Election Slogan:</label>
+                    <input type="text" x-model="newPost.title" placeholder="e.g. High Court Bar Association Elections 2026 Manifesto" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Category:</label>
+                    <select x-model="newPost.category" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                        <option value="Bar Election Manifesto">🗳️ Bar Election Manifesto & Campaign</option>
+                        <option value="Court Judgment">⚖️ Court Judgment</option>
+                        <option value="Law Amendments">📜 Law Amendment</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Campaign / Post Message:</label>
+                    <textarea x-model="newPost.content" rows="4" placeholder="Write election manifesto goals, legal opinion, or candidate message..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500"></textarea>
+                </div>
+
+                <div class="p-3 bg-navy-950/80 border border-slate-800 rounded-xl space-y-2">
+                    <label class="block text-gold-400 font-bold uppercase tracking-wider text-[11px]">Attach Campaign Poster or Video Reel:</label>
+                    
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="$refs.postMediaInput.click()" class="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-photo-film text-gold-400"></i> Choose File (Image / Reel Video)
+                        </button>
+                    </div>
+                    <input type="file" x-ref="postMediaInput" @change="handlePostMediaUpload($event)" accept="image/*,video/*" class="hidden">
+
+                    <template x-if="newPost.mediaUrl">
+                        <div class="mt-2 rounded-xl overflow-hidden border border-slate-700 relative bg-black">
+                            <template x-if="newPost.mediaType === 'image'">
+                                <img :src="newPost.mediaUrl" class="max-h-48 w-full object-cover">
+                            </template>
+                            <template x-if="newPost.mediaType === 'video'">
+                                <video controls class="max-h-48 w-full object-contain">
+                                    <source :src="newPost.mediaUrl">
+                                </video>
+                            </template>
+                            <button type="button" @click="newPost.mediaUrl = ''; newPost.mediaType = 'none'" class="absolute top-2 right-2 w-7 h-7 bg-rose-600/80 text-white rounded-full flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Or Image/Video URL:</label>
+                    <input type="text" x-model="newPost.mediaUrl" placeholder="https://example.com/banner.jpg" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                </div>
+            </div>
+
+            <button @click="publishPost()" class="w-full py-3 bg-gold-500 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg shadow-gold-500/20 hover:bg-gold-400 transition">
+                Publish Campaign Update to Bar Network
+            </button>
+        </div>
+    </div>
+
+    <!-- EDIT PROFILE MODAL -->
+    <div x-show="showProfileModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div @click.outside="showProfileModal = false" class="glass-panel max-w-md w-full rounded-2xl border border-slate-800 shadow-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-user-pen text-gold-400"></i> Edit Profile & Photo
+                </h3>
+                <button @click="showProfileModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="flex flex-col items-center justify-center gap-2.5 py-2">
+                <div class="relative group cursor-pointer" @click="$refs.avatarInput.click()">
+                    <img :src="user.avatar" class="w-24 h-24 rounded-full object-cover border-2 border-gold-500 shadow-xl group-hover:opacity-80 transition">
+                    <div class="absolute inset-0 bg-navy-950/70 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <i class="fa-solid fa-camera text-gold-400 text-xl mb-1"></i>
+                        <span class="text-[10px] text-white font-bold uppercase">Change</span>
+                    </div>
+                </div>
+                <input type="file" x-ref="avatarInput" @change="handleAvatarUpload($event)" accept="image/*" class="hidden">
+                <button type="button" @click="$refs.avatarInput.click()" class="text-xs text-gold-400 hover:underline font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-upload"></i> Choose Photo from Device
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Full Name:</label>
+                    <input type="text" x-model="user.name" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Email Address:</label>
+                    <input type="email" x-model="user.email" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                </div>
+            </div>
+
+            <button @click="showProfileModal = false; showToast('Profile details updated!', 'success')" class="w-full py-3 bg-gold-500 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:bg-gold-400 transition">
+                Save Changes
+            </button>
+        </div>
+    </div>
+
+    <!-- 2-STEP OTP & RESET PASSWORD MODAL -->
+    <div x-show="showOtpModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div @click.outside="closeOtpModal()" class="glass-panel max-w-sm w-full rounded-2xl border border-slate-800 shadow-2xl p-6 space-y-4">
+            
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-key"></i>
+                    </div>
+                    <h3 class="font-cinzel text-sm font-bold text-white">Reset Password</h3>
+                </div>
+                <button @click="closeOtpModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <template x-if="otpStep === 1">
+                <div class="space-y-4 text-center">
+                    <p class="text-xs text-slate-400">Enter your registered Pakistani mobile number to receive verification OTP code.</p>
+
+                    <div>
+                        <input type="text" x-model="resetForm.phone" placeholder="03XX-XXXXXXX" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-xs text-center text-white focus:outline-none focus:border-gold-500">
+                    </div>
+
+                    <button @click="sendOtpCode()" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl hover:from-gold-400 hover:to-amber-500 transition shadow-lg">
+                        Send OTP Code
+                    </button>
+                </div>
+            </template>
+
+            <template x-if="otpStep === 2">
+                <div class="space-y-3.5 text-left">
+                    <p class="text-xs text-slate-400 text-center">Verification code bhej diya gaya hai to <strong class="text-gold-400" x-text="resetForm.phone"></strong></p>
+
+                    <div>
+                        <label class="block text-slate-400 mb-1 text-[11px] font-semibold">Enter 4-Digit OTP Code:</label>
+                        <input type="text" x-model="resetForm.otp" maxlength="4" placeholder="1 2 3 4" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-xs text-center text-gold-400 tracking-[0.5em] font-black focus:outline-none focus:border-gold-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-400 mb-1 text-[11px] font-semibold">Enter New Password:</label>
+                        <input type="password" x-model="resetForm.newPassword" placeholder="••••••••" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-gold-500">
+                    </div>
+
+                    <button @click="verifyOtpAndReset()" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl hover:from-gold-400 hover:to-amber-500 transition uppercase tracking-wider shadow-lg">
+                        Update Password
+                    </button>
+
+                    <button @click="otpStep = 1" class="w-full text-center text-[11px] text-slate-400 hover:text-white pt-1">
+                        ← Change Phone Number
+                    </button>
+                </div>
+            </template>
+
+        </div>
+    </div>
+
+    <!-- FLOATING TOAST -->
+    <div x-show="toast.show" x-transition 
+         class="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-2xl border text-xs font-bold flex items-center gap-2"
+         :class="{
+             'bg-emerald-950 text-emerald-300 border-emerald-500/40': toast.type === 'success',
+             'bg-sapphire-950 text-sapphire-300 border-sapphire-500/40': toast.type === 'info',
+             'bg-rose-950 text-rose-300 border-rose-500/40': toast.type === 'error'
+         }">
+        <i class="fa-solid" :class="toast.type === 'success' ? 'fa-circle-check' : 'fa-circle-info'"></i>
+        <span x-text="toast.message"></span>
+    </div>
+
+    <!-- ================= ALPINE.JS LOGIC ================= -->
+    <script>
+        function lawNexaApp() {
+            return {
+                isLoggedIn: false,
+                authTab: 'login',
+                activeTab: 'advocates',
+                currentLocation: 'Lahore High Court Sector',
+                isRefreshingGps: false,
+                maxDistance: 15,
+                minExperience: 5,
+                aiTopMatchOnly: false,
+                selectedCategory: 'All',
+                searchQuery: '',
+                feedCategory: 'All',
+
+                loginForm: { role: 'lawyer', id: '', password: '' },
+                registerForm: { role: 'lawyer', name: '', phone: '', email: '', password: '', specialty: '', license: '', bar: '', exp: '' },
+
+                showProfileModal: false,
+                showOtpModal: false,
+                otpStep: 1,
+                resetForm: { phone: '', otp: '', newPassword: '' },
+
+                showAiAnalyzerModal: false,
+                aiCaseInput: '',
+                aiCaseImageUrl: '',
+                aiLanguage: 'roman_urdu',
+                isAnalyzing: false,
+                aiAnalysisResult: null,
+
+                showDocGeneratorModal: false,
+                docType: 'Rent Agreement',
+                docForm: { partyA: '', cnicA: '', partyB: '', cnicB: '', address: '' },
+                generatedDoc: false,
+
+                showVideoCallModal: false,
+                isMuted: false,
+                isVideoOff: false,
+                callTimer: '12:45',
+
+                showNewPostModal: false,
+                showChatModal: false,
+                showBookingModal: false,
+
+                activeChatAdvocate: null,
+                bookingAdvocate: null,
+
+                toast: { show: false, message: '', type: 'info' },
+
+                user: {
+                    name: 'Adv. Hammad Raza',
+                    email: 'hammad@barcouncil.pk',
+                    role: 'lawyer',
+                    designation: 'Supreme Court Advocate',
+                    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250'
+                },
+
+                poll: {
+                    question: 'Who is your preferred candidate for LHC Bar Association Elections 2026?',
+                    votedId: null,
+                    options: [
+                        { id: 1, text: 'Adv. Hammad Raza (Welfare Alliance)', votes: 342 },
+                        { id: 2, text: 'Adv. Mian Tariq (Independent Advocates)', votes: 210 }
+                    ]
+                },
+
+                newPost: { title: '', category: 'Bar Election Manifesto', content: '', mediaType: 'none', mediaUrl: '' },
+                bookingForm: { date: '', time: '', location: '', summary: '' },
+
+                chatInput: '',
+                chatMessages: [
+                    { id: 1, sender: 'advocate', text: 'Assalam-o-Alaikum! Case details share karein.', time: '10:14 AM' },
+                    { id: 2, sender: 'user', text: 'Walaikum Assalam. Consultation darkaar hai.', time: '10:15 AM' }
+                ],
+
+                categories: ['All', 'Criminal Law', 'Corporate & Tax', 'Constitutional', 'Family & Civil'],
+
+                advocates: [
+                    { id: 1, name: 'Adv. Hammad Raza', specialty: 'Criminal Law', barAssociation: 'Lahore High Court Bar', experience: 14, fee: 15000, rating: 4.9, casesWon: 120, distance: 3.2, aiScore: 96, avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250' },
+                    { id: 2, name: 'Adv. Sara Chaudhry', specialty: 'Corporate & Tax', barAssociation: 'Karachi High Court Bar', experience: 11, fee: 12000, rating: 4.8, casesWon: 85, distance: 5.8, aiScore: 91, avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=250' },
+                    { id: 3, name: 'Adv. Mian Tariq Mahmood', specialty: 'Constitutional', barAssociation: 'Supreme Court Bar Association', experience: 22, fee: 25000, rating: 5.0, casesWon: 240, distance: 8.1, aiScore: 89, avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=250' }
+                ],
+
+                posts: [
+                    {
+                        id: 1, author: 'Adv. Hammad Raza', authorRole: 'Candidate for LHC Bar President 2026', authorAvatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250',
+                        verified: true, category: 'Bar Election Manifesto', timestamp: '1 hour ago', title: '🗳️ Lahore High Court Bar Elections 2026 - Official Campaign Speech',
+                        content: 'Dear Learned Advocates, my 5-Point Manifesto for Bar Welfare, Free Medical Insurance & Digital Legal Libraries is attached below. Watch our speech reel.',
+                        mediaType: 'image', mediaUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=800',
+                        likes: 124, liked: true, showComments: false,
+                        comments: [{ id: 1, user: 'Adv. Sara Chaudhry', text: 'Full support for learned colleague!', time: '30 mins ago' }], newCommentText: ''
+                    }
+                ],
+
+                myBookings: [
+                    { id: 101, clientName: 'Kamran Akram', category: 'Criminal Law Inquiry', summary: 'Bail application advisory regarding tax evasion notice.', date: '2026-10-24', time: '11:00 AM', location: 'High Court Chamber #12', status: 'Pending' }
+                ],
+
+                get filteredAdvocates() {
+                    return this.advocates.filter(a => {
+                        const matchCat = this.selectedCategory === 'All' || a.specialty === this.selectedCategory;
+                        const matchSearch = !this.searchQuery || a.name.toLowerCase().includes(this.searchQuery.toLowerCase()) || a.specialty.toLowerCase().includes(this.searchQuery.toLowerCase());
+                        return matchCat && matchSearch && a.distance <= this.maxDistance && a.experience >= this.minExperience && (!this.aiTopMatchOnly || a.aiScore >= 88);
+                    });
+                },
+
+                get filteredPosts() {
+                    return this.posts.filter(p => this.feedCategory === 'All' || p.category === this.feedCategory);
+                },
+
+                handleFirImageUpload(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.aiCaseImageUrl = e.target.result;
+                            this.showToast('FIR Document photo uploaded! Ready for AI scan.', 'success');
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                },
+
+                runAiAnalysis() {
+                    if (!this.aiCaseInput.trim() && !this.aiCaseImageUrl) {
+                        this.showToast('FIR Text enter karein ya FIR Image upload karein!', 'error');
+                        return;
+                    }
+                    this.isAnalyzing = true;
+                    
+                    setTimeout(() => {
+                        this.isAnalyzing = false;
+
+                        let summaryText = '';
+                        let recText = '';
+
+                        if (this.aiLanguage === 'roman_urdu') {
+                            summaryText = 'Is FIR me amanat me khiyanat, maali default aur jaalsaazi ke ilzamaat shaamil hain.';
+                            recText = 'Sessions Court me immediate Pre-Arrest Bail Application (Zamanat Qabl az Giraftari) dakhil karein.';
+                        } else if (this.aiLanguage === 'urdu') {
+                            summaryText = 'یہ ایف آئی آر امانت میں خیانت، مالی فراڈ اور جعل سازی کے الزامات کے متعلق ہے۔';
+                            recText = 'فوری طور پر سیشن کورٹ میں ضمانت قبل از گرفتاری کی درخواست دائر کریں۔';
+                        } else {
+                            summaryText = 'This FIR involves alleged criminal breach of trust, financial default, and fraud.';
+                            recText = 'Immediately file Pre-Arrest Bail Application in Sessions Court.';
+                        }
+
+                        this.aiAnalysisResult = {
+                            summary: summaryText,
+                            sections: ['PPC 406 (Breach of Trust)', 'PPC 420 (Cheating/Fraud)', 'CrPC Section 497 (Bail)'],
+                            recommendation: recText
+                        };
+
+                        this.showToast(`AI Legal Report Generated in ${this.aiLanguage.toUpperCase()}!`, 'success');
+                    }, 1500);
+                },
+
+                generateDocument() {
+                    if (!this.docForm.partyA || !this.docForm.partyB) {
+                        this.showToast('Parties information fill karein', 'error');
+                        return;
+                    }
+                    this.generatedDoc = true;
+                    this.showToast('Document draft created!', 'success');
+                },
+
+                castPollVote(opt) {
+                    if (this.poll.votedId) {
+                        this.showToast('Aap vote pehle hi cast kar chuke hain!', 'info');
+                        return;
+                    }
+                    opt.votes++;
+                    this.poll.votedId = opt.id;
+                    this.showToast('Vote casted successfully!', 'success');
+                },
+
+                openVideoCallModal(adv) {
+                    this.activeChatAdvocate = adv;
+                    this.showVideoCallModal = true;
+                },
+
+                sendVoiceNote() {
+                    this.chatMessages.push({ id: Date.now(), sender: 'user', text: '🎙️ Voice Note (0:18s) - Listen Confidential Audio', time: 'Just now' });
+                    this.showToast('Voice note sent!', 'success');
+                },
+
+                openOtpModal() {
+                    this.resetForm = { phone: this.loginForm.id || '', otp: '', newPassword: '' };
+                    this.otpStep = 1;
+                    this.showOtpModal = true;
+                },
+
+                closeOtpModal() {
+                    this.showOtpModal = false;
+                    this.otpStep = 1;
+                },
+
+                sendOtpCode() {
+                    if (!this.resetForm.phone.trim()) {
+                        this.showToast('Phone number enter karein!', 'error');
+                        return;
+                    }
+                    this.otpStep = 2;
+                    this.showToast('OTP Code SMS ke zariye bhej diya gaya hai!', 'info');
+                },
+
+                verifyOtpAndReset() {
+                    if (!this.resetForm.otp.trim() || !this.resetForm.newPassword.trim()) {
+                        this.showToast('OTP code aur Naya Password fill karein!', 'error');
+                        return;
+                    }
+                    this.showOtpModal = false;
+                    this.otpStep = 1;
+                    this.resetForm = { phone: '', otp: '', newPassword: '' };
+                    this.showToast('Password kamyabi se update ho gaya! Ab Naye Password se Sign In karein.', 'success');
+                },
+
+                handleAvatarUpload(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.user.avatar = e.target.result;
+                            this.showToast('Profile photo updated!', 'success');
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                },
+
+                handlePostMediaUpload(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.newPost.mediaUrl = e.target.result;
+                            this.newPost.mediaType = file.type.startsWith('video/') ? 'video' : 'image';
+                            this.showToast(`${this.newPost.mediaType.toUpperCase()} file attached!`, 'success');
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                },
+
+                handleLogin() {
+                    if (!this.loginForm.id || !this.loginForm.password) {
+                        this.showToast('Credentials enter karein!', 'error');
+                        return;
+                    }
+                    this.user.role = this.loginForm.role;
+                    this.user.name = this.loginForm.role === 'lawyer' ? 'Adv. Hammad Raza' : 'Usman Client';
+                    this.user.designation = this.loginForm.role === 'lawyer' ? 'Candidate LHC Bar 2026' : 'Verified Client';
+                    this.user.avatar = this.loginForm.role === 'lawyer' 
+                        ? 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250'
+                        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250';
+                    this.resetDefaultTab();
+                    this.isLoggedIn = true;
+                    this.showToast(`Logged in to ${this.loginForm.role.toUpperCase()} Portal!`, 'success');
+                },
+
+                handleRegister() {
+                    if (!this.registerForm.name || !this.registerForm.phone || !this.registerForm.password) {
+                        this.showToast('Required fields fill karein!', 'error');
+                        return;
+                    }
+                    this.user.role = this.registerForm.role;
+                    this.user.name = this.registerForm.name;
+                    this.user.email = this.registerForm.email || 'user@bar.pk';
+                    this.user.designation = this.registerForm.role === 'lawyer' ? 'High Court Advocate' : 'Registered Client';
+                    this.resetDefaultTab();
+                    this.isLoggedIn = true;
+                    this.showToast('Account registered successfully!', 'success');
+                },
+
+                resetDefaultTab() {
+                    this.activeTab = this.user.role === 'lawyer' ? 'bookings' : 'advocates';
+                },
+
+                logout() {
+                    this.isLoggedIn = false;
+                    this.showToast('Logged out', 'info');
+                },
+
+                triggerGpsRefresh() {
+                    this.isRefreshingGps = true;
+                    setTimeout(() => {
+                        this.isRefreshingGps = false;
+                        this.currentLocation = 'Lahore High Court (Block B Active)';
+                        this.showToast('GPS Location Refreshed', 'success');
+                    }, 1200);
+                },
+
+                showToast(msg, type = 'info') {
+                    this.toast.message = msg;
+                    this.toast.type = type;
+                    this.toast.show = true;
+                    setTimeout(() => { this.toast.show = false; }, 3000);
+                },
+
+                toggleLike(post) {
+                    post.liked = !post.liked;
+                    post.likes += post.liked ? 1 : -1;
+                },
+
+                addComment(post) {
+                    if (!post.newCommentText.trim()) return;
+                    post.comments.push({ id: Date.now(), user: this.user.name, text: post.newCommentText, time: 'Just now' });
+                    post.newCommentText = '';
+                    this.showToast('Comment posted', 'success');
+                },
+
+                publishPost() {
+                    if (!this.newPost.title || !this.newPost.content) {
+                        this.showToast('Title aur details fill karein', 'error');
+                        return;
+                    }
+                    this.posts.unshift({
+                        id: Date.now(), author: this.user.name, authorRole: this.user.designation, authorAvatar: this.user.avatar,
+                        verified: true, category: this.newPost.category, timestamp: 'Just now', title: this.newPost.title,
+                        content: this.newPost.content, mediaType: this.newPost.mediaUrl ? (this.newPost.mediaType || 'image') : 'none',
+                        mediaUrl: this.newPost.mediaUrl, likes: 0, liked: false, showComments: false, comments: [], newCommentText: ''
+                    });
+                    this.newPost.title = ''; this.newPost.content = ''; this.newPost.mediaUrl = ''; this.newPost.mediaType = 'none';
+                    this.showNewPostModal = false;
+                    this.activeTab = 'feed';
+                    this.showToast('Campaign Post & Reel Broadcasted to Bar Network!', 'success');
+                },
+
+                openChatModal(adv) {
+                    this.activeChatAdvocate = adv;
+                    this.showChatModal = true;
+                },
+
+                sendChatMessage() {
+                    if (!this.chatInput.trim()) return;
+                    this.chatMessages.push({ id: Date.now(), sender: 'user', text: this.chatInput, time: 'Just now' });
+                    this.chatInput = '';
+                },
+
+                openBookingModal(adv) {
+                    this.bookingAdvocate = adv;
+                    this.showBookingModal = true;
+                },
+
+                confirmBooking() {
+                    if (!this.bookingForm.date || !this.bookingForm.time || !this.bookingForm.summary) {
+                        this.showToast('Date, Time aur summary fill karein', 'error');
+                        return;
+                    }
+                    this.myBookings.unshift({
+                        id: Date.now(), 
+                        clientName: this.user.name, 
+                        category: this.bookingAdvocate?.specialty || 'General Counsel',
+                        summary: this.bookingForm.summary, 
+                        date: this.bookingForm.date, 
+                        time: this.bookingForm.time,
+                        location: this.bookingForm.location || 'High Court Chamber / Online', 
+                        status: 'Pending'
+                    });
+                    this.bookingForm = { date: '', time: '', location: '', summary: '' };
+                    this.showBookingModal = false;
+                    this.activeTab = 'bookings';
+                    this.showToast('Consultation request submitted!', 'success');
+                },
+
+                respondBooking(booking, status) {
+                    booking.status = status;
+                    this.showToast(`Request ${status}`, status === 'Accepted' ? 'success' : 'error');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
