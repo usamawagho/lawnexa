@@ -619,7 +619,7 @@ def approve_lawyer(
     lawyer.is_approved = True
     db.commit()
     return {"message": f"Advocate {lawyer.name} has been approved successfully!"}
-    # PUBLIC ENDPOINT: DIRECT LAWYER REGISTRATION
+    # ================= PUBLIC LAWYER SELF-REGISTRATION =================
 @app.post("/api/v1/auth/register-lawyer")
 def register_lawyer_direct(
     full_name: str = Form(...),
@@ -638,11 +638,9 @@ def register_lawyer_direct(
             detail="Password 8-10 characters ka hona chahiye jisme Uppercase, Lowercase aur Numbers shamil hon!"
         )
 
-    # Output to Render Server Logs
+    # Render Server Logs par output print hoga
     print(f"🎉 DIRECT LAWYER REGISTERED: {full_name} | License: {license_no} | Phone: {phone}")
 
-    # Yahan Database mein User/Lawyer Save hoga (Role = "lawyer")
-    
     return {
         "status": "success",
         "message": f"Advocate {full_name}, aapka account kamyabi se ban gaya hai!"
