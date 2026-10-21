@@ -213,7 +213,7 @@
     <!-- ================= 2. MAIN DASHBOARD ================= -->
     <div x-show="isLoggedIn" x-transition:enter="transition ease-out duration-300" class="flex-1 flex flex-col justify-between">
         
-        <!-- HEADER -->
+        <!-- HEADER (CLEAN HEADER WITHOUT OVERFLOW) -->
         <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80 px-3 sm:px-6 py-3">
             <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
                 
@@ -231,20 +231,15 @@
                     </div>
                 </div>
 
-                <!-- INTEGRATED LEGAL TOOLS MENU BAR (CLEAR & ATTRACTIVE FRONT MENU) -->
-                <div class="flex items-center gap-1.5 bg-navy-950/90 p-1.5 rounded-2xl border border-purple-500/30 shadow-lg">
-                    <button @click="showAiAnalyzerModal = true" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[11px] font-extrabold transition shadow-md flex items-center gap-1.5 hover:brightness-110">
-                        <i class="fa-solid fa-brain text-gold-400"></i>
-                        <span>AI FIR Analyzer</span>
-                    </button>
-
-                    <button @click="showDocGeneratorModal = true" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[11px] font-extrabold transition shadow-md flex items-center gap-1.5 hover:brightness-110">
-                        <i class="fa-solid fa-file-signature text-gold-400"></i>
-                        <span>Doc Generator</span>
-                    </button>
+                <div class="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-xs font-medium text-slate-300">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span>GPS: <strong class="text-white" x-text="currentLocation">Lahore High Court</strong></span>
                 </div>
 
-                <!-- RIGHT CONTROLS -->
+                <!-- RIGHT CONTROLS & HAMBURGER BUTTON -->
                 <div class="flex items-center gap-2">
                     <template x-if="user.role === 'lawyer'">
                         <button @click="showNewPostModal = true" class="hidden md:flex px-3 py-1.5 rounded-xl bg-sapphire-600 hover:bg-sapphire-500 text-white text-[11px] font-bold transition items-center gap-1.5 shadow-lg">
@@ -268,23 +263,26 @@
             </div>
         </header>
 
-        <!-- MOBILE SLIDE-OUT MENU DRAWER -->
+        <!-- MOBILE SLIDE-OUT MENU DRAWER (ALL LEGAL TOOLS & NAVIGATION ADDED HERE) -->
         <div x-show="mobileMenuOpen" 
              x-transition:enter="transition ease-out duration-200"
              x-transition:leave="transition ease-in duration-150"
              @click.outside="mobileMenuOpen = false" 
              class="md:hidden glass-panel border-b border-slate-800 p-4 sticky top-[61px] z-30 space-y-3">
             
-            <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Quick Actions & Navigation</p>
+            <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">AI Legal Tools & Services</p>
             
+            <!-- Quick Feature Actions in Drawer -->
             <div class="grid grid-cols-2 gap-2 pb-2 border-b border-slate-800">
-                <button @click="showAiAnalyzerModal = true; mobileMenuOpen = false" class="py-2.5 px-3 rounded-xl bg-purple-900/50 border border-purple-500/40 text-purple-300 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md">
+                <button @click="showAiAnalyzerModal = true; mobileMenuOpen = false" class="py-2.5 px-3 rounded-xl bg-purple-900/50 border border-purple-500/40 text-purple-300 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md hover:brightness-110">
                     <i class="fa-solid fa-brain text-purple-400"></i> AI FIR Analyzer
                 </button>
-                <button @click="showDocGeneratorModal = true; mobileMenuOpen = false" class="py-2.5 px-3 rounded-xl bg-indigo-900/50 border border-indigo-500/40 text-gold-400 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md">
+                <button @click="showDocGeneratorModal = true; mobileMenuOpen = false" class="py-2.5 px-3 rounded-xl bg-indigo-900/50 border border-indigo-500/40 text-gold-400 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md hover:brightness-110">
                     <i class="fa-solid fa-file-signature text-gold-400"></i> Doc Generator
                 </button>
             </div>
+
+            <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider pt-1">Main Navigation</p>
 
             <div class="space-y-1.5">
                 <template x-if="user.role === 'lawyer'">
@@ -342,7 +340,7 @@
             </div>
         </div>
 
-        <!-- DESKTOP NAVIGATION TABS -->
+        <!-- DESKTOP NAVIGATION TABS (WITH QUICK TOOLS INCLUDED) -->
         <nav class="hidden md:block bg-navy-900/90 border-b border-slate-800/80 sticky top-[61px] z-30 backdrop-blur-md">
             <div class="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4">
                 <div x-show="user.role === 'lawyer'" class="flex items-center space-x-2 py-2">
@@ -380,6 +378,16 @@
                             :class="activeTab === 'bookings' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
                         <span>📅 My Consultation Bookings</span>
                         <span x-text="myBookings.length" class="ml-1 px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-300"></span>
+                    </button>
+                </div>
+
+                <!-- DESKTOP QUICK TOOLS BUTTONS -->
+                <div class="flex items-center gap-2">
+                    <button @click="showAiAnalyzerModal = true" class="px-3 py-1.5 rounded-xl bg-purple-900/40 border border-purple-500/40 text-purple-300 font-extrabold text-xs flex items-center gap-1.5 hover:bg-purple-900/60 transition">
+                        <i class="fa-solid fa-brain text-purple-400"></i> AI FIR Analyzer
+                    </button>
+                    <button @click="showDocGeneratorModal = true" class="px-3 py-1.5 rounded-xl bg-indigo-900/40 border border-indigo-500/40 text-gold-400 font-extrabold text-xs flex items-center gap-1.5 hover:bg-indigo-900/60 transition">
+                        <i class="fa-solid fa-file-signature text-gold-400"></i> Doc Generator
                     </button>
                 </div>
             </div>
@@ -565,7 +573,7 @@
 
     <!-- ================= MODALS ================= -->
 
-    <!-- SMART LEGAL DOCUMENT GENERATOR MODAL (AI FIR THEME MATCHED & DYNAMIC PER DOC TYPE) -->
+    <!-- SMART LEGAL DOCUMENT GENERATOR MODAL -->
     <div x-show="showDocGeneratorModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
         <div @click.outside="showDocGeneratorModal = false" class="glass-panel max-w-xl w-full rounded-2xl border border-purple-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar purple-glow">
             
