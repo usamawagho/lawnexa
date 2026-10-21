@@ -239,7 +239,7 @@
                     <span>GPS: <strong class="text-white" x-text="currentLocation">Lahore High Court</strong></span>
                 </div>
 
-                <!-- RIGHT CONTROLS: PROFILE BUTTON ON LEFT & LOGOUT ON RIGHT -->
+                <!-- RIGHT CONTROLS: PROFILE BUTTON ON LEFT & LOGOUT ON FAR RIGHT -->
                 <div class="flex items-center gap-2">
                     <template x-if="user.role === 'lawyer'">
                         <button @click="showNewPostModal = true" class="hidden md:flex px-3 py-1.5 rounded-xl bg-sapphire-600 hover:bg-sapphire-500 text-white text-[11px] font-bold transition items-center gap-1.5 shadow-lg">
@@ -248,14 +248,14 @@
                         </button>
                     </template>
 
-                    <!-- PROFILE UPDATE BUTTON (LEFT POSITION) -->
+                    <!-- PROFILE EDIT BUTTON (LEFT POSITION IN RIGHT CONTROLS) -->
                     <button @click="openProfileModal()" class="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-white transition shadow-md">
                         <img :src="user.avatar" class="w-6 h-6 rounded-full object-cover border border-gold-500">
                         <span class="hidden sm:inline" x-text="user.name"></span>
                         <i class="fa-solid fa-user-pen text-gold-400 text-[10px]"></i>
                     </button>
 
-                    <!-- LOGOUT BUTTON (FAR RIGHT POSITION) -->
+                    <!-- LOGOUT BUTTON (FAR RIGHT SHIFTED) -->
                     <button @click="logout()" class="p-2.5 sm:px-3 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-400 text-xs font-bold hover:bg-rose-900/50 transition flex items-center gap-1" title="Sign Out">
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
@@ -269,7 +269,7 @@
             </div>
         </header>
 
-        <!-- MOBILE SLIDE-OUT MENU DRAWER -->
+        <!-- MOBILE SLIDE-OUT MENU DRAWER (CLEAN MAIN NAVIGATION) -->
         <div x-show="mobileMenuOpen" 
              x-transition:enter="transition ease-out duration-200"
              x-transition:leave="transition ease-in duration-150"
@@ -290,12 +290,6 @@
             <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider pt-1">Main Navigation</p>
 
             <div class="space-y-1.5">
-                <button @click="openProfileModal(); mobileMenuOpen = false" 
-                        class="w-full p-2.5 rounded-xl text-left text-xs font-extrabold bg-slate-800 text-gold-400 flex items-center justify-between border border-slate-700">
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-user-pen"></i> Edit Profile & Practice Data</span>
-                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                </button>
-
                 <template x-if="user.role === 'lawyer'">
                     <div class="space-y-1.5">
                         <button @click="showNewPostModal = true; mobileMenuOpen = false" 
@@ -628,7 +622,7 @@
 
     <!-- ================= MODALS ================= -->
 
-    <!-- PROFILE UPDATE MODAL (LAWYER & CLIENT DATA EDITING) -->
+    <!-- PROFILE UPDATE MODAL (WITH DIRECT FILE PHOTO UPLOAD) -->
     <div x-show="showProfileModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
         <div @click.outside="showProfileModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-gold-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar gold-glow">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -639,12 +633,15 @@
             </div>
 
             <form @submit.prevent="updateProfile()" class="space-y-3.5 text-xs">
-                <!-- Avatar Preview & Image URL -->
+                <!-- AVATAR PREVIEW & DIRECT FILE PHOTO UPLOAD -->
                 <div class="flex items-center gap-3 p-3 bg-navy-950/80 rounded-xl border border-slate-800">
                     <img :src="profileForm.avatar || user.avatar" class="w-14 h-14 rounded-2xl object-cover border-2 border-gold-500 shrink-0">
                     <div class="flex-1 space-y-1">
-                        <label class="block text-[10px] uppercase font-bold text-slate-400">Profile Photo Image URL:</label>
-                        <input type="url" x-model="profileForm.avatar" placeholder="https://images.unsplash.com/photo-..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-gold-500">
+                        <label class="block text-[10px] uppercase font-bold text-slate-400">Profile Photo Upload:</label>
+                        <button type="button" @click="$refs.profileImageInput.click()" class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-camera text-gold-400"></i> Upload Photo / Take Picture
+                        </button>
+                        <input type="file" x-ref="profileImageInput" @change="handleProfileImageUpload($event)" accept="image/*" class="hidden">
                     </div>
                 </div>
 
@@ -1162,6 +1159,19 @@
                         const matchSearch = !this.searchQuery || a.name.toLowerCase().includes(this.searchQuery.toLowerCase());
                         return matchCat && matchSearch;
                     });
+                },
+
+                // HANDLE DIRECT FILE PHOTO UPLOAD FOR PROFILE
+                handleProfileImageUpload(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.profileForm.avatar = e.target.result;
+                            this.showToast('New profile photo attached!', 'success');
+                        };
+                        reader.readAsDataURL(file);
+                    }
                 },
 
                 // OPEN PROFILE EDIT MODAL WITH PRE-FILLED DATA
