@@ -287,35 +287,55 @@ def get_current_admin(current_user: UserDB = Depends(get_current_user)) -> UserD
 
 
 # ================= AUTHENTICATION ENDPOINTS =================
+# ================= COMPLETE & CRASH-PROOF REGISTRATION ENDPOINT =================
 @app.post("/api/v1/auth/register")
 def register_user(
     name: str = Form(...),
-    phone: str = Form(...),
     email: str = Form(...),
+    phone: str = Form(...),
     password: str = Form(...),
-    role: str = Form("client"),
+    role: str = Form("lawyer"),
     specialty: Optional[str] = Form(None),
     license: Optional[str] = Form(None),
     bar: Optional[str] = Form(None),
-    exp: Optional[int] = Form(None),
+    exp: Optional[str] = Form(None),
     city: Optional[str] = Form(None),
     area: Optional[str] = Form(None),
     chamberAddress: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
-    validate_password_complexity(password)
+    # Password Length Check (8-10 Characters)
+    if len(password) < 8 or len(password) > 10:
+        raise HTTPException(status_code=400, detail="Password 8-10 characters ka hona zaroori hai!")
 
-    existing_user = db.query(UserDB).filter(
-        (UserDB.phone == phone) | (UserDB.email == email)
-    ).first()
+    # Check if Email or Phone already exists
+    existing_user = db.query(User).filter((User.email == email) | (User.phone == phone)).first()
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Yeh Phone Number ya Email pehle se registered hai!"
-        )
+        raise HTTPException(status_code=400, detail="Yeh Email ya Phone pehle se registered hai!")
 
-    is_approved = True if role == "client" else False
+    # Hash Password & Create User
+    hashed_pwd = pwd_context.hash(password)
+    
+    new_user = User(
+        full_name=name,
+        email=email,
+        phone=phone,
+        hashed_password=hashed_pwd,
+        role=role,
+        is_approved=True,  # Direct Active without admin approval
+        is_active=True
+    )
 
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    print(f"🎉 USER REGISTERED SUCCESSFULLY: {name} ({role})")
+
+    return {
+        "status": "success",
+        "message": f"Account successfully ban gaya hai! Ab naye password se login karein."
+    }
     new_user = User(
     full_name=name,
     email=email,
