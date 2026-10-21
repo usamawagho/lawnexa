@@ -1157,7 +1157,7 @@
         <i class="fa-solid fa-circle-info"></i>
         <span x-text="toast.message"></span>
     </div>
- <!-- ================= ALPINE.JS LOGIC ================= -->
+<!-- ================= ALPINE.JS LOGIC ================= -->
 <script>
     const API_BASE = 'https://lawnexa.onrender.com';
 
@@ -1194,7 +1194,7 @@
             loginForm: { role: 'lawyer', id: '', password: '' },
             registerForm: { role: 'lawyer', name: '', phone: '', email: '', password: '', city: 'Karachi', area: 'Saddar / City Court', courts: ['High Court', 'District & Sessions Court'], chamberAddress: '', specialty: '', license: '', bar: '', exp: '' },
 
-            // STEP 3: FORGOT PASSWORD & OTP STATES
+            // FORGOT PASSWORD & OTP STATES
             showForgotModal: false,
             otpSent: false,
             forgotForm: { id: '', otp: '', newPassword: '' },
@@ -1342,7 +1342,7 @@
                 }
             },
 
-            // STEP 3: OTP FUNCTIONS
+            // OTP FUNCTIONS
             async sendOtp() {
                 if (!this.forgotForm.id.trim()) {
                     alert('Pehle Phone ya Email enter karein!');
@@ -1653,8 +1653,9 @@
             }
         };
     }
-</script>}
-    <!-- LAWYER REGISTRATION MODAL -->
+</script>
+
+<!-- LAWYER REGISTRATION MODAL -->
 <div id="lawyerModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center;">
   <div style="background:#0F172A; color:#FFF; padding:25px; border-radius:12px; width:90%; max-width:500px; border:1px solid #C5A880;">
     <h2 style="color:#C5A880; font-size:20px; font-weight:bold; margin-bottom:15px;">Wakeel Account Registration</h2>
@@ -1687,15 +1688,20 @@
 </div>
 
 <script>
-// Open Modal Function (Is function ko apne "Register as Lawyer" button par lagayein)
 function openLawyerRegistrationModal() {
   document.getElementById('lawyerModal').style.display = 'flex';
 }
 
-// Submit Form to Render Backend
 async function handleLawyerSubmit(event) {
   event.preventDefault();
   const formData = new FormData(event.target);
+  const pwd = formData.get('password') || '';
+
+  // Client-side 8-10 Password check
+  if (pwd.length < 8 || pwd.length > 10) {
+    alert("❌ Password kam se kam 8 aur ziada se ziada 10 characters ka hona zaroori hai!");
+    return;
+  }
 
   try {
     const response = await fetch('https://lawnexa.onrender.com/api/v1/auth/register-lawyer', {
@@ -1706,7 +1712,7 @@ async function handleLawyerSubmit(event) {
     const result = await response.json();
 
     if (response.ok) {
-      alert("✅ " + result.message);
+      alert("✅ " + (result.message || "Account successfully register ho gaya!"));
       document.getElementById('lawyerModal').style.display = 'none';
       event.target.reset();
     } else {
@@ -1717,5 +1723,3 @@ async function handleLawyerSubmit(event) {
   }
 }
 </script>
-</body>
-</html>
