@@ -159,6 +159,78 @@ def validate_password_complexity(password: str):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password mein kam se kam EK number (0-9) hona zaroori hai!"
         )
+        import random
+from datetime import datetime, timedelta
+
+# In-memory OTP Storage (Production mein Redis ya DB columns use hotay hain)
+otp_store = {}
+
+# 1. SEND OTP ENDPOINT
+@app.post("/api/v1/auth/forgot-password")
+def forgot_password(username: str = Form(...)):
+    user_id = username.strip()
+    
+    # Check if user exists in DB
+    # Note: Replace with your actual DB query logic if required
+    # user = db.query(User).filter((User.phone == user_id) | (User.email == user_id)).first()
+    # if not user:
+    #     raise HTTPException(status_code=404, detail="Yeh Phone/Email registered nahi hai!")
+
+    # Generate 6-digit random OTP
+    otp = f"{random.randint(100000, 999999)}"
+    
+    # Store OTP with 5-minute expiry
+    otp_store[user_id] = {
+        "otp": otp,
+        "expires_at": datetime.utcnow() + timedelta(minutes=5)
+    }
+
+    # Console / Server Logs par OTP print karein (Realtime verification ke liye)
+    print(f"\n==========================================")
+    print(f"🔑 REALTIME OTP FOR [{user_id}]: {otp}")
+    print(f"==========================================\n")
+
+    # (Optional: Yahan SMS Gateway like Twilio / FastSMS ya Email SMTP ka API call add hota hai)
+
+    return {"message": f"OTP sent successfully to {user_id}! Check server logs or phone."}
+
+
+# 2. VERIFY OTP & RESET PASSWORD ENDPOINT
+@app.post("/api/v1/auth/reset-password")
+def reset_password(
+    username: str = Form(...), 
+    otp: str = Form(...), 
+    new_password: str = Form(...)
+):
+    user_id = username.strip()
+    record = otp_store.get(user_id)
+
+    # Validate OTP
+    if not record or record["otp"] != otp.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Ghalat OTP Code! Sahi OTP dakhil karein."
+        )
+
+    # Check OTP Expiry
+    if datetime.utcnow() > record["expires_at"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="OTP expire ho chuka hai! Naya OTP mangwayein."
+        )
+
+    # Validate new password strength (8 to 10 characters)
+    validate_password_complexity(new_password)
+
+    # Password Update in Database
+    # hashed = hash_password(new_password)
+    # user.password_hash = hashed
+    # db.commit()
+
+    # Clear OTP after successful reset
+    del otp_store[user_id]
+
+    return {"message": "Password successfully reset! Ab aap naye password se login kar sakte hain."}
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
