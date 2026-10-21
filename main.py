@@ -1,5 +1,6 @@
 import os
 import re
+import random  # <-- YEH MISSING THA! Isko add kar diya hai
 from datetime import datetime, timedelta
 from typing import Optional, List
 
@@ -13,6 +14,19 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 import google.generativeai as genai
 
+app = FastAPI(title="LawNexa API")
+
+# Enable CORS for Vercel Frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Global OTP Store (In-Memory)
+otp_store = {}
 # ================= CONFIGURATION & DATABASE =================
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./lawnexa.db")
 
