@@ -271,7 +271,7 @@
                     <template x-if="user.role === 'lawyer'">
                         <button @click="showNewPostModal = true" class="hidden md:flex px-3 py-1.5 rounded-xl bg-sapphire-600 hover:bg-sapphire-500 text-white text-[11px] font-bold transition items-center gap-1.5 shadow-lg">
                             <i class="fa-solid fa-bullhorn text-gold-400"></i>
-                            <span>Campaign Post</span>
+                            <span>Create Campaign Post</span>
                         </button>
                     </template>
 
@@ -322,7 +322,7 @@
                         <button @click="showNewPostModal = true; mobileMenuOpen = false" 
                                 class="w-full p-2.5 rounded-xl text-left text-xs font-extrabold bg-gradient-to-r from-sapphire-600 to-indigo-600 text-white flex items-center gap-2 shadow-md">
                             <i class="fa-solid fa-bullhorn text-gold-400"></i>
-                            <span>📢 Create Campaign Post / Manifesto</span>
+                            <span>📢 Create Campaign or Legal Post</span>
                         </button>
                         <button @click="activeTab = 'bookings'; mobileMenuOpen = false" 
                                 class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between"
@@ -621,13 +621,21 @@
                             <div>
                                 <h3 class="font-cinzel text-base font-bold text-white mb-1" x-text="post.title"></h3>
                                 <p class="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line" x-text="post.content"></p>
+
+                                <!-- OPTIONAL ATTACHED MEDIA DISPLAY -->
+                                <template x-if="post.mediaUrl && post.mediaType === 'image'">
+                                    <img :src="post.mediaUrl" class="w-full max-h-80 object-cover rounded-xl mt-3 border border-slate-800">
+                                </template>
+                                <template x-if="post.mediaUrl && post.mediaType === 'video'">
+                                    <video :src="post.mediaUrl" controls class="w-full max-h-80 rounded-xl mt-3 border border-slate-800"></video>
+                                </template>
                             </div>
 
                             <div class="flex items-center justify-between pt-3 border-t border-slate-800 text-xs font-medium text-slate-400">
                                 <button @click="toggleLike(post)" class="flex items-center gap-1.5 hover:text-rose-400" :class="post.liked ? 'text-rose-500 font-bold' : ''">
                                     <i class="fa-solid fa-heart"></i> <span x-text="post.likes"></span>
                                 </button>
-                                <button @click="showToast('Campaign Post link copied!', 'success')" class="hover:text-white">
+                                <button @click="showToast('Post link copied!', 'success')" class="hover:text-white">
                                     <i class="fa-solid fa-share-nodes mr-1"></i> Share
                                 </button>
                             </div>
@@ -692,14 +700,64 @@
         <!-- FOOTER -->
         <footer class="glass-panel border-t border-slate-800/80 py-4 px-4 mt-8">
             <div class="max-w-7xl mx-auto text-center text-[11px] text-slate-500">
-                <p>© 2026 LawNexa Bar Network. Dynamic Document Engine & FIR Scanner Core Active.</p>
+                <p>© 2026 LawNexa Bar Network. Campaign Posts & Legal Judgments Engine Active.</p>
             </div>
         </footer>
     </div>
 
     <!-- ================= MODALS ================= -->
 
-    <!-- 1. FULL WORKING AI FIR & CASE ANALYZER MODAL (WITH FILE & IMAGE UPLOAD) -->
+    <!-- CREATE NEW CAMPAIGN / LEGAL POST MODAL (FULLY FUNCTIONAL WITH IMAGE/VIDEO OPTION) -->
+    <div x-show="showNewPostModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+        <div @click.outside="showNewPostModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-gold-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar gold-glow">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-bullhorn text-gold-400"></i> Create Campaign or Legal Post
+                </h3>
+                <button @click="showNewPostModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form @submit.prevent="createPost()" class="space-y-3.5 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Post Category *</label>
+                    <select x-model="newPostForm.category" required class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-gold-400 font-bold focus:outline-none focus:border-gold-500">
+                        <option value="Election Campaign / Manifesto">📢 Election Campaign / Manifesto</option>
+                        <option value="Legal Judgment">⚖️ High Court / Supreme Court Judgment</option>
+                        <option value="Bar Association Orders">🏛️ Bar Association Orders & Circulars</option>
+                        <option value="Legal Insight & Analysis">💡 General Legal Insight & Analysis</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Post Title *</label>
+                    <input type="text" x-model="newPostForm.title" required placeholder="Title e.g. Important High Court Order / Manifesto Point..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Post Description / Content *</label>
+                    <textarea x-model="newPostForm.content" required rows="4" placeholder="Write full campaign manifesto, judgment summary, or bar order details..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-gold-500"></textarea>
+                </div>
+
+                <!-- MEDIA ATTACHMENT (OPTIONAL IMAGE / VIDEO) -->
+                <div class="p-3 bg-navy-950/80 rounded-xl border border-slate-800 space-y-2">
+                    <label class="block text-[10px] font-bold text-gold-400 uppercase"><i class="fa-solid fa-photo-film mr-1"></i> Attach Media (Optional - Image or Video):</label>
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="$refs.postMediaInput.click()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700 flex items-center gap-1.5">
+                            <i class="fa-solid fa-paperclip text-gold-400"></i> Select Image or Video
+                        </button>
+                        <span class="text-[10px] text-slate-400 truncate max-w-[200px]" x-text="newPostForm.fileName || 'No media selected (Optional)'"></span>
+                        <input type="file" x-ref="postMediaInput" @change="handlePostMediaUpload($event)" accept="image/*,video/*" class="hidden">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 transition uppercase tracking-wider">
+                    Publish Post to Feed
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- AI FIR ANALYZER MODAL -->
     <div x-show="showAiAnalyzerModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
         <div @click.outside="showAiAnalyzerModal = false" class="glass-panel max-w-xl w-full rounded-2xl border border-purple-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar purple-glow">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -712,8 +770,6 @@
             <p class="text-xs text-slate-300">Upload FIR Photo/Document OR Paste FIR text below for automatic PPC Legal Sections scan & Bail advice.</p>
 
             <div class="space-y-3.5 text-xs">
-                
-                <!-- FILE UPLOAD DROPZONE -->
                 <div class="p-4 border-2 border-dashed border-slate-800 hover:border-purple-500/50 rounded-2xl bg-navy-950/80 text-center space-y-2 transition">
                     <i class="fa-solid fa-cloud-arrow-up text-2xl text-purple-400"></i>
                     <div>
@@ -743,7 +799,6 @@
                     </template>
                 </button>
 
-                <!-- AI ANALYSIS RESULT BOX -->
                 <template x-if="aiResult">
                     <div class="p-4 bg-navy-950/90 rounded-2xl border border-purple-500/30 space-y-3 text-xs">
                         <div class="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -772,7 +827,7 @@
         </div>
     </div>
 
-    <!-- 2. FULL WORKING SMART LEGAL DOCUMENT GENERATOR MODAL (DYNAMIC 3-CATEGORY FORM) -->
+    <!-- DOCUMENT GENERATOR MODAL -->
     <div x-show="showDocGeneratorModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
         <div @click.outside="showDocGeneratorModal = false" class="glass-panel max-w-xl w-full rounded-2xl border border-indigo-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar purple-glow">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -783,8 +838,6 @@
             </div>
 
             <div class="space-y-3.5 text-xs">
-                
-                <!-- SELECT DOCUMENT TEMPLATE -->
                 <div>
                     <label class="block text-slate-400 mb-1 font-semibold">Select Legal Document Template:</label>
                     <select x-model="docForm.type" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-gold-400 font-bold focus:outline-none focus:border-gold-500">
@@ -804,61 +857,56 @@
                     </select>
                 </div>
 
-                <!-- DYNAMIC INPUT FIELDS BASED ON DOCUMENT CATEGORY -->
-                
-                <!-- CATEGORY 1: BILATERAL AGREEMENTS INPUTS -->
                 <template x-if="getDocCategory() === 'agreement'">
                     <div class="space-y-3 p-3 bg-navy-950/80 rounded-xl border border-slate-800">
                         <p class="text-[10px] font-bold text-gold-400 uppercase"><i class="fa-solid fa-handshake mr-1"></i> Two-Party Agreement Details:</p>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="block text-slate-400 mb-1">First Party Name (e.g. Landlord / Partner A) *</label>
+                                <label class="block text-slate-400 mb-1">First Party Name *</label>
                                 <input type="text" x-model="docForm.party1" placeholder="First Party Name" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
                             </div>
                             <div>
-                                <label class="block text-slate-400 mb-1">Second Party Name (e.g. Tenant / Partner B) *</label>
+                                <label class="block text-slate-400 mb-1">Second Party Name *</label>
                                 <input type="text" x-model="docForm.party2" placeholder="Second Party Name" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
                             </div>
                         </div>
                         <div>
-                            <label class="block text-slate-400 mb-1">City / Property / Location Address *</label>
+                            <label class="block text-slate-400 mb-1">City / Location Address *</label>
                             <input type="text" x-model="docForm.location" placeholder="e.g. Plot # 45, Saddar Karachi" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
                         </div>
                     </div>
                 </template>
 
-                <!-- CATEGORY 2: COURT PETITIONS INPUTS -->
                 <template x-if="getDocCategory() === 'petition'">
                     <div class="space-y-3 p-3 bg-navy-950/80 rounded-xl border border-slate-800">
                         <p class="text-[10px] font-bold text-purple-400 uppercase"><i class="fa-solid fa-gavel mr-1"></i> Court Petition Details:</p>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="block text-slate-400 mb-1">Applicant Name (Sail / Accused) *</label>
+                                <label class="block text-slate-400 mb-1">Applicant Name (Sail) *</label>
                                 <input type="text" x-model="docForm.applicant" placeholder="Sail Name" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
                             </div>
                             <div>
-                                <label class="block text-slate-400 mb-1">Respondent / Police Station (Madde-muqabil) *</label>
-                                <input type="text" x-model="docForm.respondent" placeholder="State / SHO Saddar Police Station" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                                <label class="block text-slate-400 mb-1">Respondent / Police *</label>
+                                <input type="text" x-model="docForm.respondent" placeholder="State / SHO Saddar" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
                             </div>
                         </div>
                         <div>
                             <label class="block text-slate-400 mb-1">Honourable Court Name *</label>
-                            <input type="text" x-model="docForm.court" placeholder="e.g. Sessions Court Karachi / High Court Sukkur Bench" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" x-model="docForm.court" placeholder="e.g. Sessions Court Karachi" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
                         </div>
                     </div>
                 </template>
 
-                <!-- CATEGORY 3: AFFIDAVIT (BAYAN-E-HALAFI) INPUTS -->
                 <template x-if="getDocCategory() === 'affidavit'">
                     <div class="space-y-3 p-3 bg-navy-950/80 rounded-xl border border-slate-800">
-                        <p class="text-[10px] font-bold text-sapphire-400 uppercase"><i class="fa-solid fa-file-pen mr-1"></i> Sworn Affidavit (Bayan-e-Halafi) Details:</p>
+                        <p class="text-[10px] font-bold text-sapphire-400 uppercase"><i class="fa-solid fa-file-pen mr-1"></i> Sworn Affidavit Details:</p>
                         <div>
                             <label class="block text-slate-400 mb-1">Deponent Name (Bayan Dene Wala) *</label>
-                            <input type="text" x-model="docForm.deponent" placeholder="Full Name & CNIC Number" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-sapphire-500">
+                            <input type="text" x-model="docForm.deponent" placeholder="Full Name & CNIC" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-sapphire-500">
                         </div>
                         <div>
-                            <label class="block text-slate-400 mb-1">Purpose / Statement Details (Bayan Ka Maqsad) *</label>
-                            <textarea x-model="docForm.purpose" rows="2" placeholder="e.g. Declaration of loss of original degree documents / Property ownership affidavit..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-sapphire-500"></textarea>
+                            <label class="block text-slate-400 mb-1">Purpose / Statement Details *</label>
+                            <textarea x-model="docForm.purpose" rows="2" placeholder="e.g. Loss of original degree / Property declaration..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-sapphire-500"></textarea>
                         </div>
                     </div>
                 </template>
@@ -867,7 +915,6 @@
                     Generate Draft Document
                 </button>
 
-                <!-- GENERATED DRAFT PREVIEW -->
                 <template x-if="generatedDocText">
                     <div class="space-y-2 pt-2 border-t border-slate-800">
                         <div class="flex items-center justify-between">
@@ -1074,7 +1121,7 @@
                 activeTab: 'advocates',
                 currentLocation: 'Pakistan High Court Network',
 
-                // HIGH COURTS & MAJOR CITIES WITH SPECIFIC AREAS/BENCHES
+                // CITIES & AREAS
                 cityAreas: {
                     'Karachi': ['Saddar / City Court', 'Sindh High Court (Main Bench)', 'Malir District Court', 'Clifton / DHA Chambers', 'Karachi East / West Courts'],
                     'Sukkur': ['High Court Sukkur Bench', 'District & Sessions Court Sukkur', 'City Area Sukkur'],
@@ -1098,7 +1145,17 @@
                 loginForm: { role: 'lawyer', id: '', password: '' },
                 registerForm: { role: 'lawyer', name: '', phone: '', email: '', password: '', city: 'Karachi', area: 'Saddar / City Court', courts: ['High Court', 'District & Sessions Court'], chamberAddress: '', specialty: '', license: '', bar: '', exp: '' },
 
+                // CREATE NEW POST MODAL STATE & FORM
                 showNewPostModal: false,
+                newPostForm: {
+                    title: '',
+                    category: 'Election Campaign / Manifesto',
+                    content: '',
+                    mediaUrl: '',
+                    mediaType: 'none',
+                    fileName: ''
+                },
+
                 showProfileModal: false,
                 profileForm: { name: '', phone: '', email: '', avatar: '', city: '', area: '', courts: [], chamberAddress: '', specialty: '', license: '', bar: '', exp: '' },
 
@@ -1167,8 +1224,8 @@
                 posts: [
                     {
                         id: 1, author: 'Adv. Ali Shah', authorRole: 'Supreme Court & High Court Advocate', authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-                        verified: true, category: 'Legal Insight & Analysis', timestamp: '30 mins ago', title: '⚖️ Urgent Bail Guidance for City Court & High Court Cases',
-                        content: 'Clients coming from Sukkur or other cities can book late-night virtual appointments for immediate chamber advisory.', likes: 145, liked: true
+                        verified: true, category: 'Election Campaign / Manifesto', timestamp: '30 mins ago', title: '⚖️ High Court Bar Election Manifesto 2026',
+                        content: 'Promising digital chamber access, 24/7 online consultation portal, and free legal aid for young advocates.', likes: 145, liked: true
                     }
                 ],
 
@@ -1176,13 +1233,57 @@
                     { id: 101, clientName: 'Kamran (Sukkur Client)', summary: 'Late night advisory for Saddar City Court case.', date: '2026-10-24', time: '10:00 PM', location: 'Saddar / City Court Chamber', status: 'Pending' }
                 ],
 
-                // HANDLE FIR FILE / IMAGE UPLOAD
+                // UPLOAD POST MEDIA (IMAGE / VIDEO)
+                handlePostMediaUpload(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.newPostForm.fileName = file.name;
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.newPostForm.mediaUrl = e.target.result;
+                            this.newPostForm.mediaType = file.type.startsWith('video') ? 'video' : 'image';
+                            this.showToast('Media file attached!', 'success');
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                },
+
+                // CREATE NEW POST FUNCTION
+                createPost() {
+                    if (!this.newPostForm.title.trim() || !this.newPostForm.content.trim()) {
+                        this.showToast('Title aur Description fill karein', 'error');
+                        return;
+                    }
+
+                    this.posts.unshift({
+                        id: Date.now(),
+                        author: this.user.name,
+                        authorRole: this.user.designation || 'High Court Advocate',
+                        authorAvatar: this.user.avatar,
+                        verified: true,
+                        category: this.newPostForm.category,
+                        timestamp: 'Just now',
+                        title: this.newPostForm.title,
+                        content: this.newPostForm.content,
+                        mediaUrl: this.newPostForm.mediaUrl,
+                        mediaType: this.newPostForm.mediaType,
+                        likes: 0,
+                        liked: false
+                    });
+
+                    this.newPostForm = { title: '', category: 'Election Campaign / Manifesto', content: '', mediaUrl: '', mediaType: 'none', fileName: '' };
+                    this.showNewPostModal = false;
+                    this.activeTab = 'feed';
+                    this.showToast('Post published to Legal Feed!', 'success');
+                },
+
+                // HANDLE FIR FILE UPLOAD
                 handleFirFileUpload(event) {
                     const file = event.target.files[0];
                     if (file) {
                         this.uploadedFirFileName = file.name;
-                        this.aiAnalyzerText = `[FIR Scanned Copy: ${file.name}] - High Court OCR scanned FIR text under Section 337-A, 506, 34 PPC. Incident reported at Police Station Saddar.`;
-                        this.showToast('FIR Document Attached & OCR Scanned!', 'success');
+                        this.aiAnalyzerText = `[FIR Scanned Copy: ${file.name}] - Scanned FIR text under Section 337-A, 506, 34 PPC. Incident reported at Police Station Saddar.`;
+                        this.showToast('FIR Document Attached!', 'success');
                     }
                 },
 
