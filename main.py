@@ -619,7 +619,7 @@ def approve_lawyer(
     lawyer.is_approved = True
     db.commit()
     return {"message": f"Advocate {lawyer.name} has been approved successfully!"}
-    # ================= PUBLIC LAWYER SELF-REGISTRATION =================
+   # ================= PUBLIC LAWYER SELF-REGISTRATION =================
 @app.post("/api/v1/auth/register-lawyer")
 def register_lawyer_direct(
     full_name: str = Form(...),
