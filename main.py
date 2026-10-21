@@ -137,13 +137,12 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
-
 def validate_password_complexity(password: str):
-    """Exact 8 Characters with Capital, Small letter, and Number"""
-    if len(password) != 8:
+    """Between 8 and 10 Characters with Capital, Small letter, and Number"""
+    if len(password) < 8 or len(password) > 10:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password bilkul 8 characters (na kam, na zyada) ka hona zaroori hai!"
+            detail="Password kam se kam 8 aur zyada se zyada 10 characters ka hona zaroori hai!"
         )
     if not re.search(r"[A-Z]", password):
         raise HTTPException(
@@ -160,7 +159,6 @@ def validate_password_complexity(password: str):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password mein kam se kam EK number (0-9) hona zaroori hai!"
         )
-
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
