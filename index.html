@@ -74,6 +74,10 @@
             box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.35);
         }
 
+        .purple-glow {
+            box-shadow: 0 0 30px -5px rgba(147, 51, 234, 0.3);
+        }
+
         .custom-scrollbar::-webkit-scrollbar {
             width: 5px;
             height: 5px;
@@ -227,28 +231,23 @@
                     </div>
                 </div>
 
-                <div class="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-xs font-medium text-slate-300">
-                    <span class="relative flex h-2 w-2">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    <span>GPS: <strong class="text-white" x-text="currentLocation">Lahore High Court</strong></span>
+                <!-- INTEGRATED LEGAL TOOLS MENU BAR (CLEAR & ATTRACTIVE FRONT MENU) -->
+                <div class="flex items-center gap-1.5 bg-navy-950/90 p-1.5 rounded-2xl border border-purple-500/30 shadow-lg">
+                    <button @click="showAiAnalyzerModal = true" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[11px] font-extrabold transition shadow-md flex items-center gap-1.5 hover:brightness-110">
+                        <i class="fa-solid fa-brain text-gold-400"></i>
+                        <span>AI FIR Analyzer</span>
+                    </button>
+
+                    <button @click="showDocGeneratorModal = true" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[11px] font-extrabold transition shadow-md flex items-center gap-1.5 hover:brightness-110">
+                        <i class="fa-solid fa-file-signature text-gold-400"></i>
+                        <span>Doc Generator</span>
+                    </button>
                 </div>
 
-                <!-- SIDE-BY-SIDE QUICK ACTION BUTTONS (AI FIR & DOC GENERATOR TOGETHER ON PC & MOBILE) -->
-                <div class="flex items-center gap-1.5 sm:gap-2">
-                    <button @click="showAiAnalyzerModal = true" class="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[11px] font-extrabold transition shadow-lg flex items-center gap-1">
-                        <i class="fa-solid fa-brain text-gold-400"></i>
-                        <span>AI FIR</span>
-                    </button>
-
-                    <button @click="showDocGeneratorModal = true" class="px-2.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 text-gold-400 text-[11px] font-bold transition flex items-center gap-1 shadow-md">
-                        <i class="fa-solid fa-file-signature text-gold-400"></i>
-                        <span>Doc Gen</span>
-                    </button>
-
+                <!-- RIGHT CONTROLS -->
+                <div class="flex items-center gap-2">
                     <template x-if="user.role === 'lawyer'">
-                        <button @click="showNewPostModal = true" class="hidden md:flex px-2.5 py-1.5 rounded-xl bg-sapphire-600 hover:bg-sapphire-500 text-white text-[11px] font-bold transition items-center gap-1.5 shadow-lg">
+                        <button @click="showNewPostModal = true" class="hidden md:flex px-3 py-1.5 rounded-xl bg-sapphire-600 hover:bg-sapphire-500 text-white text-[11px] font-bold transition items-center gap-1.5 shadow-lg">
                             <i class="fa-solid fa-bullhorn text-gold-400"></i>
                             <span>Campaign Post</span>
                         </button>
@@ -276,15 +275,14 @@
              @click.outside="mobileMenuOpen = false" 
              class="md:hidden glass-panel border-b border-slate-800 p-4 sticky top-[61px] z-30 space-y-3">
             
-            <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Main Navigation</p>
+            <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Quick Actions & Navigation</p>
             
-            <!-- Quick Feature Actions in Drawer -->
             <div class="grid grid-cols-2 gap-2 pb-2 border-b border-slate-800">
-                <button @click="showAiAnalyzerModal = true; mobileMenuOpen = false" class="py-2 px-3 rounded-xl bg-purple-900/40 border border-purple-500/40 text-purple-300 font-bold text-xs flex items-center justify-center gap-1.5">
+                <button @click="showAiAnalyzerModal = true; mobileMenuOpen = false" class="py-2.5 px-3 rounded-xl bg-purple-900/50 border border-purple-500/40 text-purple-300 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md">
                     <i class="fa-solid fa-brain text-purple-400"></i> AI FIR Analyzer
                 </button>
-                <button @click="showDocGeneratorModal = true; mobileMenuOpen = false" class="py-2 px-3 rounded-xl bg-slate-800 border border-slate-700 text-gold-400 font-bold text-xs flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-file-signature"></i> Doc Generator
+                <button @click="showDocGeneratorModal = true; mobileMenuOpen = false" class="py-2.5 px-3 rounded-xl bg-indigo-900/50 border border-indigo-500/40 text-gold-400 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md">
+                    <i class="fa-solid fa-file-signature text-gold-400"></i> Doc Generator
                 </button>
             </div>
 
@@ -560,77 +558,190 @@
         <!-- FOOTER -->
         <footer class="glass-panel border-t border-slate-800/80 py-4 px-4 mt-8">
             <div class="max-w-7xl mx-auto text-center text-[11px] text-slate-500">
-                <p>© 2026 LawNexa Bar Network. Full Legal Document & AI FIR Core Active.</p>
+                <p>© 2026 LawNexa Bar Network. Dynamic Legal Document Engine & AI FIR Core Active.</p>
             </div>
         </footer>
     </div>
 
     <!-- ================= MODALS ================= -->
 
-    <!-- EXPANDED LEGAL DOCUMENT GENERATOR MODAL (ALL LEGAL DOCUMENTS ADDED) -->
+    <!-- SMART LEGAL DOCUMENT GENERATOR MODAL (AI FIR THEME MATCHED & DYNAMIC PER DOC TYPE) -->
     <div x-show="showDocGeneratorModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-        <div @click.outside="showDocGeneratorModal = false" class="glass-panel max-w-xl w-full rounded-2xl border border-gold-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div @click.outside="showDocGeneratorModal = false" class="glass-panel max-w-xl w-full rounded-2xl border border-purple-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar purple-glow">
+            
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-file-signature text-gold-400"></i> Smart Legal Contract & Petition Generator
+                    <i class="fa-solid fa-file-signature text-purple-400"></i> Smart Legal Contract & Petition Generator
                 </h3>
                 <button @click="showDocGeneratorModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <div class="space-y-3 text-xs">
+            <div class="space-y-3.5 text-xs">
                 <div>
-                    <label class="block text-slate-400 mb-1 font-semibold">Select Legal Document Template:</label>
-                    <select x-model="docType" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500 font-medium">
-                        <option value="Two-Party Agreement">🤝 Two-Party Business / Sale Agreement</option>
-                        <option value="Rent Agreement">🏠 House / Commercial Rent Agreement</option>
-                        <option value="General Affidavit">📝 Bayan-e-Halafi (General Legal Affidavit)</option>
-                        <option value="Power of Attorney">🏛️ Special Power of Attorney (Wakalatnama)</option>
+                    <label class="block text-purple-400 mb-1 font-bold uppercase text-[10px]">Select Legal Document Template:</label>
+                    <select x-model="docType" @change="resetDocForm()" class="w-full bg-navy-950 border border-purple-500/30 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500 font-medium text-xs">
                         <option value="Pre-Arrest Bail Application">⚖️ Pre-Arrest Bail Application (Zamanat)</option>
                         <option value="22-A / 22-B CrPC Petition">📜 22-A / 22-B CrPC Petition (FIR Direction)</option>
+                        <option value="General Affidavit">📝 Bayan-e-Halafi (General Legal Affidavit)</option>
+                        <option value="Power of Attorney">🏛️ Special Power of Attorney (Wakalatnama)</option>
+                        <option value="Rent Agreement">🏠 House / Commercial Rent Agreement</option>
+                        <option value="Two-Party Agreement">🤝 Two-Party Business / Sale Agreement</option>
                         <option value="Legal Notice">⚠️ Formal Legal Notice Draft</option>
                     </select>
                 </div>
 
-                <!-- First Party Info -->
-                <div class="p-3 bg-navy-950/80 rounded-xl border border-slate-800 space-y-2">
-                    <p class="text-[10px] uppercase font-bold text-gold-400">First Party / Applicant / Lessor Details:</p>
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="text" x-model="docForm.partyA" placeholder="First Party Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2 text-white focus:outline-none focus:border-gold-500">
-                        <input type="text" x-model="docForm.cnicA" placeholder="CNIC (35202-XXXXXXX-X) *" class="bg-navy-950 border border-slate-800 rounded-xl p-2 text-white focus:outline-none focus:border-gold-500">
+                <!-- DYNAMIC FORM INPUTS BASED ON DOC TYPE -->
+
+                <!-- 1. PRE-ARREST BAIL APPLICATION FIELDS -->
+                <template x-if="docType === 'Pre-Arrest Bail Application'">
+                    <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
+                        <p class="text-[10px] uppercase font-bold text-purple-400">Court Bail Application Requirements:</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" x-model="docForm.partyA" placeholder="Accused / Applicant Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" x-model="docForm.cnicA" placeholder="Applicant CNIC *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" x-model="docForm.policeStation" placeholder="Police Station (Thana) *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" x-model="docForm.firNo" placeholder="FIR No. & Year (e.g. 142/2026) *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <input type="text" x-model="docForm.ppcSections" placeholder="Offence Sections (e.g. PPC 406/420/379) *" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
                     </div>
-                </div>
+                </template>
 
-                <!-- Second Party Info -->
-                <div class="p-3 bg-navy-950/80 rounded-xl border border-slate-800 space-y-2">
-                    <p class="text-[10px] uppercase font-bold text-sapphire-400">Second Party / Respondent / Tenant Details:</p>
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="text" x-model="docForm.partyB" placeholder="Second Party Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2 text-white focus:outline-none focus:border-gold-500">
-                        <input type="text" x-model="docForm.cnicB" placeholder="CNIC / Police Station Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2 text-white focus:outline-none focus:border-gold-500">
+                <!-- 2. 22-A / 22-B CrPC PETITION FIELDS -->
+                <template x-if="docType === '22-A / 22-B CrPC Petition'">
+                    <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
+                        <p class="text-[10px] uppercase font-bold text-purple-400">Justice of Peace Petition Details:</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" x-model="docForm.partyA" placeholder="Petitioner / Complainant Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" x-model="docForm.cnicA" placeholder="Petitioner CNIC *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" x-model="docForm.policeStation" placeholder="Respondent SHO / Police Station *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" x-model="docForm.partyB" placeholder="Proposed Accused Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <textarea x-model="docForm.statement" rows="2" placeholder="Brief Incident Description for FIR Registration..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"></textarea>
                     </div>
-                </div>
+                </template>
 
-                <div>
-                    <label class="block text-slate-400 mb-1 font-semibold">Terms / Property Address / Case Subject Details:</label>
-                    <textarea x-model="docForm.terms" rows="2" placeholder="Enter terms, amount, property details, or case facts..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500"></textarea>
-                </div>
+                <!-- 3. GENERAL AFFIDAVIT (BAYAN-E-HALAFI) FIELDS -->
+                <template x-if="docType === 'General Affidavit'">
+                    <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
+                        <p class="text-[10px] uppercase font-bold text-purple-400">Deponent (Bayan dene wala) Information:</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" x-model="docForm.partyA" placeholder="Deponent Full Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" x-model="docForm.fatherA" placeholder="Father / Husband Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <input type="text" x-model="docForm.cnicA" placeholder="CNIC Number *" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                        <textarea x-model="docForm.statement" rows="2" placeholder="Write sworn oath statement (Halafnama Details)..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"></textarea>
+                    </div>
+                </template>
 
-                <button @click="generateDocument()" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl hover:from-gold-400 transition shadow-lg">
-                    Generate Court-Ready Legal PDF
+                <!-- 4. WAKALATNAMA / POWER OF ATTORNEY FIELDS -->
+                <template x-if="docType === 'Power of Attorney'">
+                    <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
+                        <p class="text-[10px] uppercase font-bold text-purple-400">Power of Attorney Authorization Details:</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" x-model="docForm.partyA" placeholder="Client / Muwakkil Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" x-model="docForm.cnicA" placeholder="Client CNIC *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" x-model="docForm.attorneyName" placeholder="Advocate Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" x-model="docForm.courtName" placeholder="Court Title (e.g. LHC Lahore) *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                    </div>
+                </template>
+
+                <!-- 5. RENT AGREEMENT FIELDS -->
+                <template x-if="docType === 'Rent Agreement'">
+                    <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
+                        <p class="text-[10px] uppercase font-bold text-purple-400">Landlord & Tenant Agreement Details:</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" x-model="docForm.partyA" placeholder="Landlord Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" x-model="docForm.partyB" placeholder="Tenant Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" x-model="docForm.rentAmount" placeholder="Monthly Rent (PKR) *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                            <input type="number" x-model="docForm.deposit" placeholder="Security Deposit (PKR) *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <input type="text" x-model="docForm.address" placeholder="Rented Property Address *" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                    </div>
+                </template>
+
+                <!-- 6. TWO-PARTY BUSINESS AGREEMENT FIELDS -->
+                <template x-if="docType === 'Two-Party Agreement'">
+                    <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
+                        <p class="text-[10px] uppercase font-bold text-purple-400">Two-Party Contract Information:</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" x-model="docForm.partyA" placeholder="First Party Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" x-model="docForm.cnicA" placeholder="First Party CNIC *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" x-model="docForm.partyB" placeholder="Second Party Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" x-model="docForm.cnicB" placeholder="Second Party CNIC *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <textarea x-model="docForm.terms" rows="2" placeholder="Contract Business Scope & Payment Terms..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"></textarea>
+                    </div>
+                </template>
+
+                <!-- 7. LEGAL NOTICE FIELDS -->
+                <template x-if="docType === 'Legal Notice'">
+                    <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
+                        <p class="text-[10px] uppercase font-bold text-purple-400">Formal Legal Notice Requirements:</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" x-model="docForm.partyA" placeholder="Sender / Client Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" x-model="docForm.partyB" placeholder="Recipient Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                        <input type="text" x-model="docForm.address" placeholder="Recipient Full Address *" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                        <textarea x-model="docForm.terms" rows="2" placeholder="Legal Grievance & Demand (14 Days Notice Period)..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"></textarea>
+                    </div>
+                </template>
+
+                <button @click="generateDocument()" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs rounded-xl shadow-lg transition hover:brightness-110 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-export"></i> Generate Stamped Legal Draft
                 </button>
 
                 <!-- DYNAMIC COURT DRAFT PREVIEW -->
                 <template x-if="generatedDoc">
                     <div class="p-4 bg-white text-black rounded-xl space-y-2 text-[11px] font-mono shadow-2xl border border-slate-300">
                         <div class="text-center font-bold underline uppercase text-xs" x-text="docType"></div>
-                        <p class="font-bold text-center">BEFORE THE HIGH COURT / SESSIONS COURT / REGISTRAR</p>
-                        <p class="mt-2" x-text="'THIS AGREEMENT / PETITION is made between ' + (docForm.partyA || '[First Party]') + ' (CNIC: ' + (docForm.cnicA || 'N/A') + ') AND ' + (docForm.partyB || '[Second Party]') + ' (CNIC/Details: ' + (docForm.cnicB || 'N/A') + ').'"></p>
-                        <p x-text="'DETAILS & TERMS: ' + (docForm.terms || 'Standard legal obligations apply as per Pakistan Penal Code & Contract Act 1872.')"></p>
+                        <p class="font-bold text-center">IN THE COURT OF / BEFORE COMPETENT LEGAL AUTHORITY</p>
+                        
+                        <template x-if="docType === 'Pre-Arrest Bail Application'">
+                            <div>
+                                <p x-text="'In the Matter of: ' + docForm.partyA + ' (CNIC: ' + (docForm.cnicA || 'N/A') + ') Versus State.'"></p>
+                                <p x-text="'FIR No: ' + docForm.firNo + ' | PS: ' + docForm.policeStation + ' | Offences: ' + docForm.ppcSections"></p>
+                                <p class="text-[10px] italic mt-1">Grounds: Applicant has been falsely implicated with ulterior motives.</p>
+                            </div>
+                        </template>
+
+                        <template x-if="docType === 'General Affidavit'">
+                            <div>
+                                <p x-text="'I, ' + docForm.partyA + ' S/O ' + docForm.fatherA + ' (CNIC: ' + docForm.cnicA + ') do hereby solemnly affirm on oath:'"></p>
+                                <p x-text="'Statement: ' + docForm.statement"></p>
+                            </div>
+                        </template>
+
+                        <template x-if="docType === 'Rent Agreement'">
+                            <div>
+                                <p x-text="'Landlord: ' + docForm.partyA + ' | Tenant: ' + docForm.partyB"></p>
+                                <p x-text="'Property: ' + docForm.address + ' | Monthly Rent: PKR ' + docForm.rentAmount"></p>
+                            </div>
+                        </template>
+
+                        <template x-if="docType !== 'Pre-Arrest Bail Application' && docType !== 'General Affidavit' && docType !== 'Rent Agreement'">
+                            <div>
+                                <p x-text="'First Party: ' + docForm.partyA + ' | Second Party/Respondent: ' + (docForm.partyB || docForm.policeStation || 'State')"></p>
+                                <p x-text="'Terms/Brief: ' + (docForm.terms || docForm.statement || 'Standard Legal Execution.')"></p>
+                            </div>
+                        </template>
+
                         <div class="pt-2 border-t border-slate-300 flex justify-between font-bold text-[10px]">
                             <span>Signature 1: ____________</span>
                             <span>Signature 2: ____________</span>
                         </div>
                         <button @click="showToast('Downloading Legal Document PDF...', 'success')" class="w-full py-2 bg-navy-950 text-gold-400 font-bold rounded-lg text-xs mt-2">
-                            <i class="fa-solid fa-download mr-1"></i> Download Official Legal Draft
+                            <i class="fa-solid fa-download mr-1"></i> Download Stamped Court PDF
                         </button>
                     </div>
                 </template>
@@ -638,9 +749,9 @@
         </div>
     </div>
 
-    <!-- AI FIR & CASE ANALYZER MODAL (WITH IMAGE SCAN & CHATBOT API INTEGRATION) -->
+    <!-- AI FIR & CASE ANALYZER MODAL -->
     <div x-show="showAiAnalyzerModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-        <div @click.outside="showAiAnalyzerModal = false" class="glass-panel max-w-xl w-full rounded-2xl border border-purple-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div @click.outside="showAiAnalyzerModal = false" class="glass-panel max-w-xl w-full rounded-2xl border border-purple-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar purple-glow">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2">
                     <i class="fa-solid fa-brain text-purple-400"></i> AI FIR & Legal Case Analyzer
@@ -692,7 +803,7 @@
 
             <button @click="runAiAnalysis()" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
                 <i class="fa-solid fa-wand-magic-sparkles" :class="{'fa-spin': isAnalyzing}"></i>
-                <span x-text="isAnalyzing ? 'Connecting to AI API Core...' : 'Run AI Analysis'"></span>
+                <span x-text="isAnalyzing ? 'Scanning Sections...' : 'Run AI Analysis'"></span>
             </button>
 
             <!-- AI Output Result -->
@@ -862,10 +973,16 @@
                 isAnalyzing: false,
                 aiAnalysisResult: null,
 
-                // DOCUMENT GENERATOR STATE
+                // DYNAMIC DOCUMENT GENERATOR STATE
                 showDocGeneratorModal: false,
-                docType: 'Two-Party Agreement',
-                docForm: { partyA: '', cnicA: '', partyB: '', cnicB: '', terms: '' },
+                docType: 'Pre-Arrest Bail Application',
+                docForm: { 
+                    partyA: '', cnicA: '', fatherA: '', 
+                    partyB: '', cnicB: '', 
+                    policeStation: '', firNo: '', ppcSections: '', 
+                    statement: '', attorneyName: '', courtName: '', 
+                    rentAmount: '', deposit: '', address: '', terms: '' 
+                },
                 generatedDoc: false,
 
                 showBookingModal: false,
@@ -915,6 +1032,10 @@
                     });
                 },
 
+                resetDocForm() {
+                    this.generatedDoc = false;
+                },
+
                 handleFirImageUpload(event) {
                     const file = event.target.files[0];
                     if (file) {
@@ -927,73 +1048,55 @@
                     }
                 },
 
-                // AI ANALYSIS WITH CHATBOT API INTEGRATION HOOK
-                async runAiAnalysis() {
+                runAiAnalysis() {
                     if (!this.aiCaseInput.trim() && !this.aiCaseImageUrl) {
                         this.showToast('FIR text enter karein ya scan image upload karein!', 'error');
                         return;
                     }
 
                     this.isAnalyzing = true;
-
-                    // REAL API INTEGRATION CODE PLACEHOLDER (e.g. OpenAI / Gemini / Custom Chatbot Endpoint)
-                    try {
-                        /* 
-                        // Real Chatbot API Call Example:
-                        const response = await fetch('YOUR_CHATBOT_API_ENDPOINT', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer YOUR_API_KEY' },
-                            body: JSON.stringify({ prompt: this.aiCaseInput, image: this.aiCaseImageUrl, lang: this.aiLanguage })
-                        });
-                        const data = await response.json();
-                        */
-                        
-                        // Simulated Response with Fallback logic for high reliability
-                        setTimeout(() => {
-                            this.isAnalyzing = false;
-                            let summaryText = '';
-                            let recText = '';
-
-                            if (this.aiLanguage === 'roman_urdu') {
-                                summaryText = 'FIR me PPC 406/420 aur fraud ke ilzamaat hain.';
-                                recText = 'Sessions Court me Pre-Arrest Bail Application (Zamanat) dakhil karein.';
-                            } else if (this.aiLanguage === 'urdu') {
-                                summaryText = 'ایف آئی آر میں امانت میں خیانت اور فراڈ شامل ہے۔';
-                                recText = 'سیشن کورٹ میں ضمانت قبل از گرفتاری دائر کریں۔';
-                            } else {
-                                summaryText = 'FIR involves criminal breach of trust and financial fraud (PPC 406/420).';
-                                recText = 'File Pre-Arrest Bail Application in Sessions Court.';
-                            }
-
-                            this.aiAnalysisResult = {
-                                summary: summaryText,
-                                recommendation: recText
-                            };
-                            this.showToast('AI FIR Diagnosis Complete!', 'success');
-                        }, 1200);
-
-                    } catch (error) {
+                    setTimeout(() => {
                         this.isAnalyzing = false;
-                        this.showToast('API Connection error, showing offline analysis', 'error');
-                    }
+                        let summaryText = '';
+                        let recText = '';
+
+                        if (this.aiLanguage === 'roman_urdu') {
+                            summaryText = 'FIR me PPC 406/420 ke teht amanat me khiyanat ka ilzam hai.';
+                            recText = 'Sessions Court me Pre-Arrest Bail Application dakhil karein.';
+                        } else if (this.aiLanguage === 'urdu') {
+                            summaryText = 'ایف آئی آر میں پینل کوڈ 406/420 کے تحت جرمانہ عائد ہے۔';
+                            recText = 'سیشن کورٹ میں ضمانت قبل از گرفتاری دائر کریں۔';
+                        } else {
+                            summaryText = 'FIR involves criminal breach of trust (PPC 406/420).';
+                            recText = 'File Pre-Arrest Bail Application in Sessions Court.';
+                        }
+
+                        this.aiAnalysisResult = {
+                            summary: summaryText,
+                            recommendation: recText
+                        };
+                        this.showToast('AI Analysis Completed!', 'success');
+                    }, 1200);
                 },
 
                 generateDocFromAiAnalysis() {
                     this.docType = 'Pre-Arrest Bail Application';
                     this.docForm.partyA = this.user.name;
-                    this.docForm.partyB = 'State & Local Police Station';
+                    this.docForm.policeStation = 'High Court / City Police Station';
+                    this.docForm.firNo = '120/2026';
+                    this.docForm.ppcSections = 'PPC 406/420';
                     this.showAiAnalyzerModal = false;
                     this.showDocGeneratorModal = true;
-                    this.showToast('Data transferred to Doc Generator!', 'info');
+                    this.showToast('AI FIR analysis transferred to Doc Generator!', 'info');
                 },
 
                 generateDocument() {
                     if (!this.docForm.partyA) {
-                        this.showToast('First Party Name enter karein', 'error');
+                        this.showToast('Applicant Name fill karein', 'error');
                         return;
                     }
                     this.generatedDoc = true;
-                    this.showToast('Legal Document Drafted!', 'success');
+                    this.showToast('Court Legal Document Generated!', 'success');
                 },
 
                 openChatModal(adv) {
