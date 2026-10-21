@@ -341,34 +341,32 @@ def register_user(
 
 
 @app.post("/api/v1/auth/token")
-def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
-):
-    username = form_data.username.strip()
-
-    user = db.query(UserDB).filter(
-        (UserDB.phone == username) | (UserDB.email == username.lower())
-    ).first()
-
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # User find karein email ya phone se
+    user = db.query(User).filter((User.email == form_data.username) | (User.phone == form_data.username)).first()
+    
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Ghalat Phone/Email ya Password! Access Denied.",
+            detail="Ghalat Phone/Email ya Password!",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-        )
+    # 🛑 YAHAN PAR 'if not user.is_approved' WALI CONDITION KO BILKUL HATA DENGAY
+    # Ab bina kisi admin approval check ke direct token generate hoga
 
-    access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(user.id), "role": user.role}, expires_delta=access_token_expires
+    )
+    
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "user_id": user.id,
-        "name": user.name,
+        "name": user.full_name,
         "role": user.role
     }
-
 
 @app.get("/api/v1/auth/me")
 def verify_token_and_get_user(current_user: UserDB = Depends(get_current_user)):
