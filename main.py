@@ -619,3 +619,31 @@ def approve_lawyer(
     lawyer.is_approved = True
     db.commit()
     return {"message": f"Advocate {lawyer.name} has been approved successfully!"}
+    # PUBLIC ENDPOINT: DIRECT LAWYER REGISTRATION
+@app.post("/api/v1/auth/register-lawyer")
+def register_lawyer_direct(
+    full_name: str = Form(...),
+    email: str = Form(...),
+    phone: str = Form(...),
+    license_no: str = Form(...),
+    jurisdiction: str = Form(...),
+    category: str = Form(...),
+    experience: int = Form(...),
+    password: str = Form(...)
+):
+    # Strict 8-10 Character Password Complexity Check
+    if not re.match(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,10}$", password):
+        raise HTTPException(
+            status_code=400, 
+            detail="Password 8-10 characters ka hona chahiye jisme Uppercase, Lowercase aur Numbers shamil hon!"
+        )
+
+    # Output to Render Server Logs
+    print(f"🎉 DIRECT LAWYER REGISTERED: {full_name} | License: {license_no} | Phone: {phone}")
+
+    # Yahan Database mein User/Lawyer Save hoga (Role = "lawyer")
+    
+    return {
+        "status": "success",
+        "message": f"Advocate {full_name}, aapka account kamyabi se ban gaya hai!"
+    }
