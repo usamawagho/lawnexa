@@ -213,7 +213,7 @@
     <!-- ================= 2. MAIN DASHBOARD ================= -->
     <div x-show="isLoggedIn" x-transition:enter="transition ease-out duration-300" class="flex-1 flex flex-col justify-between">
         
-        <!-- HEADER (CLEAN HEADER WITHOUT OVERFLOW) -->
+        <!-- HEADER -->
         <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80 px-3 sm:px-6 py-3">
             <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
                 
@@ -239,7 +239,7 @@
                     <span>GPS: <strong class="text-white" x-text="currentLocation">Lahore High Court</strong></span>
                 </div>
 
-                <!-- RIGHT CONTROLS & HAMBURGER BUTTON -->
+                <!-- RIGHT CONTROLS: PROFILE BUTTON ON LEFT & LOGOUT ON RIGHT -->
                 <div class="flex items-center gap-2">
                     <template x-if="user.role === 'lawyer'">
                         <button @click="showNewPostModal = true" class="hidden md:flex px-3 py-1.5 rounded-xl bg-sapphire-600 hover:bg-sapphire-500 text-white text-[11px] font-bold transition items-center gap-1.5 shadow-lg">
@@ -248,22 +248,28 @@
                         </button>
                     </template>
 
+                    <!-- PROFILE UPDATE BUTTON (LEFT POSITION) -->
+                    <button @click="openProfileModal()" class="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-white transition shadow-md">
+                        <img :src="user.avatar" class="w-6 h-6 rounded-full object-cover border border-gold-500">
+                        <span class="hidden sm:inline" x-text="user.name"></span>
+                        <i class="fa-solid fa-user-pen text-gold-400 text-[10px]"></i>
+                    </button>
+
+                    <!-- LOGOUT BUTTON (FAR RIGHT POSITION) -->
+                    <button @click="logout()" class="p-2.5 sm:px-3 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-400 text-xs font-bold hover:bg-rose-900/50 transition flex items-center gap-1" title="Sign Out">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+
                     <!-- MOBILE HAMBURGER MENU BUTTON -->
                     <button @click="mobileMenuOpen = !mobileMenuOpen" 
                             class="md:hidden p-2 rounded-xl text-slate-200 bg-slate-800 border border-slate-700 hover:text-gold-400 transition">
                         <i class="fa-solid text-base" :class="mobileMenuOpen ? 'fa-xmark' : 'fa-bars'"></i>
                     </button>
-
-                    <div class="relative hidden sm:block">
-                        <button @click="logout()" class="p-2 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-400 text-xs font-bold hover:bg-rose-900/50 transition">
-                            <i class="fa-solid fa-right-from-bracket"></i>
-                        </button>
-                    </div>
                 </div>
             </div>
         </header>
 
-        <!-- MOBILE SLIDE-OUT MENU DRAWER (ALL LEGAL TOOLS & NAVIGATION ADDED HERE) -->
+        <!-- MOBILE SLIDE-OUT MENU DRAWER -->
         <div x-show="mobileMenuOpen" 
              x-transition:enter="transition ease-out duration-200"
              x-transition:leave="transition ease-in duration-150"
@@ -272,12 +278,11 @@
             
             <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">AI Legal Tools & Services</p>
             
-            <!-- Quick Feature Actions in Drawer -->
             <div class="grid grid-cols-2 gap-2 pb-2 border-b border-slate-800">
-                <button @click="showAiAnalyzerModal = true; mobileMenuOpen = false" class="py-2.5 px-3 rounded-xl bg-purple-900/50 border border-purple-500/40 text-purple-300 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md hover:brightness-110">
+                <button @click="showAiAnalyzerModal = true; mobileMenuOpen = false" class="py-2.5 px-3 rounded-xl bg-purple-900/50 border border-purple-500/40 text-purple-300 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md">
                     <i class="fa-solid fa-brain text-purple-400"></i> AI FIR Analyzer
                 </button>
-                <button @click="showDocGeneratorModal = true; mobileMenuOpen = false" class="py-2.5 px-3 rounded-xl bg-indigo-900/50 border border-indigo-500/40 text-gold-400 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md hover:brightness-110">
+                <button @click="showDocGeneratorModal = true; mobileMenuOpen = false" class="py-2.5 px-3 rounded-xl bg-indigo-900/50 border border-indigo-500/40 text-gold-400 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md">
                     <i class="fa-solid fa-file-signature text-gold-400"></i> Doc Generator
                 </button>
             </div>
@@ -285,6 +290,12 @@
             <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider pt-1">Main Navigation</p>
 
             <div class="space-y-1.5">
+                <button @click="openProfileModal(); mobileMenuOpen = false" 
+                        class="w-full p-2.5 rounded-xl text-left text-xs font-extrabold bg-slate-800 text-gold-400 flex items-center justify-between border border-slate-700">
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-user-pen"></i> Edit Profile & Practice Data</span>
+                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
+
                 <template x-if="user.role === 'lawyer'">
                     <div class="space-y-1.5">
                         <button @click="showNewPostModal = true; mobileMenuOpen = false" 
@@ -340,7 +351,7 @@
             </div>
         </div>
 
-        <!-- DESKTOP NAVIGATION TABS (WITH QUICK TOOLS INCLUDED) -->
+        <!-- DESKTOP NAVIGATION TABS -->
         <nav class="hidden md:block bg-navy-900/90 border-b border-slate-800/80 sticky top-[61px] z-30 backdrop-blur-md">
             <div class="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4">
                 <div x-show="user.role === 'lawyer'" class="flex items-center space-x-2 py-2">
@@ -381,7 +392,6 @@
                     </button>
                 </div>
 
-                <!-- DESKTOP QUICK TOOLS BUTTONS -->
                 <div class="flex items-center gap-2">
                     <button @click="showAiAnalyzerModal = true" class="px-3 py-1.5 rounded-xl bg-purple-900/40 border border-purple-500/40 text-purple-300 font-extrabold text-xs flex items-center gap-1.5 hover:bg-purple-900/60 transition">
                         <i class="fa-solid fa-brain text-purple-400"></i> AI FIR Analyzer
@@ -395,6 +405,51 @@
 
         <!-- MAIN CONTENT AREA -->
         <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full space-y-6">
+
+            <!-- ADVOCATE STATS BAR -->
+            <div x-show="user.role === 'lawyer'" class="space-y-4">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg shrink-0">
+                            <i class="fa-solid fa-envelope-open-text"></i>
+                        </div>
+                        <div>
+                            <p class="text-[9px] text-slate-400 uppercase font-bold">Inquiries</p>
+                            <h3 class="text-sm sm:text-base font-black text-white" x-text="myBookings.length + ' Pending'"></h3>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-xl bg-sapphire-500/10 text-sapphire-400 flex items-center justify-center text-lg shrink-0">
+                            <i class="fa-solid fa-gavel"></i>
+                        </div>
+                        <div>
+                            <p class="text-[9px] text-slate-400 uppercase font-bold">Specialty</p>
+                            <h3 class="text-xs font-bold text-sapphire-400" x-text="user.specialty || 'Criminal Law'"></h3>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-400 flex items-center justify-center text-lg shrink-0">
+                            <i class="fa-solid fa-trophy"></i>
+                        </div>
+                        <div>
+                            <p class="text-[9px] text-slate-400 uppercase font-bold">Experience</p>
+                            <h3 class="text-sm sm:text-base font-black text-white" x-text="(user.exp || 12) + ' Years Exp'"></h3>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg shrink-0">
+                            <i class="fa-solid fa-building-columns"></i>
+                        </div>
+                        <div>
+                            <p class="text-[9px] text-slate-400 uppercase font-bold">Bar License</p>
+                            <h3 class="text-xs font-bold text-purple-300" x-text="user.license || 'LHC-98421'"></h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- TAB 1: ADVOCATES VIEW -->
             <section x-show="activeTab === 'advocates'" x-transition:enter="transition ease-out duration-200" class="space-y-6">
@@ -566,12 +621,85 @@
         <!-- FOOTER -->
         <footer class="glass-panel border-t border-slate-800/80 py-4 px-4 mt-8">
             <div class="max-w-7xl mx-auto text-center text-[11px] text-slate-500">
-                <p>© 2026 LawNexa Bar Network. Dynamic Legal Document Engine & AI FIR Core Active.</p>
+                <p>© 2026 LawNexa Bar Network. Full Profile Update & AI FIR Core Active.</p>
             </div>
         </footer>
     </div>
 
     <!-- ================= MODALS ================= -->
+
+    <!-- PROFILE UPDATE MODAL (LAWYER & CLIENT DATA EDITING) -->
+    <div x-show="showProfileModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+        <div @click.outside="showProfileModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-gold-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar gold-glow">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-user-pen text-gold-400"></i> Update Profile Details
+                </h3>
+                <button @click="showProfileModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form @submit.prevent="updateProfile()" class="space-y-3.5 text-xs">
+                <!-- Avatar Preview & Image URL -->
+                <div class="flex items-center gap-3 p-3 bg-navy-950/80 rounded-xl border border-slate-800">
+                    <img :src="profileForm.avatar || user.avatar" class="w-14 h-14 rounded-2xl object-cover border-2 border-gold-500 shrink-0">
+                    <div class="flex-1 space-y-1">
+                        <label class="block text-[10px] uppercase font-bold text-slate-400">Profile Photo Image URL:</label>
+                        <input type="url" x-model="profileForm.avatar" placeholder="https://images.unsplash.com/photo-..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-gold-500">
+                    </div>
+                </div>
+
+                <!-- Personal Information -->
+                <div class="space-y-2">
+                    <p class="text-[10px] uppercase font-bold text-gold-400">Personal Details:</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-slate-400 mb-1">Full Name *</label>
+                            <input type="text" x-model="profileForm.name" required class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Phone Number *</label>
+                            <input type="text" x-model="profileForm.phone" required class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Email Address *</label>
+                        <input type="email" x-model="profileForm.email" required class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                    </div>
+                </div>
+
+                <!-- Advocate Specific Details (Lawyer Role Only) -->
+                <template x-if="user.role === 'lawyer'">
+                    <div class="space-y-2 pt-2 border-t border-slate-800">
+                        <p class="text-[10px] uppercase font-bold text-purple-400">Advocate Bar & Practice Details:</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-slate-400 mb-1">Legal Specialty *</label>
+                                <input type="text" x-model="profileForm.specialty" required placeholder="Criminal Law, Corporate..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 mb-1">Years of Experience *</label>
+                                <input type="number" x-model="profileForm.exp" required class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-slate-400 mb-1">Bar License Number *</label>
+                                <input type="text" x-model="profileForm.license" required class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 mb-1">Bar Association *</label>
+                                <input type="text" x-model="profileForm.bar" required placeholder="Lahore High Court Bar..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 transition">
+                    Save Profile Changes
+                </button>
+            </form>
+        </div>
+    </div>
 
     <!-- SMART LEGAL DOCUMENT GENERATOR MODAL -->
     <div x-show="showDocGeneratorModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
@@ -597,8 +725,6 @@
                         <option value="Legal Notice">⚠️ Formal Legal Notice Draft</option>
                     </select>
                 </div>
-
-                <!-- DYNAMIC FORM INPUTS BASED ON DOC TYPE -->
 
                 <!-- 1. PRE-ARREST BAIL APPLICATION FIELDS -->
                 <template x-if="docType === 'Pre-Arrest Bail Application'">
@@ -635,17 +761,17 @@
                 <!-- 3. GENERAL AFFIDAVIT (BAYAN-E-HALAFI) FIELDS -->
                 <template x-if="docType === 'General Affidavit'">
                     <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
-                        <p class="text-[10px] uppercase font-bold text-purple-400">Deponent (Bayan dene wala) Information:</p>
+                        <p class="text-[10px] uppercase font-bold text-purple-400">Deponent Information:</p>
                         <div class="grid grid-cols-2 gap-2">
                             <input type="text" x-model="docForm.partyA" placeholder="Deponent Full Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
                             <input type="text" x-model="docForm.fatherA" placeholder="Father / Husband Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
                         </div>
                         <input type="text" x-model="docForm.cnicA" placeholder="CNIC Number *" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        <textarea x-model="docForm.statement" rows="2" placeholder="Write sworn oath statement (Halafnama Details)..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"></textarea>
+                        <textarea x-model="docForm.statement" rows="2" placeholder="Write sworn oath statement..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"></textarea>
                     </div>
                 </template>
 
-                <!-- 4. WAKALATNAMA / POWER OF ATTORNEY FIELDS -->
+                <!-- 4. WAKALATNAMA FIELDS -->
                 <template x-if="docType === 'Power of Attorney'">
                     <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
                         <p class="text-[10px] uppercase font-bold text-purple-400">Power of Attorney Authorization Details:</p>
@@ -701,7 +827,7 @@
                             <input type="text" x-model="docForm.partyB" placeholder="Recipient Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
                         </div>
                         <input type="text" x-model="docForm.address" placeholder="Recipient Full Address *" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        <textarea x-model="docForm.terms" rows="2" placeholder="Legal Grievance & Demand (14 Days Notice Period)..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"></textarea>
+                        <textarea x-model="docForm.terms" rows="2" placeholder="Legal Demand details..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"></textarea>
                     </div>
                 </template>
 
@@ -719,7 +845,6 @@
                             <div>
                                 <p x-text="'In the Matter of: ' + docForm.partyA + ' (CNIC: ' + (docForm.cnicA || 'N/A') + ') Versus State.'"></p>
                                 <p x-text="'FIR No: ' + docForm.firNo + ' | PS: ' + docForm.policeStation + ' | Offences: ' + docForm.ppcSections"></p>
-                                <p class="text-[10px] italic mt-1">Grounds: Applicant has been falsely implicated with ulterior motives.</p>
                             </div>
                         </template>
 
@@ -730,14 +855,7 @@
                             </div>
                         </template>
 
-                        <template x-if="docType === 'Rent Agreement'">
-                            <div>
-                                <p x-text="'Landlord: ' + docForm.partyA + ' | Tenant: ' + docForm.partyB"></p>
-                                <p x-text="'Property: ' + docForm.address + ' | Monthly Rent: PKR ' + docForm.rentAmount"></p>
-                            </div>
-                        </template>
-
-                        <template x-if="docType !== 'Pre-Arrest Bail Application' && docType !== 'General Affidavit' && docType !== 'Rent Agreement'">
+                        <template x-if="docType !== 'Pre-Arrest Bail Application' && docType !== 'General Affidavit'">
                             <div>
                                 <p x-text="'First Party: ' + docForm.partyA + ' | Second Party/Respondent: ' + (docForm.partyB || docForm.policeStation || 'State')"></p>
                                 <p x-text="'Terms/Brief: ' + (docForm.terms || docForm.statement || 'Standard Legal Execution.')"></p>
@@ -767,7 +885,6 @@
                 <button @click="showAiAnalyzerModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <!-- Language Options -->
             <div class="space-y-1.5">
                 <label class="block text-slate-400 text-[10px] font-bold uppercase">Select AI Report Language:</label>
                 <div class="grid grid-cols-3 gap-1.5">
@@ -789,7 +906,6 @@
                 </div>
             </div>
 
-            <!-- Image Upload Section -->
             <div class="p-3 bg-navy-950/80 border border-slate-800 rounded-xl space-y-2">
                 <label class="block text-purple-400 font-bold text-[10px] uppercase">Upload FIR Scan / Photo:</label>
                 <button type="button" @click="$refs.firImageInput.click()" class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700 flex items-center justify-center gap-2">
@@ -814,7 +930,6 @@
                 <span x-text="isAnalyzing ? 'Scanning Sections...' : 'Run AI Analysis'"></span>
             </button>
 
-            <!-- AI Output Result -->
             <template x-if="aiAnalysisResult">
                 <div class="p-4 rounded-xl bg-navy-950 border border-purple-500/40 space-y-3 text-xs">
                     <div class="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -973,6 +1088,10 @@
                 showNewPostModal: false,
                 newPostForm: { title: '', content: '', category: 'Bar Election Manifesto', mediaUrl: '' },
 
+                // PROFILE UPDATE STATE
+                showProfileModal: false,
+                profileForm: { name: '', phone: '', email: '', avatar: '', specialty: '', license: '', bar: '', exp: '' },
+
                 // AI FIR ANALYZER STATE
                 showAiAnalyzerModal: false,
                 aiCaseInput: '',
@@ -1007,7 +1126,12 @@
                 user: {
                     name: 'Adv. Hammad Raza',
                     email: 'hammad@barcouncil.pk',
+                    phone: '0300-1234567',
                     role: 'lawyer',
+                    specialty: 'Criminal Law',
+                    license: 'LHC-98421',
+                    bar: 'Lahore High Court Bar',
+                    exp: 14,
                     designation: 'Supreme Court Advocate',
                     avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250'
                 },
@@ -1038,6 +1162,39 @@
                         const matchSearch = !this.searchQuery || a.name.toLowerCase().includes(this.searchQuery.toLowerCase());
                         return matchCat && matchSearch;
                     });
+                },
+
+                // OPEN PROFILE EDIT MODAL WITH PRE-FILLED DATA
+                openProfileModal() {
+                    this.profileForm = {
+                        name: this.user.name || '',
+                        phone: this.user.phone || '',
+                        email: this.user.email || '',
+                        avatar: this.user.avatar || '',
+                        specialty: this.user.specialty || '',
+                        license: this.user.license || '',
+                        bar: this.user.bar || '',
+                        exp: this.user.exp || 0
+                    };
+                    this.showProfileModal = true;
+                },
+
+                // SAVE PROFILE CHANGES
+                updateProfile() {
+                    this.user.name = this.profileForm.name;
+                    this.user.phone = this.profileForm.phone;
+                    this.user.email = this.profileForm.email;
+                    if (this.profileForm.avatar) this.user.avatar = this.profileForm.avatar;
+
+                    if (this.user.role === 'lawyer') {
+                        this.user.specialty = this.profileForm.specialty;
+                        this.user.license = this.profileForm.license;
+                        this.user.bar = this.profileForm.bar;
+                        this.user.exp = this.profileForm.exp;
+                    }
+
+                    this.showProfileModal = false;
+                    this.showToast('Profile updated successfully!', 'success');
                 },
 
                 resetDocForm() {
