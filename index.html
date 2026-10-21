@@ -296,7 +296,7 @@
             </div>
         </header>
 
-        <!-- CLEAN MOBILE SLIDE-OUT MENU DRAWER (NO DUPLICATION) -->
+        <!-- CLEAN MOBILE SLIDE-OUT MENU DRAWER -->
         <div x-show="mobileMenuOpen" 
              x-transition:enter="transition ease-out duration-200"
              x-transition:leave="transition ease-in duration-150"
@@ -422,51 +422,6 @@
         <!-- MAIN CONTENT AREA -->
         <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full space-y-6">
 
-            <!-- ADVOCATE STATS BAR -->
-            <div x-show="user.role === 'lawyer'" class="space-y-4">
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
-                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg shrink-0">
-                            <i class="fa-solid fa-envelope-open-text"></i>
-                        </div>
-                        <div>
-                            <p class="text-[9px] text-slate-400 uppercase font-bold">Inquiries</p>
-                            <h3 class="text-sm sm:text-base font-black text-white" x-text="myBookings.length + ' Pending'"></h3>
-                        </div>
-                    </div>
-
-                    <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
-                        <div class="w-10 h-10 rounded-xl bg-sapphire-500/10 text-sapphire-400 flex items-center justify-center text-lg shrink-0">
-                            <i class="fa-solid fa-gavel"></i>
-                        </div>
-                        <div>
-                            <p class="text-[9px] text-slate-400 uppercase font-bold">Specialty</p>
-                            <h3 class="text-xs font-bold text-sapphire-400" x-text="user.specialty || 'Criminal Law'"></h3>
-                        </div>
-                    </div>
-
-                    <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
-                        <div class="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-400 flex items-center justify-center text-lg shrink-0">
-                            <i class="fa-solid fa-trophy"></i>
-                        </div>
-                        <div>
-                            <p class="text-[9px] text-slate-400 uppercase font-bold">Experience</p>
-                            <h3 class="text-sm sm:text-base font-black text-white" x-text="(user.exp || 12) + ' Years Exp'"></h3>
-                        </div>
-                    </div>
-
-                    <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
-                        <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg shrink-0">
-                            <i class="fa-solid fa-building-columns"></i>
-                        </div>
-                        <div>
-                            <p class="text-[9px] text-slate-400 uppercase font-bold">City & Chamber Location</p>
-                            <h3 class="text-xs font-bold text-purple-300" x-text="(user.city || 'Karachi') + ' / ' + (user.area || 'Saddar')"></h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- TAB 1: ADVOCATES VIEW -->
             <section x-show="activeTab === 'advocates'" x-transition:enter="transition ease-out duration-200" class="space-y-6">
                 <div class="glass-panel p-3.5 sm:p-5 rounded-2xl border border-slate-800 space-y-3.5 shadow-xl">
@@ -585,7 +540,6 @@
             <!-- TAB 2: LEGAL FEED -->
             <section x-show="activeTab === 'feed'" x-transition:enter="transition ease-out duration-200" class="space-y-6 max-w-4xl mx-auto">
                 
-                <!-- PROMINENT POST CREATION BANNER FOR ADVOCATES -->
                 <template x-if="user.role === 'lawyer'">
                     <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-3 shadow-lg">
                         <div class="flex items-center gap-3">
@@ -640,8 +594,9 @@
                 </div>
             </section>
 
-            <!-- TAB 3: BOOKINGS VIEW -->
+            <!-- TAB 3: BOOKINGS VIEW (FIRST ACTION ITEM FOR ADVOCATES) -->
             <section x-show="activeTab === 'bookings'" x-transition:enter="transition ease-out duration-200" class="space-y-6">
+                <!-- CLIENT REQUESTS (TOP PRIORITY) -->
                 <div class="glass-panel p-4 sm:p-6 rounded-2xl border border-slate-800 space-y-4">
                     <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                         <h2 class="font-cinzel text-base font-bold text-white">
@@ -690,13 +645,59 @@
                         </template>
                     </div>
                 </div>
+
+                <!-- ADVOCATE PROFILE STATS OVERVIEW (MOVED BELOW CLIENT REQUESTS) -->
+                <div x-show="user.role === 'lawyer'" class="space-y-2 pt-2">
+                    <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Advocate Profile Overview</p>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                        <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg shrink-0">
+                                <i class="fa-solid fa-envelope-open-text"></i>
+                            </div>
+                            <div>
+                                <p class="text-[9px] text-slate-400 uppercase font-bold">Inquiries</p>
+                                <h3 class="text-sm sm:text-base font-black text-white" x-text="myBookings.length + ' Pending'"></h3>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-sapphire-500/10 text-sapphire-400 flex items-center justify-center text-lg shrink-0">
+                                <i class="fa-solid fa-gavel"></i>
+                            </div>
+                            <div>
+                                <p class="text-[9px] text-slate-400 uppercase font-bold">Specialty</p>
+                                <h3 class="text-xs font-bold text-sapphire-400" x-text="user.specialty || 'Criminal Law'"></h3>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-400 flex items-center justify-center text-lg shrink-0">
+                                <i class="fa-solid fa-trophy"></i>
+                            </div>
+                            <div>
+                                <p class="text-[9px] text-slate-400 uppercase font-bold">Experience</p>
+                                <h3 class="text-sm sm:text-base font-black text-white" x-text="(user.exp || 12) + ' Years Exp'"></h3>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg shrink-0">
+                                <i class="fa-solid fa-building-columns"></i>
+                            </div>
+                            <div>
+                                <p class="text-[9px] text-slate-400 uppercase font-bold">City & Chamber Location</p>
+                                <h3 class="text-xs font-bold text-purple-300" x-text="(user.city || 'Karachi') + ' / ' + (user.area || 'Saddar')"></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
         </main>
 
         <!-- FOOTER -->
         <footer class="glass-panel border-t border-slate-800/80 py-4 px-4 mt-8">
             <div class="max-w-7xl mx-auto text-center text-[11px] text-slate-500">
-                <p>© 2026 LawNexa Bar Network. Clean Menu & Campaign Engine Active.</p>
+                <p>© 2026 LawNexa Bar Network. Optimized Advocate Dashboard Active.</p>
             </div>
         </footer>
     </div>
@@ -734,7 +735,6 @@
                     <textarea x-model="newPostForm.content" required rows="4" placeholder="Write full campaign manifesto, judgment summary, or bar order details..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-gold-500"></textarea>
                 </div>
 
-                <!-- MEDIA ATTACHMENT (OPTIONAL IMAGE / VIDEO) -->
                 <div class="p-3 bg-navy-950/80 rounded-xl border border-slate-800 space-y-2">
                     <label class="block text-[10px] font-bold text-gold-400 uppercase"><i class="fa-solid fa-photo-film mr-1"></i> Attach Media (Optional - Image or Video):</label>
                     <div class="flex items-center gap-2">
@@ -1141,40 +1141,20 @@
                 loginForm: { role: 'lawyer', id: '', password: '' },
                 registerForm: { role: 'lawyer', name: '', phone: '', email: '', password: '', city: 'Karachi', area: 'Saddar / City Court', courts: ['High Court', 'District & Sessions Court'], chamberAddress: '', specialty: '', license: '', bar: '', exp: '' },
 
-                // CREATE NEW POST MODAL STATE & FORM
                 showNewPostModal: false,
-                newPostForm: {
-                    title: '',
-                    category: 'Election Campaign / Manifesto',
-                    content: '',
-                    mediaUrl: '',
-                    mediaType: 'none',
-                    fileName: ''
-                },
+                newPostForm: { title: '', category: 'Election Campaign / Manifesto', content: '', mediaUrl: '', mediaType: 'none', fileName: '' },
 
                 showProfileModal: false,
                 profileForm: { name: '', phone: '', email: '', avatar: '', city: '', area: '', courts: [], chamberAddress: '', specialty: '', license: '', bar: '', exp: '' },
 
-                // AI FIR ANALYZER STATES
                 showAiAnalyzerModal: false,
                 aiAnalyzerText: '',
                 uploadedFirFileName: '',
                 isAnalyzing: false,
                 aiResult: null,
 
-                // SMART DOC GENERATOR STATES
                 showDocGeneratorModal: false,
-                docForm: {
-                    type: 'Rent Agreement',
-                    party1: '',
-                    party2: '',
-                    applicant: '',
-                    respondent: '',
-                    deponent: '',
-                    purpose: '',
-                    location: '',
-                    court: ''
-                },
+                docForm: { type: 'Rent Agreement', party1: '', party2: '', applicant: '', respondent: '', deponent: '', purpose: '', location: '', court: '' },
                 generatedDocText: '',
 
                 showBookingModal: false,
@@ -1207,14 +1187,10 @@
                 bookingForm: { date: '', time: '', location: '', summary: '' },
                 categories: ['All', 'Criminal Law', 'Corporate & Tax', 'Constitutional', 'Family & Civil'],
 
-                // ADVOCATES SAMPLE DATA
                 advocates: [
                     { id: 1, name: 'Adv. Ali Shah', city: 'Karachi', area: 'Saddar / City Court', courts: ['Supreme Court', 'High Court', 'District & Sessions Court'], chamberAddress: 'Chamber # 104, Sindh High Court Bar, Karachi', specialty: 'Criminal Law', barAssociation: 'Karachi Bar Association', experience: 14, rating: 4.9, casesWon: 120, distance: 1.2, aiScore: 98, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250' },
                     { id: 2, name: 'Adv. Sara Chaudhry', city: 'Karachi', area: 'Sindh High Court (Main Bench)', courts: ['High Court', 'District & Sessions Court'], chamberAddress: 'Office # 302, DHA Phase 8 / High Court Bench, Karachi', specialty: 'Corporate & Tax', barAssociation: 'Sindh High Court Bar', experience: 11, rating: 4.8, casesWon: 85, distance: 3.5, aiScore: 92, avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=250' },
-                    { id: 3, name: 'Adv. Tariq Sukkurvi', city: 'Sukkur', area: 'High Court Sukkur Bench', courts: ['High Court', 'District & Sessions Court'], chamberAddress: 'Chamber No. 12, High Court Bench, Sukkur', specialty: 'Criminal Law', barAssociation: 'Sukkur High Court Bar', experience: 15, rating: 4.9, casesWon: 130, distance: 4.0, aiScore: 95, avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250' },
-                    { id: 4, name: 'Adv. Bilal Khan Niazi', city: 'Lahore', area: 'Lahore High Court (Principal Seat)', courts: ['Supreme Court', 'High Court'], chamberAddress: 'Aiwan-e-Adl Chamber # 55, Lahore', specialty: 'Constitutional', barAssociation: 'Lahore High Court Bar', experience: 16, rating: 4.9, casesWon: 140, distance: 2.1, aiScore: 96, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=250' },
-                    { id: 5, name: 'Adv. Zohaib Abbasi', city: 'Islamabad', area: 'Islamabad High Court (IHC)', courts: ['High Court', 'District & Sessions Court'], chamberAddress: 'Blue Area Block C, Office 4, Islamabad', specialty: 'Corporate & Tax', barAssociation: 'IHC Bar Association', experience: 10, rating: 4.7, casesWon: 75, distance: 5.3, aiScore: 90, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=250' },
-                    { id: 6, name: 'Adv. Asad Durrani', city: 'Peshawar', area: 'Peshawar High Court (PHC)', courts: ['High Court', 'District & Sessions Court'], chamberAddress: 'PHC Bar Room Chamber # 8, Peshawar', specialty: 'Criminal Law', barAssociation: 'PHC Bar Association', experience: 13, rating: 4.8, casesWon: 95, distance: 3.8, aiScore: 93, avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=250' }
+                    { id: 3, name: 'Adv. Tariq Sukkurvi', city: 'Sukkur', area: 'High Court Sukkur Bench', courts: ['High Court', 'District & Sessions Court'], chamberAddress: 'Chamber No. 12, High Court Bench, Sukkur', specialty: 'Criminal Law', barAssociation: 'Sukkur High Court Bar', experience: 15, rating: 4.9, casesWon: 130, distance: 4.0, aiScore: 95, avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250' }
                 ],
 
                 posts: [
@@ -1229,7 +1205,6 @@
                     { id: 101, clientName: 'Kamran (Sukkur Client)', summary: 'Late night advisory for Saddar City Court case.', date: '2026-10-24', time: '10:00 PM', location: 'Saddar / City Court Chamber', status: 'Pending' }
                 ],
 
-                // UPLOAD POST MEDIA (IMAGE / VIDEO)
                 handlePostMediaUpload(event) {
                     const file = event.target.files[0];
                     if (file) {
@@ -1244,7 +1219,6 @@
                     }
                 },
 
-                // CREATE NEW POST FUNCTION
                 createPost() {
                     if (!this.newPostForm.title.trim() || !this.newPostForm.content.trim()) {
                         this.showToast('Title aur Description fill karein', 'error');
@@ -1273,7 +1247,6 @@
                     this.showToast('Post published to Legal Feed!', 'success');
                 },
 
-                // HANDLE FIR FILE UPLOAD
                 handleFirFileUpload(event) {
                     const file = event.target.files[0];
                     if (file) {
@@ -1283,7 +1256,6 @@
                     }
                 },
 
-                // RUN AI FIR ANALYSIS
                 runAiAnalysis() {
                     if (!this.aiAnalyzerText.trim()) {
                         this.showToast('FIR File upload karein ya text paste karein', 'error');
@@ -1303,7 +1275,6 @@
                     }, 1500);
                 },
 
-                // HELPER TO IDENTIFY DYNAMIC DOC CATEGORY
                 getDocCategory() {
                     const type = this.docForm.type;
                     if (['Rent Agreement', 'Partnership Agreement', 'Legal Notice', 'Wakalatnama'].includes(type)) {
@@ -1316,35 +1287,23 @@
                     return 'agreement';
                 },
 
-                // DYNAMIC LEGAL DOCUMENT GENERATOR
                 generateLegalDocument() {
                     const category = this.getDocCategory();
-                    
                     if (category === 'agreement') {
                         const p1 = this.docForm.party1 || 'FIRST PARTY NAME';
                         const p2 = this.docForm.party2 || 'SECOND PARTY NAME';
                         const loc = this.docForm.location || 'Karachi, Pakistan';
-
                         this.generatedDocText = `DEED OF ${this.docForm.type.toUpperCase()}\n\nThis Agreement is executed at ${loc} on this day between:\n\n1. FIRST PARTY: ${p1}\n2. SECOND PARTY: ${p2}\n\nTERMS AND CONDITIONS:\n- That both parties agree to abide by the statutory laws of Pakistan.\n- That any breach shall lead to legal remedy in the relevant jurisdiction.\n\nIN WITNESS WHEREOF, the parties have set their hands below.\n\nFirst Party: _______________    Second Party: _______________`;
-                    } 
-                    else if (category === 'petition') {
+                    } else if (category === 'petition') {
                         const app = this.docForm.applicant || 'APPLICANT / ACCUSED';
                         const resp = this.docForm.respondent || 'THE STATE / SHO';
                         const court = this.docForm.court || 'HONOURABLE SESSIONS COURT';
-
-                        if (this.docForm.type === 'Bail Application') {
-                            this.generatedDocText = `IN THE COURT OF ${court.toUpperCase()}\n\nIn the matter of:\n${app} ... (Applicant / Accused)\nVERSUS\n${resp} ... (Respondent)\n\nAPPLICATION FOR PRE-ARREST BAIL UNDER SECTION 497/498 Cr.P.C\n\nRespectfully Sheweth:\n1. That the applicant is innocent and falsely implicated in the FIR.\n2. That there is no independent witness to support prosecution story.\n\nPRAYER:\nGrant pre-arrest bail to the applicant in the interest of justice.`;
-                        } else {
-                            this.generatedDocText = `IN THE COURT OF JUSTICE OF PEACE / SESSIONS JUDGE ${court.toUpperCase()}\n\n${app} ... (Petitioner)\nVERSUS\n${resp} ... (Respondent)\n\nPETITION UNDER SECTION 22-A / 22-B Cr.P.C FOR REGISTRATION OF FIR\n\nRespectfully Sheweth:\n1. That respondent police station failed to record statement under Sec 154 CrPC.\n\nPRAYER:\nDirect respondent SHO to register FIR according to law.`;
-                        }
-                    } 
-                    else if (category === 'affidavit') {
+                        this.generatedDocText = `IN THE COURT OF ${court.toUpperCase()}\n\nIn the matter of:\n${app} ... (Applicant / Accused)\nVERSUS\n${resp} ... (Respondent)\n\nAPPLICATION FOR PRE-ARREST BAIL UNDER SECTION 497/498 Cr.P.C\n\nRespectfully Sheweth:\n1. That the applicant is innocent and falsely implicated in the FIR.\n\nPRAYER:\nGrant pre-arrest bail to the applicant in the interest of justice.`;
+                    } else if (category === 'affidavit') {
                         const dep = this.docForm.deponent || 'DEPONENT NAME';
                         const pur = this.docForm.purpose || 'General Legal Declaration';
-
-                        this.generatedDocText = `BAYAN-E-HALAFI (SWORN AFFIDAVIT)\n\nI, ${dep}, do hereby solemnly affirm and declare on oath as under:\n\n1. That the contents of this affidavit regarding "${pur}" are true and correct to the best of my knowledge and belief.\n2. That nothing has been concealed herein.\n\nDEPONENT: _______________________\nVERIFICATION: Verified on Oath at Karachi.`;
+                        this.generatedDocText = `BAYAN-E-HALAFI (SWORN AFFIDAVIT)\n\nI, ${dep}, do hereby solemnly affirm and declare on oath as under:\n\n1. That the contents of this affidavit regarding "${pur}" are true and correct to the best of my knowledge and belief.\n\nDEPONENT: _______________________\nVERIFICATION: Verified on Oath at Karachi.`;
                     }
-
                     this.showToast(`${this.docForm.type} Drafted!`, 'success');
                 },
 
@@ -1357,9 +1316,7 @@
                     if (this.selectedCity === 'All' || !this.cityAreas[this.selectedCity]) {
                         let allAreas = [];
                         Object.values(this.cityAreas).forEach(areas => {
-                            areas.forEach(a => {
-                                if (!allAreas.includes(a)) allAreas.push(a);
-                            });
+                            areas.forEach(a => { if (!allAreas.includes(a)) allAreas.push(a); });
                         });
                         return allAreas;
                     }
@@ -1372,17 +1329,9 @@
                             const matchCat = this.selectedCategory === 'All' || a.specialty === this.selectedCategory;
                             const matchCity = this.selectedCity === 'All' || a.city === this.selectedCity;
                             const matchArea = this.selectedArea === 'All' || a.area === this.selectedArea;
-                            
                             const q = this.searchQuery.toLowerCase().trim();
                             const courtsString = (a.courts || []).join(' ').toLowerCase();
-                            const matchSearch = !q || 
-                                a.name.toLowerCase().includes(q) || 
-                                a.city.toLowerCase().includes(q) || 
-                                a.area.toLowerCase().includes(q) ||
-                                (a.chamberAddress && a.chamberAddress.toLowerCase().includes(q)) ||
-                                courtsString.includes(q) ||
-                                a.specialty.toLowerCase().includes(q);
-
+                            const matchSearch = !q || a.name.toLowerCase().includes(q) || a.city.toLowerCase().includes(q) || a.area.toLowerCase().includes(q) || (a.chamberAddress && a.chamberAddress.toLowerCase().includes(q)) || courtsString.includes(q) || a.specialty.toLowerCase().includes(q);
                             return matchCat && matchCity && matchArea && matchSearch;
                         })
                         .sort((a, b) => a.distance - b.distance);
@@ -1441,25 +1390,17 @@
 
                 openChatModal(adv) {
                     this.activeChatAdvocate = adv;
-                    this.chatMessages = [
-                        { sender: 'them', text: `Assalam-o-Alaikum! Main ${adv.name} (${adv.city}, ${adv.area}) se hoon. Apni case requirement batayein.`, time: '10:00 PM' }
-                    ];
+                    this.chatMessages = [{ sender: 'them', text: `Assalam-o-Alaikum! Main ${adv.name} (${adv.city}, ${adv.area}) se hoon. Apni case requirement batayein.`, time: '10:00 PM' }];
                     this.showChatModal = true;
                 },
 
                 sendChatMessage() {
                     if (!this.chatInputText.trim()) return;
-
                     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     this.chatMessages.push({ sender: 'me', text: this.chatInputText, time: now });
                     this.chatInputText = '';
-
                     setTimeout(() => {
-                        this.chatMessages.push({
-                            sender: 'them',
-                            text: `Shukriya. Main aapki request review karke confirm karta hoon.`,
-                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        });
+                        this.chatMessages.push({ sender: 'them', text: `Shukriya. Main aapki request review karke confirm karta hoon.`, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
                     }, 1000);
                 },
 
