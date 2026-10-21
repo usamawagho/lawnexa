@@ -106,7 +106,7 @@
     <div class="fixed top-0 left-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-sapphire-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse-glow"></div>
     <div class="fixed bottom-0 right-1/4 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-gold-500/10 rounded-full blur-[140px] pointer-events-none animate-pulse-glow"></div>
 
-    <!-- ================= 1. AUTHENTICATION SCREEN ================= -->
+   <!-- ================= 1. AUTHENTICATION SCREEN ================= -->
     <div x-show="!isLoggedIn" x-transition:enter="transition ease-out duration-300" class="min-h-screen flex items-center justify-center p-4 relative z-10 my-auto">
         <div class="glass-panel max-w-md w-full rounded-3xl p-5 sm:p-8 border border-slate-800 shadow-2xl gold-glow space-y-6">
             
@@ -161,69 +161,21 @@
 
                 <div>
                     <label class="block text-xs font-bold text-slate-400 mb-1">Password</label>
-                    <input type="password" x-model="loginForm.password" required placeholder="••••••••" 
+                    <input type="password" x-model="loginForm.password" required minlength="8" maxlength="10" placeholder="••••••••" 
                            class="w-full bg-navy-950/90 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                    
+                    <!-- 1. FORGOT PASSWORD BUTTON (Yahan add hua hai) -->
+                    <div class="text-right mt-1.5">
+                        <button type="button" @click="showForgotModal = true" class="text-[11px] text-gold-400 hover:underline">
+                            Forgot Password?
+                        </button>
+                    </div>
                 </div>
 
                 <button type="submit" class="w-full py-3 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 hover:to-amber-500 transition uppercase tracking-wider">
                     Sign In
                 </button>
             </form>
-            <!-- FORGOT PASSWORD LINK -->
-<div class="text-right mt-2">
-    <button type="button" @click="showForgotModal = true" class="text-xs text-gold-400 hover:underline">
-        Forgot Password?
-    </button>
-</div>
-
-<!-- REALTIME OTP FORGOT PASSWORD MODAL -->
-<div x-show="showForgotModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
-    <div class="bg-navy-900 border border-gold-500/30 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
-        
-        <!-- Close Button -->
-        <button @click="showForgotModal = false; otpSent = false;" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-            <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
-
-        <h3 class="text-base font-extrabold text-gold-400 mb-1">
-            <i class="fa-solid fa-key mr-2"></i>Reset Password via OTP
-        </h3>
-        <p class="text-xs text-slate-400 mb-4">Registered Phone Number ya Email enter karein.</p>
-
-        <!-- STEP 1: SEND OTP -->
-        <div x-show="!otpSent" class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">Phone / Email</label>
-                <input type="text" x-model="forgotForm.id" placeholder="03XX-XXXXXXX or user@bar.pk" 
-                       class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-gold-500">
-            </div>
-            <button type="button" @click="sendOtp()" class="w-full py-2.5 bg-gold-500 text-navy-950 font-bold text-xs rounded-xl hover:bg-gold-400 transition">
-                Send Realtime OTP
-            </button>
-        </div>
-
-        <!-- STEP 2: VERIFY OTP & SET NEW PASSWORD -->
-        <div x-show="otpSent" class="space-y-3">
-            <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">6-Digit Realtime OTP Code</label>
-                <input type="text" x-model="forgotForm.otp" maxlength="6" placeholder="e.g. 482910" 
-                       class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white text-center font-mono tracking-widest focus:outline-none focus:border-gold-500">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">Naya Password (8-10 Characters)</label>
-                <input type="password" x-model="forgotForm.newPassword" minlength="8" maxlength="10" placeholder="••••••••" 
-                       class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-gold-500">
-            </div>
-            <button type="button" @click="submitResetPassword()" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl hover:from-gold-400 hover:to-amber-500 transition">
-                Verify OTP & Reset Password
-            </button>
-            <button type="button" @click="sendOtp()" class="w-full text-center text-xs text-slate-400 hover:text-gold-400 mt-2">
-                Resend OTP
-            </button>
-        </div>
-
-    </div>
-</div>
 
             <!-- REGISTER FORM -->
             <form x-show="authTab === 'register'" @submit.prevent="handleRegister()" class="space-y-3.5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
@@ -246,7 +198,7 @@
                 <input type="text" x-model="registerForm.name" required placeholder="Full Name *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
                 <input type="text" x-model="registerForm.phone" required placeholder="Phone Number (03XX-XXXXXXX) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
                 <input type="email" x-model="registerForm.email" required placeholder="Email Address *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
-                <input type="password" x-model="registerForm.password" required placeholder="Password *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                <input type="password" x-model="registerForm.password" required minlength="8" maxlength="10" placeholder="Password (8-10 chars) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
 
                 <template x-if="registerForm.role === 'lawyer'">
                     <div class="space-y-3 pt-2 border-t border-slate-800">
@@ -289,6 +241,50 @@
                     Create Account
                 </button>
             </form>
+        </div>
+    </div>
+
+    <!-- 2. FORGOT PASSWORD OTP MODAL (Authentic Screen Container Ke Bilkul Niche Aayega) -->
+    <div x-show="showForgotModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-navy-900 border border-gold-500/30 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+            
+            <button @click="showForgotModal = false; otpSent = false;" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <h3 class="text-base font-extrabold text-gold-400 mb-1">
+                <i class="fa-solid fa-key mr-2"></i>Reset Password via OTP
+            </h3>
+            <p class="text-xs text-slate-400 mb-4">Registered Phone Number ya Email enter karein.</p>
+
+            <!-- STEP 1: SEND OTP -->
+            <div x-show="!otpSent" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Phone / Email</label>
+                    <input type="text" x-model="forgotForm.id" placeholder="03XX-XXXXXXX or user@bar.pk" 
+                           class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-gold-500">
+                </div>
+                <button type="button" @click="sendOtp()" class="w-full py-2.5 bg-gold-500 text-navy-950 font-bold text-xs rounded-xl hover:bg-gold-400 transition">
+                    Send Realtime OTP
+                </button>
+            </div>
+
+            <!-- STEP 2: VERIFY OTP -->
+            <div x-show="otpSent" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">6-Digit Realtime OTP Code</label>
+                    <input type="text" x-model="forgotForm.otp" maxlength="6" placeholder="e.g. 482910" 
+                           class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white text-center font-mono tracking-widest focus:outline-none focus:border-gold-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Naya Password (8-10 Characters)</label>
+                    <input type="password" x-model="forgotForm.newPassword" minlength="8" maxlength="10" placeholder="••••••••" 
+                           class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-gold-500">
+                </div>
+                <button type="button" @click="submitResetPassword()" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl hover:from-gold-400 hover:to-amber-500 transition">
+                    Verify OTP & Reset Password
+                </button>
+            </div>
         </div>
     </div>
 
