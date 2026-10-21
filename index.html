@@ -196,9 +196,13 @@
                 <template x-if="registerForm.role === 'lawyer'">
                     <div class="space-y-3 pt-2 border-t border-slate-800">
                         <p class="text-xs font-bold text-gold-400 uppercase tracking-wide">Bar Practice Details:</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" x-model="registerForm.city" required placeholder="City (Karachi, Lahore) *" class="bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                            <input type="text" x-model="registerForm.area" required placeholder="Area / Court (Saddar, SHC) *" class="bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        </div>
                         <input type="text" x-model="registerForm.specialty" required placeholder="Specialty (Criminal, Corporate, Tax) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
                         <input type="text" x-model="registerForm.license" required placeholder="Bar License Number *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
-                        <input type="text" x-model="registerForm.bar" required placeholder="Bar Association (Lahore High Court Bar) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        <input type="text" x-model="registerForm.bar" required placeholder="Bar Association (Karachi Bar Association) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
                         <input type="number" x-model="registerForm.exp" required placeholder="Years of Experience *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
                     </div>
                 </template>
@@ -236,7 +240,7 @@
                       <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
-                    <span>GPS: <strong class="text-white" x-text="currentLocation">Lahore High Court</strong></span>
+                    <span>GPS: <strong class="text-white" x-text="currentLocation">Karachi Saddar / High Court</strong></span>
                 </div>
 
                 <!-- RIGHT CONTROLS: PROFILE BUTTON ON LEFT & LOGOUT ON FAR RIGHT -->
@@ -248,19 +252,19 @@
                         </button>
                     </template>
 
-                    <!-- PROFILE EDIT BUTTON (LEFT POSITION IN RIGHT CONTROLS) -->
+                    <!-- PROFILE EDIT BUTTON -->
                     <button @click="openProfileModal()" class="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-white transition shadow-md">
                         <img :src="user.avatar" class="w-6 h-6 rounded-full object-cover border border-gold-500">
                         <span class="hidden sm:inline" x-text="user.name"></span>
                         <i class="fa-solid fa-user-pen text-gold-400 text-[10px]"></i>
                     </button>
 
-                    <!-- LOGOUT BUTTON (FAR RIGHT SHIFTED) -->
+                    <!-- LOGOUT BUTTON -->
                     <button @click="logout()" class="p-2.5 sm:px-3 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-400 text-xs font-bold hover:bg-rose-900/50 transition flex items-center gap-1" title="Sign Out">
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
 
-                    <!-- MOBILE HAMBURGER MENU BUTTON -->
+                    <!-- MOBILE MENU BUTTON -->
                     <button @click="mobileMenuOpen = !mobileMenuOpen" 
                             class="md:hidden p-2 rounded-xl text-slate-200 bg-slate-800 border border-slate-700 hover:text-gold-400 transition">
                         <i class="fa-solid text-base" :class="mobileMenuOpen ? 'fa-xmark' : 'fa-bars'"></i>
@@ -269,7 +273,7 @@
             </div>
         </header>
 
-        <!-- MOBILE SLIDE-OUT MENU DRAWER (CLEAN MAIN NAVIGATION) -->
+        <!-- MOBILE SLIDE-OUT MENU DRAWER -->
         <div x-show="mobileMenuOpen" 
              x-transition:enter="transition ease-out duration-200"
              x-transition:leave="transition ease-in duration-150"
@@ -321,7 +325,7 @@
                         <button @click="activeTab = 'advocates'; mobileMenuOpen = false" 
                                 class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between"
                                 :class="activeTab === 'advocates' ? 'bg-gold-500 text-navy-950' : 'bg-navy-950/80 text-slate-300'">
-                            <span>👨‍⚖️ Find Nearby Advocates & AI Match</span>
+                            <span>👨‍⚖️ Find Advocates (City & Area Filter)</span>
                         </button>
                         <button @click="activeTab = 'feed'; mobileMenuOpen = false" 
                                 class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between"
@@ -371,7 +375,7 @@
                     <button @click="activeTab = 'advocates'" 
                             class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition"
                             :class="activeTab === 'advocates' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
-                        <span>👨‍⚖️ Find Nearby Advocates</span>
+                        <span>👨‍⚖️ Find Advocates (City & Area Filter)</span>
                     </button>
                     <button @click="activeTab = 'feed'" 
                             class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition"
@@ -438,35 +442,61 @@
                             <i class="fa-solid fa-building-columns"></i>
                         </div>
                         <div>
-                            <p class="text-[9px] text-slate-400 uppercase font-bold">Bar License</p>
-                            <h3 class="text-xs font-bold text-purple-300" x-text="user.license || 'LHC-98421'"></h3>
+                            <p class="text-[9px] text-slate-400 uppercase font-bold">City & Court</p>
+                            <h3 class="text-xs font-bold text-purple-300" x-text="(user.city || 'Karachi') + ' / ' + (user.area || 'Saddar')"></h3>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 1: ADVOCATES VIEW -->
+            <!-- TAB 1: ADVOCATES VIEW (WITH CITY & AREA DROPDOWNS) -->
             <section x-show="activeTab === 'advocates'" x-transition:enter="transition ease-out duration-200" class="space-y-6">
                 <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
-                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    
+                    <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+                        <!-- SEARCH BAR -->
                         <div class="relative flex-1">
                             <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                            <input type="text" x-model="searchQuery" placeholder="Search advocate by name or legal specialty..." 
+                            <input type="text" x-model="searchQuery" placeholder="Search by lawyer name, Saddar, City Court, Sukkur, Karachi..." 
                                    class="w-full bg-navy-950/80 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
                         </div>
 
-                        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 custom-scrollbar">
-                            <template x-for="cat in categories" :key="cat">
-                                <button @click="selectedCategory = cat" 
-                                        class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition border"
-                                        :class="selectedCategory === cat ? 'bg-gold-500/20 text-gold-400 border-gold-500/50' : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200'">
-                                    <span x-text="cat"></span>
-                                </button>
-                            </template>
+                        <!-- CITY SELECTOR DROPDOWN -->
+                        <div class="flex items-center gap-2">
+                            <select x-model="selectedCity" class="bg-navy-950/90 border border-slate-800 text-gold-400 font-bold rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500">
+                                <option value="All">🌆 All Cities (Sab Shehar)</option>
+                                <option value="Karachi">Karachi</option>
+                                <option value="Sukkur">Sukkur</option>
+                                <option value="Lahore">Lahore</option>
+                                <option value="Islamabad">Islamabad</option>
+                            </select>
+
+                            <!-- AREA / COURT SELECTOR DROPDOWN -->
+                            <select x-model="selectedArea" class="bg-navy-950/90 border border-slate-800 text-slate-200 font-bold rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500">
+                                <option value="All">📍 All Areas / Courts</option>
+                                <option value="Saddar / City Court">Saddar / City Court</option>
+                                <option value="Sindh High Court">Sindh High Court</option>
+                                <option value="Malir Court">Malir Court</option>
+                                <option value="Clifton Chamber">Clifton Chamber</option>
+                                <option value="Lahore High Court">Lahore High Court</option>
+                            </select>
                         </div>
+                    </div>
+
+                    <!-- SPECIALTY CATEGORY BADGES -->
+                    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar pt-1 border-t border-slate-800/60">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">Specialty:</span>
+                        <template x-for="cat in categories" :key="cat">
+                            <button @click="selectedCategory = cat" 
+                                    class="px-3 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition border"
+                                    :class="selectedCategory === cat ? 'bg-gold-500/20 text-gold-400 border-gold-500/50' : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200'">
+                                <span x-text="cat"></span>
+                            </button>
+                        </template>
                     </div>
                 </div>
 
+                <!-- ADVOCATES CARDS GRID -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     <template x-for="adv in filteredAdvocates" :key="adv.id">
                         <div class="glass-panel rounded-2xl p-4 sm:p-5 border transition-all duration-300 flex flex-col justify-between group border-slate-800 hover:border-slate-700">
@@ -474,7 +504,7 @@
                                 <div class="flex items-start justify-between gap-3 mb-3">
                                     <div class="relative">
                                         <img :src="adv.avatar" :alt="adv.name" class="w-14 h-14 rounded-2xl object-cover border-2 border-slate-700">
-                                        <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-navy-950 rounded-full"></span>
+                                        <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-navy-950 rounded-full" title="Online 24/7"></span>
                                     </div>
                                     
                                     <div class="text-right">
@@ -487,6 +517,17 @@
                                 </div>
 
                                 <h3 class="font-cinzel text-sm sm:text-base font-bold text-white group-hover:text-gold-400 transition" x-text="adv.name"></h3>
+                                
+                                <!-- CITY AND AREA DISPLAY -->
+                                <div class="flex items-center gap-1.5 text-[10px] font-bold my-1.5">
+                                    <span class="px-2 py-0.5 rounded bg-amber-500/20 text-gold-400 border border-amber-500/30 flex items-center gap-1">
+                                        <i class="fa-solid fa-city"></i> <span x-text="adv.city"></span>
+                                    </span>
+                                    <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1">
+                                        <i class="fa-solid fa-location-dot text-rose-400"></i> <span x-text="adv.area"></span>
+                                    </span>
+                                </div>
+
                                 <p class="text-xs text-slate-400 font-medium mb-3" x-text="adv.barAssociation"></p>
 
                                 <div class="flex flex-wrap gap-1.5 mb-3">
@@ -615,25 +656,25 @@
         <!-- FOOTER -->
         <footer class="glass-panel border-t border-slate-800/80 py-4 px-4 mt-8">
             <div class="max-w-7xl mx-auto text-center text-[11px] text-slate-500">
-                <p>© 2026 LawNexa Bar Network. Full Profile Update & AI FIR Core Active.</p>
+                <p>© 2026 LawNexa Bar Network. Full Location & City Filter Core Active.</p>
             </div>
         </footer>
     </div>
 
     <!-- ================= MODALS ================= -->
 
-    <!-- PROFILE UPDATE MODAL (WITH DIRECT FILE PHOTO UPLOAD) -->
+    <!-- PROFILE UPDATE MODAL -->
     <div x-show="showProfileModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
         <div @click.outside="showProfileModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-gold-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar gold-glow">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-user-pen text-gold-400"></i> Update Profile Details
+                    <i class="fa-solid fa-user-pen text-gold-400"></i> Update Profile & Practice Location
                 </h3>
                 <button @click="showProfileModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
             <form @submit.prevent="updateProfile()" class="space-y-3.5 text-xs">
-                <!-- AVATAR PREVIEW & DIRECT FILE PHOTO UPLOAD -->
+                <!-- PHOTO UPLOAD -->
                 <div class="flex items-center gap-3 p-3 bg-navy-950/80 rounded-xl border border-slate-800">
                     <img :src="profileForm.avatar || user.avatar" class="w-14 h-14 rounded-2xl object-cover border-2 border-gold-500 shrink-0">
                     <div class="flex-1 space-y-1">
@@ -667,7 +708,18 @@
                 <!-- Advocate Specific Details (Lawyer Role Only) -->
                 <template x-if="user.role === 'lawyer'">
                     <div class="space-y-2 pt-2 border-t border-slate-800">
-                        <p class="text-[10px] uppercase font-bold text-purple-400">Advocate Bar & Practice Details:</p>
+                        <p class="text-[10px] uppercase font-bold text-purple-400">Advocate City & Practice Area:</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-slate-400 mb-1">City *</label>
+                                <input type="text" x-model="profileForm.city" required placeholder="Karachi, Sukkur..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 mb-1">Area / Court Location *</label>
+                                <input type="text" x-model="profileForm.area" required placeholder="Saddar, City Court..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="block text-slate-400 mb-1">Legal Specialty *</label>
@@ -685,7 +737,7 @@
                             </div>
                             <div>
                                 <label class="block text-slate-400 mb-1">Bar Association *</label>
-                                <input type="text" x-model="profileForm.bar" required placeholder="Lahore High Court Bar..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                                <input type="text" x-model="profileForm.bar" required placeholder="Karachi Bar Association..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
                             </div>
                         </div>
                     </div>
@@ -698,259 +750,65 @@
         </div>
     </div>
 
-    <!-- SMART LEGAL DOCUMENT GENERATOR MODAL -->
-    <div x-show="showDocGeneratorModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-        <div @click.outside="showDocGeneratorModal = false" class="glass-panel max-w-xl w-full rounded-2xl border border-purple-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar purple-glow">
-            
+    <!-- BOOK CONSULTATION MODAL (WITH NIGHT & AREA SELECTION) -->
+    <div x-show="showBookingModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+        <div @click.outside="showBookingModal = false" class="glass-panel max-w-md w-full rounded-2xl border border-slate-800 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-file-signature text-purple-400"></i> Smart Legal Contract & Petition Generator
+                    <i class="fa-solid fa-calendar-plus text-gold-400"></i> Book Consultation
                 </h3>
-                <button @click="showDocGeneratorModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                <button @click="showBookingModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <div class="space-y-3.5 text-xs">
+            <div class="space-y-3 text-xs">
                 <div>
-                    <label class="block text-purple-400 mb-1 font-bold uppercase text-[10px]">Select Legal Document Template:</label>
-                    <select x-model="docType" @change="resetDocForm()" class="w-full bg-navy-950 border border-purple-500/30 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500 font-medium text-xs">
-                        <option value="Pre-Arrest Bail Application">⚖️ Pre-Arrest Bail Application (Zamanat)</option>
-                        <option value="22-A / 22-B CrPC Petition">📜 22-A / 22-B CrPC Petition (FIR Direction)</option>
-                        <option value="General Affidavit">📝 Bayan-e-Halafi (General Legal Affidavit)</option>
-                        <option value="Power of Attorney">🏛️ Special Power of Attorney (Wakalatnama)</option>
-                        <option value="Rent Agreement">🏠 House / Commercial Rent Agreement</option>
-                        <option value="Two-Party Agreement">🤝 Two-Party Business / Sale Agreement</option>
-                        <option value="Legal Notice">⚠️ Formal Legal Notice Draft</option>
-                    </select>
+                    <label class="block text-slate-400 mb-1 font-semibold">Preferred Meeting Location / Court:</label>
+                    <input type="text" x-model="bookingForm.location" placeholder="e.g. Saddar City Court Chamber / Online" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
                 </div>
-
-                <!-- 1. PRE-ARREST BAIL APPLICATION FIELDS -->
-                <template x-if="docType === 'Pre-Arrest Bail Application'">
-                    <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
-                        <p class="text-[10px] uppercase font-bold text-purple-400">Court Bail Application Requirements:</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" x-model="docForm.partyA" placeholder="Accused / Applicant Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                            <input type="text" x-model="docForm.cnicA" placeholder="Applicant CNIC *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" x-model="docForm.policeStation" placeholder="Police Station (Thana) *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                            <input type="text" x-model="docForm.firNo" placeholder="FIR No. & Year (e.g. 142/2026) *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        </div>
-                        <input type="text" x-model="docForm.ppcSections" placeholder="Offence Sections (e.g. PPC 406/420/379) *" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-400 mb-1 font-semibold">Date:</label>
+                        <input type="date" x-model="bookingForm.date" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
                     </div>
-                </template>
-
-                <!-- 2. 22-A / 22-B CrPC PETITION FIELDS -->
-                <template x-if="docType === '22-A / 22-B CrPC Petition'">
-                    <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
-                        <p class="text-[10px] uppercase font-bold text-purple-400">Justice of Peace Petition Details:</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" x-model="docForm.partyA" placeholder="Petitioner / Complainant Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                            <input type="text" x-model="docForm.cnicA" placeholder="Petitioner CNIC *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" x-model="docForm.policeStation" placeholder="Respondent SHO / Police Station *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                            <input type="text" x-model="docForm.partyB" placeholder="Proposed Accused Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        </div>
-                        <textarea x-model="docForm.statement" rows="2" placeholder="Brief Incident Description for FIR Registration..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"></textarea>
+                    <div>
+                        <label class="block text-slate-400 mb-1 font-semibold">Time (Night / Any Time):</label>
+                        <input type="text" x-model="bookingForm.time" placeholder="e.g. 10:00 PM (Late Night)" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
                     </div>
-                </template>
-
-                <!-- 3. GENERAL AFFIDAVIT (BAYAN-E-HALAFI) FIELDS -->
-                <template x-if="docType === 'General Affidavit'">
-                    <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
-                        <p class="text-[10px] uppercase font-bold text-purple-400">Deponent Information:</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" x-model="docForm.partyA" placeholder="Deponent Full Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                            <input type="text" x-model="docForm.fatherA" placeholder="Father / Husband Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        </div>
-                        <input type="text" x-model="docForm.cnicA" placeholder="CNIC Number *" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        <textarea x-model="docForm.statement" rows="2" placeholder="Write sworn oath statement..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"></textarea>
-                    </div>
-                </template>
-
-                <!-- 4. WAKALATNAMA FIELDS -->
-                <template x-if="docType === 'Power of Attorney'">
-                    <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
-                        <p class="text-[10px] uppercase font-bold text-purple-400">Power of Attorney Authorization Details:</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" x-model="docForm.partyA" placeholder="Client / Muwakkil Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                            <input type="text" x-model="docForm.cnicA" placeholder="Client CNIC *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" x-model="docForm.attorneyName" placeholder="Advocate Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                            <input type="text" x-model="docForm.courtName" placeholder="Court Title (e.g. LHC Lahore) *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        </div>
-                    </div>
-                </template>
-
-                <!-- 5. RENT AGREEMENT FIELDS -->
-                <template x-if="docType === 'Rent Agreement'">
-                    <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
-                        <p class="text-[10px] uppercase font-bold text-purple-400">Landlord & Tenant Agreement Details:</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" x-model="docForm.partyA" placeholder="Landlord Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                            <input type="text" x-model="docForm.partyB" placeholder="Tenant Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="number" x-model="docForm.rentAmount" placeholder="Monthly Rent (PKR) *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                            <input type="number" x-model="docForm.deposit" placeholder="Security Deposit (PKR) *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        </div>
-                        <input type="text" x-model="docForm.address" placeholder="Rented Property Address *" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                    </div>
-                </template>
-
-                <!-- 6. TWO-PARTY BUSINESS AGREEMENT FIELDS -->
-                <template x-if="docType === 'Two-Party Agreement'">
-                    <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
-                        <p class="text-[10px] uppercase font-bold text-purple-400">Two-Party Contract Information:</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" x-model="docForm.partyA" placeholder="First Party Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                            <input type="text" x-model="docForm.cnicA" placeholder="First Party CNIC *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" x-model="docForm.partyB" placeholder="Second Party Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                            <input type="text" x-model="docForm.cnicB" placeholder="Second Party CNIC *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        </div>
-                        <textarea x-model="docForm.terms" rows="2" placeholder="Contract Business Scope & Payment Terms..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"></textarea>
-                    </div>
-                </template>
-
-                <!-- 7. LEGAL NOTICE FIELDS -->
-                <template x-if="docType === 'Legal Notice'">
-                    <div class="space-y-3 p-3 bg-navy-950/90 rounded-xl border border-slate-800">
-                        <p class="text-[10px] uppercase font-bold text-purple-400">Formal Legal Notice Requirements:</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" x-model="docForm.partyA" placeholder="Sender / Client Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                            <input type="text" x-model="docForm.partyB" placeholder="Recipient Name *" class="bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        </div>
-                        <input type="text" x-model="docForm.address" placeholder="Recipient Full Address *" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500">
-                        <textarea x-model="docForm.terms" rows="2" placeholder="Legal Demand details..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"></textarea>
-                    </div>
-                </template>
-
-                <button @click="generateDocument()" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs rounded-xl shadow-lg transition hover:brightness-110 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-file-export"></i> Generate Stamped Legal Draft
-                </button>
-
-                <!-- DYNAMIC COURT DRAFT PREVIEW -->
-                <template x-if="generatedDoc">
-                    <div class="p-4 bg-white text-black rounded-xl space-y-2 text-[11px] font-mono shadow-2xl border border-slate-300">
-                        <div class="text-center font-bold underline uppercase text-xs" x-text="docType"></div>
-                        <p class="font-bold text-center">IN THE COURT OF / BEFORE COMPETENT LEGAL AUTHORITY</p>
-                        
-                        <template x-if="docType === 'Pre-Arrest Bail Application'">
-                            <div>
-                                <p x-text="'In the Matter of: ' + docForm.partyA + ' (CNIC: ' + (docForm.cnicA || 'N/A') + ') Versus State.'"></p>
-                                <p x-text="'FIR No: ' + docForm.firNo + ' | PS: ' + docForm.policeStation + ' | Offences: ' + docForm.ppcSections"></p>
-                            </div>
-                        </template>
-
-                        <template x-if="docType === 'General Affidavit'">
-                            <div>
-                                <p x-text="'I, ' + docForm.partyA + ' S/O ' + docForm.fatherA + ' (CNIC: ' + docForm.cnicA + ') do hereby solemnly affirm on oath:'"></p>
-                                <p x-text="'Statement: ' + docForm.statement"></p>
-                            </div>
-                        </template>
-
-                        <template x-if="docType !== 'Pre-Arrest Bail Application' && docType !== 'General Affidavit'">
-                            <div>
-                                <p x-text="'First Party: ' + docForm.partyA + ' | Second Party/Respondent: ' + (docForm.partyB || docForm.policeStation || 'State')"></p>
-                                <p x-text="'Terms/Brief: ' + (docForm.terms || docForm.statement || 'Standard Legal Execution.')"></p>
-                            </div>
-                        </template>
-
-                        <div class="pt-2 border-t border-slate-300 flex justify-between font-bold text-[10px]">
-                            <span>Signature 1: ____________</span>
-                            <span>Signature 2: ____________</span>
-                        </div>
-                        <button @click="showToast('Downloading Legal Document PDF...', 'success')" class="w-full py-2 bg-navy-950 text-gold-400 font-bold rounded-lg text-xs mt-2">
-                            <i class="fa-solid fa-download mr-1"></i> Download Stamped Court PDF
-                        </button>
-                    </div>
-                </template>
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Case Brief Summary:</label>
+                    <textarea x-model="bookingForm.summary" rows="3" placeholder="Traveling from Sukkur, need urgent legal consultation in Karachi Saddar..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-gold-500"></textarea>
+                </div>
             </div>
+
+            <button @click="confirmBooking()" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 transition">
+                Confirm Appointment Request
+            </button>
         </div>
     </div>
 
-    <!-- AI FIR & CASE ANALYZER MODAL -->
+    <!-- DOCUMENT & AI MODALS -->
+    <div x-show="showDocGeneratorModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+        <div @click.outside="showDocGeneratorModal = false" class="glass-panel max-w-xl w-full rounded-2xl border border-purple-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar purple-glow">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-file-signature text-purple-400"></i> Smart Legal Contract Generator
+                </h3>
+                <button @click="showDocGeneratorModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-slate-300">Generate Court Bail Applications, Legal Notices and Rent Agreements instantly.</p>
+        </div>
+    </div>
+
     <div x-show="showAiAnalyzerModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
         <div @click.outside="showAiAnalyzerModal = false" class="glass-panel max-w-xl w-full rounded-2xl border border-purple-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar purple-glow">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-brain text-purple-400"></i> AI FIR & Legal Case Analyzer
+                    <i class="fa-solid fa-brain text-purple-400"></i> AI FIR & Case Analyzer
                 </h3>
                 <button @click="showAiAnalyzerModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
-
-            <div class="space-y-1.5">
-                <label class="block text-slate-400 text-[10px] font-bold uppercase">Select AI Report Language:</label>
-                <div class="grid grid-cols-3 gap-1.5">
-                    <button type="button" @click="aiLanguage = 'roman_urdu'" 
-                            class="py-1.5 rounded-xl text-[11px] font-bold transition border"
-                            :class="aiLanguage === 'roman_urdu' ? 'bg-purple-600 text-white border-purple-400' : 'bg-navy-950 text-slate-400 border-slate-800'">
-                        💬 Roman Urdu
-                    </button>
-                    <button type="button" @click="aiLanguage = 'urdu'" 
-                            class="py-1.5 rounded-xl text-[11px] font-bold transition border"
-                            :class="aiLanguage === 'urdu' ? 'bg-purple-600 text-white border-purple-400' : 'bg-navy-950 text-slate-400 border-slate-800'">
-                        🇵🇰 اردو
-                    </button>
-                    <button type="button" @click="aiLanguage = 'english'" 
-                            class="py-1.5 rounded-xl text-[11px] font-bold transition border"
-                            :class="aiLanguage === 'english' ? 'bg-purple-600 text-white border-purple-400' : 'bg-navy-950 text-slate-400 border-slate-800'">
-                        🌐 English
-                    </button>
-                </div>
-            </div>
-
-            <div class="p-3 bg-navy-950/80 border border-slate-800 rounded-xl space-y-2">
-                <label class="block text-purple-400 font-bold text-[10px] uppercase">Upload FIR Scan / Photo:</label>
-                <button type="button" @click="$refs.firImageInput.click()" class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-camera text-purple-400"></i> Upload Image / Take Photo
-                </button>
-                <input type="file" x-ref="firImageInput" @change="handleFirImageUpload($event)" accept="image/*" class="hidden">
-
-                <template x-if="aiCaseImageUrl">
-                    <div class="mt-2 rounded-xl overflow-hidden border border-purple-500/40 relative max-h-36 bg-black">
-                        <img :src="aiCaseImageUrl" class="w-full h-36 object-cover">
-                        <button type="button" @click="aiCaseImageUrl = ''" class="absolute top-1 right-1 w-6 h-6 bg-rose-600 text-white rounded-full flex items-center justify-center text-xs">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
-                </template>
-            </div>
-
-            <textarea x-model="aiCaseInput" rows="3" placeholder="Type FIR text or sections here..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-purple-500"></textarea>
-
-            <button @click="runAiAnalysis()" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-wand-magic-sparkles" :class="{'fa-spin': isAnalyzing}"></i>
-                <span x-text="isAnalyzing ? 'Scanning Sections...' : 'Run AI Analysis'"></span>
-            </button>
-
-            <template x-if="aiAnalysisResult">
-                <div class="p-4 rounded-xl bg-navy-950 border border-purple-500/40 space-y-3 text-xs">
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-                        <span class="font-bold text-purple-400 uppercase text-[10px]">AI Legal Diagnosis</span>
-                        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">PPC Matched</span>
-                    </div>
-
-                    <div>
-                        <p class="text-slate-400 font-bold">Case Summary:</p>
-                        <p class="text-slate-200 mt-0.5" x-text="aiAnalysisResult.summary"></p>
-                    </div>
-
-                    <div>
-                        <p class="text-slate-400 font-bold">Legal Strategy / Advice:</p>
-                        <p class="text-gold-400 font-semibold" x-text="aiAnalysisResult.recommendation"></p>
-                    </div>
-
-                    <div class="pt-2 border-t border-slate-800">
-                        <button @click="generateDocFromAiAnalysis()" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-file-signature"></i> Transfer to Doc Generator
-                        </button>
-                    </div>
-                </div>
-            </template>
+            <p class="text-xs text-slate-300">Upload FIR photo to scan legal sections automatically.</p>
         </div>
     </div>
 
@@ -959,11 +817,11 @@
         <div @click.outside="showChatModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-gold-500/40 p-4 space-y-3 max-h-[85vh] flex flex-col justify-between">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div class="flex items-center gap-2.5">
-                    <img :src="activeChatAdvocate?.avatar || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250'" class="w-9 h-9 rounded-full object-cover border border-gold-500">
+                    <img :src="activeChatAdvocate?.avatar" class="w-9 h-9 rounded-full object-cover border border-gold-500">
                     <div>
                         <h4 class="text-xs sm:text-sm font-bold text-white" x-text="activeChatAdvocate?.name || 'Advocate Direct Chat'"></h4>
                         <p class="text-[9px] text-emerald-400 font-semibold flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span> Encrypted Direct Chamber Line
+                            <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span> Encrypted 24/7 Chamber Line
                         </p>
                     </div>
                 </div>
@@ -991,74 +849,6 @@
         </div>
     </div>
 
-    <!-- NEW CAMPAIGN POST MODAL -->
-    <div x-show="showNewPostModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-        <div @click.outside="showNewPostModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-gold-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-bullhorn text-gold-400"></i> Create Campaign / Legal Feed Post
-                </h3>
-                <button @click="showNewPostModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <form @submit.prevent="createPost()" class="space-y-3 text-xs">
-                <div>
-                    <label class="block text-slate-400 mb-1 font-semibold">Post Category:</label>
-                    <select x-model="newPostForm.category" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
-                        <option value="Bar Election Manifesto">🗳️ Bar Election Manifesto</option>
-                        <option value="Legal Insight & Analysis">⚖️ Legal Insight & Analysis</option>
-                        <option value="Case Victory Update">🏆 Case Victory Update</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-slate-400 mb-1 font-semibold">Post Title *:</label>
-                    <input type="text" x-model="newPostForm.title" required placeholder="e.g. Bar Welfare Manifesto 2026" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
-                </div>
-
-                <div>
-                    <label class="block text-slate-400 mb-1 font-semibold">Post Content *:</label>
-                    <textarea x-model="newPostForm.content" rows="4" required placeholder="Write your legal post..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500"></textarea>
-                </div>
-
-                <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg transition">
-                    Publish Post
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- BOOK CONSULTATION MODAL -->
-    <div x-show="showBookingModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-        <div @click.outside="showBookingModal = false" class="glass-panel max-w-md w-full rounded-2xl border border-slate-800 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-calendar-plus text-gold-400"></i> Book Consultation
-                </h3>
-                <button @click="showBookingModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="block text-slate-400 mb-1 font-semibold">Preferred Date:</label>
-                    <input type="date" x-model="bookingForm.date" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1 font-semibold">Preferred Time (Custom):</label>
-                    <input type="text" x-model="bookingForm.time" placeholder="e.g. 03:30 PM" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1 font-semibold">Case Brief Summary:</label>
-                    <textarea x-model="bookingForm.summary" rows="3" placeholder="Describe your case..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500"></textarea>
-                </div>
-            </div>
-
-            <button @click="confirmBooking()" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 transition">
-                Confirm Appointment
-            </button>
-        </div>
-    </div>
-
     <!-- FLOATING TOAST -->
     <div x-show="toast.show" x-transition 
          class="fixed bottom-4 right-4 z-50 px-3.5 py-2.5 rounded-xl shadow-2xl border text-xs font-bold flex items-center gap-2"
@@ -1075,44 +865,27 @@
                 mobileMenuOpen: false,
                 authTab: 'login',
                 activeTab: 'advocates',
-                currentLocation: 'Lahore High Court',
+                currentLocation: 'Karachi Saddar / City Court',
+
+                // FILTERS
+                selectedCity: 'All',
+                selectedArea: 'All',
                 selectedCategory: 'All',
                 searchQuery: '',
 
                 loginForm: { role: 'lawyer', id: '', password: '' },
-                registerForm: { role: 'lawyer', name: '', phone: '', email: '', password: '', specialty: '', license: '', bar: '', exp: '' },
+                registerForm: { role: 'lawyer', name: '', phone: '', email: '', password: '', city: 'Karachi', area: 'Saddar / City Court', specialty: '', license: '', bar: '', exp: '' },
 
                 showNewPostModal: false,
-                newPostForm: { title: '', content: '', category: 'Bar Election Manifesto', mediaUrl: '' },
-
-                // PROFILE UPDATE STATE
                 showProfileModal: false,
-                profileForm: { name: '', phone: '', email: '', avatar: '', specialty: '', license: '', bar: '', exp: '' },
+                profileForm: { name: '', phone: '', email: '', avatar: '', city: '', area: '', specialty: '', license: '', bar: '', exp: '' },
 
-                // AI FIR ANALYZER STATE
                 showAiAnalyzerModal: false,
-                aiCaseInput: '',
-                aiCaseImageUrl: '',
-                aiLanguage: 'roman_urdu',
-                isAnalyzing: false,
-                aiAnalysisResult: null,
-
-                // DYNAMIC DOCUMENT GENERATOR STATE
                 showDocGeneratorModal: false,
-                docType: 'Pre-Arrest Bail Application',
-                docForm: { 
-                    partyA: '', cnicA: '', fatherA: '', 
-                    partyB: '', cnicB: '', 
-                    policeStation: '', firNo: '', ppcSections: '', 
-                    statement: '', attorneyName: '', courtName: '', 
-                    rentAmount: '', deposit: '', address: '', terms: '' 
-                },
-                generatedDoc: false,
 
                 showBookingModal: false,
                 bookingAdvocate: null,
 
-                // CHAT SYSTEM STATE
                 showChatModal: false,
                 activeChatAdvocate: null,
                 chatInputText: '',
@@ -1125,62 +898,77 @@
                     email: 'hammad@barcouncil.pk',
                     phone: '0300-1234567',
                     role: 'lawyer',
+                    city: 'Karachi',
+                    area: 'Saddar / City Court',
                     specialty: 'Criminal Law',
-                    license: 'LHC-98421',
-                    bar: 'Lahore High Court Bar',
+                    license: 'KBA-98421',
+                    bar: 'Karachi Bar Association',
                     exp: 14,
-                    designation: 'Supreme Court Advocate',
+                    designation: 'High Court Advocate',
                     avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250'
                 },
 
                 bookingForm: { date: '', time: '', location: '', summary: '' },
                 categories: ['All', 'Criminal Law', 'Corporate & Tax', 'Constitutional', 'Family & Civil'],
 
+                // ADVOCATES LIST WITH CITY AND AREA LOCATION DATA
                 advocates: [
-                    { id: 1, name: 'Adv. Hammad Raza', specialty: 'Criminal Law', barAssociation: 'Lahore High Court Bar', experience: 14, rating: 4.9, casesWon: 120, distance: 3.2, aiScore: 96, avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250' },
-                    { id: 2, name: 'Adv. Sara Chaudhry', specialty: 'Corporate & Tax', barAssociation: 'Karachi High Court Bar', experience: 11, rating: 4.8, casesWon: 85, distance: 5.8, aiScore: 91, avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=250' }
+                    { id: 1, name: 'Adv. Ali Shah', city: 'Karachi', area: 'Saddar / City Court', specialty: 'Criminal Law', barAssociation: 'Karachi Bar Association', experience: 12, rating: 4.9, casesWon: 110, distance: 1.2, aiScore: 97, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250' },
+                    { id: 2, name: 'Adv. Sara Chaudhry', city: 'Karachi', area: 'Sindh High Court', specialty: 'Corporate & Tax', barAssociation: 'Sindh High Court Bar', experience: 11, rating: 4.8, casesWon: 85, distance: 3.5, aiScore: 92, avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=250' },
+                    { id: 3, name: 'Adv. Tariq Sukkurvi', city: 'Sukkur', area: 'Sukkur Bench Court', specialty: 'Criminal Law', barAssociation: 'Sukkur High Court Bar', experience: 15, rating: 4.9, casesWon: 130, distance: 4.0, aiScore: 95, avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250' },
+                    { id: 4, name: 'Adv. Bilal Khan', city: 'Karachi', area: 'Malir Court', specialty: 'Family & Civil', barAssociation: 'Malir Bar Association', experience: 8, rating: 4.6, casesWon: 60, distance: 8.1, aiScore: 89, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=250' }
                 ],
 
                 posts: [
                     {
-                        id: 1, author: 'Adv. Hammad Raza', authorRole: 'Candidate LHC Bar President', authorAvatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250',
-                        verified: true, category: 'Bar Election Manifesto', timestamp: '1 hour ago', title: '🗳️ Bar Elections Manifesto 2026',
-                        content: 'Our 5-Point Manifesto for Bar Welfare, Free Medical Insurance, and Digital Chambers Support.', likes: 124, liked: true
+                        id: 1, author: 'Adv. Ali Shah', authorRole: 'Advocate Karachi City Court', authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
+                        verified: true, category: 'Legal Insight & Analysis', timestamp: '30 mins ago', title: '⚖️ Urgent Bail Guidance for City Court Cases',
+                        content: 'Clients coming from other cities like Sukkur/Hyderabad can now connect online for night chamber advisories.', likes: 145, liked: true
                     }
                 ],
 
                 myBookings: [
-                    { id: 101, clientName: 'Kamran Akram', summary: 'Bail application advisory.', date: '2026-10-24', time: '11:00 AM', location: 'Chamber #12', status: 'Pending' }
+                    { id: 101, clientName: 'Kamran (Sukkur Client)', summary: 'Late night advisory for Saddar City Court case.', date: '2026-10-24', time: '10:00 PM', location: 'Saddar / City Court Chamber', status: 'Pending' }
                 ],
 
+                // DYNAMIC MULTI-FILTER COMPUTED FUNCTION
                 get filteredAdvocates() {
                     return this.advocates.filter(a => {
                         const matchCat = this.selectedCategory === 'All' || a.specialty === this.selectedCategory;
-                        const matchSearch = !this.searchQuery || a.name.toLowerCase().includes(this.searchQuery.toLowerCase());
-                        return matchCat && matchSearch;
+                        const matchCity = this.selectedCity === 'All' || a.city === this.selectedCity;
+                        const matchArea = this.selectedArea === 'All' || a.area === this.selectedArea;
+                        
+                        const q = this.searchQuery.toLowerCase().trim();
+                        const matchSearch = !q || 
+                            a.name.toLowerCase().includes(q) || 
+                            a.city.toLowerCase().includes(q) || 
+                            a.area.toLowerCase().includes(q) ||
+                            a.specialty.toLowerCase().includes(q);
+
+                        return matchCat && matchCity && matchArea && matchSearch;
                     });
                 },
 
-                // HANDLE DIRECT FILE PHOTO UPLOAD FOR PROFILE
                 handleProfileImageUpload(event) {
                     const file = event.target.files[0];
                     if (file) {
                         const reader = new FileReader();
                         reader.onload = (e) => {
                             this.profileForm.avatar = e.target.result;
-                            this.showToast('New profile photo attached!', 'success');
+                            this.showToast('Profile photo updated!', 'success');
                         };
                         reader.readAsDataURL(file);
                     }
                 },
 
-                // OPEN PROFILE EDIT MODAL WITH PRE-FILLED DATA
                 openProfileModal() {
                     this.profileForm = {
                         name: this.user.name || '',
                         phone: this.user.phone || '',
                         email: this.user.email || '',
                         avatar: this.user.avatar || '',
+                        city: this.user.city || 'Karachi',
+                        area: this.user.area || 'Saddar',
                         specialty: this.user.specialty || '',
                         license: this.user.license || '',
                         bar: this.user.bar || '',
@@ -1189,7 +977,6 @@
                     this.showProfileModal = true;
                 },
 
-                // SAVE PROFILE CHANGES
                 updateProfile() {
                     this.user.name = this.profileForm.name;
                     this.user.phone = this.profileForm.phone;
@@ -1197,6 +984,8 @@
                     if (this.profileForm.avatar) this.user.avatar = this.profileForm.avatar;
 
                     if (this.user.role === 'lawyer') {
+                        this.user.city = this.profileForm.city;
+                        this.user.area = this.profileForm.area;
                         this.user.specialty = this.profileForm.specialty;
                         this.user.license = this.profileForm.license;
                         this.user.bar = this.profileForm.bar;
@@ -1204,80 +993,13 @@
                     }
 
                     this.showProfileModal = false;
-                    this.showToast('Profile updated successfully!', 'success');
-                },
-
-                resetDocForm() {
-                    this.generatedDoc = false;
-                },
-
-                handleFirImageUpload(event) {
-                    const file = event.target.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            this.aiCaseImageUrl = e.target.result;
-                            this.showToast('FIR Image attached successfully!', 'success');
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                },
-
-                runAiAnalysis() {
-                    if (!this.aiCaseInput.trim() && !this.aiCaseImageUrl) {
-                        this.showToast('FIR text enter karein ya scan image upload karein!', 'error');
-                        return;
-                    }
-
-                    this.isAnalyzing = true;
-                    setTimeout(() => {
-                        this.isAnalyzing = false;
-                        let summaryText = '';
-                        let recText = '';
-
-                        if (this.aiLanguage === 'roman_urdu') {
-                            summaryText = 'FIR me PPC 406/420 ke teht amanat me khiyanat ka ilzam hai.';
-                            recText = 'Sessions Court me Pre-Arrest Bail Application dakhil karein.';
-                        } else if (this.aiLanguage === 'urdu') {
-                            summaryText = 'ایف آئی آر میں پینل کوڈ 406/420 کے تحت جرمانہ عائد ہے۔';
-                            recText = 'سیشن کورٹ میں ضمانت قبل از گرفتاری دائر کریں۔';
-                        } else {
-                            summaryText = 'FIR involves criminal breach of trust (PPC 406/420).';
-                            recText = 'File Pre-Arrest Bail Application in Sessions Court.';
-                        }
-
-                        this.aiAnalysisResult = {
-                            summary: summaryText,
-                            recommendation: recText
-                        };
-                        this.showToast('AI Analysis Completed!', 'success');
-                    }, 1200);
-                },
-
-                generateDocFromAiAnalysis() {
-                    this.docType = 'Pre-Arrest Bail Application';
-                    this.docForm.partyA = this.user.name;
-                    this.docForm.policeStation = 'High Court / City Police Station';
-                    this.docForm.firNo = '120/2026';
-                    this.docForm.ppcSections = 'PPC 406/420';
-                    this.showAiAnalyzerModal = false;
-                    this.showDocGeneratorModal = true;
-                    this.showToast('AI FIR analysis transferred to Doc Generator!', 'info');
-                },
-
-                generateDocument() {
-                    if (!this.docForm.partyA) {
-                        this.showToast('Applicant Name fill karein', 'error');
-                        return;
-                    }
-                    this.generatedDoc = true;
-                    this.showToast('Court Legal Document Generated!', 'success');
+                    this.showToast('Profile & Location details saved!', 'success');
                 },
 
                 openChatModal(adv) {
                     this.activeChatAdvocate = adv;
                     this.chatMessages = [
-                        { sender: 'them', text: `Assalam-o-Alaikum! Main ${adv.name} hoon. Apne case ki brief summary share karein.`, time: '10:00 AM' }
+                        { sender: 'them', text: `Assalam-o-Alaikum! Main ${adv.name} (${adv.city}, ${adv.area}) se hoon. Apni case requirement batayein.`, time: '10:00 PM' }
                     ];
                     this.showChatModal = true;
                 },
@@ -1286,49 +1008,24 @@
                     if (!this.chatInputText.trim()) return;
 
                     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    this.chatMessages.push({
-                        sender: 'me',
-                        text: this.chatInputText,
-                        time: now
-                    });
-
+                    this.chatMessages.push({ sender: 'me', text: this.chatInputText, time: now });
                     this.chatInputText = '';
 
                     setTimeout(() => {
                         this.chatMessages.push({
                             sender: 'them',
-                            text: `Shukriya message ke liye. Main review karke reply karta hoon.`,
+                            text: `Shukriya. Main aapki request review karke confirm karta hoon.`,
                             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                         });
                     }, 1000);
                 },
 
-                createPost() {
-                    if (!this.newPostForm.title || !this.newPostForm.content) return;
-                    this.posts.unshift({
-                        id: Date.now(),
-                        author: this.user.name,
-                        authorRole: this.user.designation || 'Advocate',
-                        authorAvatar: this.user.avatar,
-                        category: this.newPostForm.category,
-                        timestamp: 'Just now',
-                        title: this.newPostForm.title,
-                        content: this.newPostForm.content,
-                        likes: 0,
-                        liked: false
-                    });
-                    this.newPostForm = { title: '', content: '', category: 'Bar Election Manifesto', mediaUrl: '' };
-                    this.showNewPostModal = false;
-                    this.activeTab = 'feed';
-                    this.showToast('Campaign Post published!', 'success');
-                },
-
                 handleLogin() {
                     this.user.role = this.loginForm.role;
-                    this.user.name = this.loginForm.role === 'lawyer' ? 'Adv. Hammad Raza' : 'Usman Client';
+                    this.user.name = this.loginForm.role === 'lawyer' ? 'Adv. Ali Shah' : 'Sukkur Client';
                     this.resetDefaultTab();
                     this.isLoggedIn = true;
-                    this.showToast('Logged in successfully!', 'success');
+                    this.showToast('Signed in successfully!', 'success');
                 },
 
                 handleRegister() {
@@ -1336,7 +1033,7 @@
                     this.user.name = this.registerForm.name;
                     this.resetDefaultTab();
                     this.isLoggedIn = true;
-                    this.showToast('Account registered!', 'success');
+                    this.showToast('Account created!', 'success');
                 },
 
                 resetDefaultTab() {
@@ -1345,7 +1042,7 @@
 
                 logout() {
                     this.isLoggedIn = false;
-                    this.showToast('Logged out', 'info');
+                    this.showToast('Signed out', 'info');
                 },
 
                 showToast(msg, type = 'info') {
@@ -1362,12 +1059,13 @@
 
                 openBookingModal(adv) {
                     this.bookingAdvocate = adv;
+                    this.bookingForm.location = `${adv.area}, ${adv.city}`;
                     this.showBookingModal = true;
                 },
 
                 confirmBooking() {
                     if (!this.bookingForm.date || !this.bookingForm.time || !this.bookingForm.summary) {
-                        this.showToast('Date, Time aur summary fill karein', 'error');
+                        this.showToast('Date, Time aur Brief Summary fill karein', 'error');
                         return;
                     }
                     this.myBookings.unshift({
@@ -1382,7 +1080,7 @@
                     this.bookingForm = { date: '', time: '', location: '', summary: '' };
                     this.showBookingModal = false;
                     this.activeTab = 'bookings';
-                    this.showToast('Consultation request submitted!', 'success');
+                    this.showToast('Night consultation request submitted!', 'success');
                 },
 
                 respondBooking(booking, status) {
