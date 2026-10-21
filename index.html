@@ -1164,7 +1164,74 @@
  <!-- ================= ALPINE.JS LOGIC ================= -->
 <script>
     const API_BASE = 'https://lawnexa.onrender.com';
+// State Variables
+showForgotModal: false,
+otpSent: false,
+forgotForm: { id: '', otp: '', newPassword: '' },
 
+// Functions
+async sendOtp() {
+    if (!this.forgotForm.id.trim()) {
+        alert('Pehle Phone ya Email enter karein!');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('username', this.forgotForm.id.trim());
+
+    try {
+        const res = await fetch(`${API_BASE}/api/v1/auth/forgot-password`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            this.otpSent = true;
+            this.showToast('OTP code sent successfully!', 'success');
+        } else {
+            alert(data.detail || 'OTP bhejne mein masla aaya!');
+        }
+    } catch (e) {
+        alert('Server connection fail ho gaya!');
+    }
+},
+
+async submitResetPassword() {
+    if (!this.forgotForm.otp.trim() || !this.forgotForm.newPassword) {
+        alert('OTP aur Naya Password dono enter karein!');
+        return;
+    }
+
+    if (this.forgotForm.newPassword.length < 8 || this.forgotForm.newPassword.length > 10) {
+        alert('Password kam se kam 8 aur ziada se ziada 10 characters ka hona chahiye!');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('username', this.forgotForm.id.trim());
+    formData.append('otp', this.forgotForm.otp.trim());
+    formData.append('new_password', this.forgotForm.newPassword);
+
+    try {
+        const res = await fetch(`${API_BASE}/api/v1/auth/reset-password`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            alert('Password kamyabi se reset ho gaya! Ab naye password se login karein.');
+            this.showForgotModal = false;
+            this.otpSent = false;
+            this.forgotForm = { id: '', otp: '', newPassword: '' };
+        } else {
+            alert(data.detail || 'Password reset fail ho gaya!');
+        }
+    } catch (e) {
+        alert('Error connecting to backend!');
+    }
+}
     function lawNexaApp() {
         return {
             isLoggedIn: false,
