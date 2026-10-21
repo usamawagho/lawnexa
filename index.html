@@ -454,35 +454,35 @@
                 </div>
             </div>
 
-            <!-- TAB 1: ADVOCATES VIEW (PERFECTLY ADJUSTED CITY & AREA FILTER BOXES) -->
+            <!-- TAB 1: ADVOCATES VIEW (FIXED ALIGNMENT FOR SEARCH & DROPDOWNS) -->
             <section x-show="activeTab === 'advocates'" x-transition:enter="transition ease-out duration-200" class="space-y-6">
-                <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4 shadow-xl">
+                <div class="glass-panel p-3.5 sm:p-5 rounded-2xl border border-slate-800 space-y-3.5 shadow-xl">
                     
                     <!-- PERFECT RESPONSIVE GRID CONTROL ROW -->
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-3 items-center">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
                         
-                        <!-- 1. SEARCH BAR (6 Columns on Desktop) -->
-                        <div class="relative md:col-span-6">
+                        <!-- 1. SEARCH BAR (Full Width on Mobile, 6 Cols on Desktop) -->
+                        <div class="relative sm:col-span-2 lg:col-span-6">
                             <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                             <input type="text" x-model="searchQuery" placeholder="Search lawyer name, court, Saddar, Sukkur, Karachi..." 
                                    class="w-full bg-navy-950/90 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500 shadow-inner">
                         </div>
 
-                        <!-- 2. CITY SELECTOR BOX (3 Columns on Desktop) -->
-                        <div class="md:col-span-3">
+                        <!-- 2. CITY SELECTOR BOX (Full Width on Mobile, 3 Cols on Desktop) -->
+                        <div class="lg:col-span-3">
                             <select x-model="selectedCity" @change="selectedArea = 'All'" 
-                                    class="w-full bg-navy-950/90 border border-slate-700 text-gold-400 font-bold rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer shadow-md">
-                                <option value="All">🌆 All Cities (Sab Shehar)</option>
+                                    class="w-full bg-navy-950/90 border border-slate-700 text-gold-400 font-bold rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer shadow-md truncate">
+                                <option value="All">🌆 All Cities</option>
                                 <template x-for="c in Object.keys(cityAreas)" :key="c">
                                     <option :value="c" x-text="c"></option>
                                 </template>
                             </select>
                         </div>
 
-                        <!-- 3. COURT / AREA SELECTOR BOX (3 Columns on Desktop) -->
-                        <div class="md:col-span-3">
+                        <!-- 3. COURT / AREA SELECTOR BOX (Full Width on Mobile, 3 Cols on Desktop) -->
+                        <div class="lg:col-span-3">
                             <select x-model="selectedArea" 
-                                    class="w-full bg-navy-950/90 border border-slate-700 text-slate-200 font-bold rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer shadow-md">
+                                    class="w-full bg-navy-950/90 border border-slate-700 text-slate-200 font-bold rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer shadow-md truncate">
                                 <option value="All">📍 All Courts & Areas</option>
                                 <template x-for="area in getAvailableAreas()" :key="area">
                                     <option :value="area" x-text="area"></option>
@@ -525,7 +525,7 @@
                                         <!-- PROXIMITY PRIORITY DISTANCE BADGE -->
                                         <p class="text-[10px] font-bold text-emerald-400 mt-1 flex items-center justify-end gap-1">
                                             <i class="fa-solid fa-route"></i>
-                                            <span x-text="adv.distance + ' km away (Nearest)'"></span>
+                                            <span x-text="adv.distance + ' km away'"></span>
                                         </p>
                                     </div>
                                 </div>
@@ -997,7 +997,7 @@
 
                             return matchCat && matchCity && matchArea && matchSearch;
                         })
-                        .sort((a, b) => a.distance - b.distance); // Nearest priority sorting
+                        .sort((a, b) => a.distance - b.distance);
                 },
 
                 handleProfileImageUpload(event) {
