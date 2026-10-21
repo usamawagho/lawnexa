@@ -170,7 +170,7 @@
                 </button>
             </form>
 
-            <!-- REGISTER FORM -->
+            <!-- REGISTER FORM (WITH MULTI-COURT & CHAMBER ADDRESS) -->
             <form x-show="authTab === 'register'" @submit.prevent="handleRegister()" class="space-y-3.5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
                 <div>
                     <label class="block text-xs font-bold text-slate-300 mb-2">I am registering as:</label>
@@ -195,16 +195,37 @@
 
                 <template x-if="registerForm.role === 'lawyer'">
                     <div class="space-y-3 pt-2 border-t border-slate-800">
-                        <p class="text-xs font-bold text-gold-400 uppercase tracking-wide">Bar Practice Location:</p>
+                        <p class="text-xs font-bold text-gold-400 uppercase tracking-wide"><i class="fa-solid fa-gavel mr-1"></i> Practicing Courts & Jurisdiction:</p>
+                        
+                        <!-- MULTI-COURT SELECTION CHECKBOXES -->
+                        <div class="space-y-1.5 p-2.5 bg-navy-950/90 border border-slate-800 rounded-xl text-xs">
+                            <label class="flex items-center gap-2 cursor-pointer text-slate-200">
+                                <input type="checkbox" value="Supreme Court" x-model="registerForm.courts" class="rounded accent-gold-500">
+                                <span>🏛️ Supreme Court of Pakistan</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer text-slate-200">
+                                <input type="checkbox" value="High Court" x-model="registerForm.courts" class="rounded accent-gold-500">
+                                <span>⚖️ High Court (Main Bench / Circuit)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer text-slate-200">
+                                <input type="checkbox" value="District & Sessions Court" x-model="registerForm.courts" class="rounded accent-gold-500">
+                                <span>📜 District & Sessions / City Court</span>
+                            </label>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-2">
                             <select x-model="registerForm.city" required class="bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-gold-500">
-                                <option value="" disabled selected>Select City *</option>
+                                <option value="" disabled selected>Select Primary City *</option>
                                 <template x-for="c in Object.keys(cityAreas)" :key="c">
                                     <option :value="c" x-text="c"></option>
                                 </template>
                             </select>
-                            <input type="text" x-model="registerForm.area" required placeholder="Area / Court *" class="bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                            <input type="text" x-model="registerForm.area" required placeholder="Primary Court Area *" class="bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
                         </div>
+
+                        <!-- CHAMBER ADDRESS INPUT -->
+                        <input type="text" x-model="registerForm.chamberAddress" required placeholder="Chamber / Office Address (e.g. Chamber #104, SHC Bar) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+
                         <input type="text" x-model="registerForm.specialty" required placeholder="Specialty (Criminal, Corporate, Tax) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
                         <input type="text" x-model="registerForm.license" required placeholder="Bar License Number *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
                         <input type="text" x-model="registerForm.bar" required placeholder="Bar Association Name *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
@@ -447,28 +468,28 @@
                             <i class="fa-solid fa-building-columns"></i>
                         </div>
                         <div>
-                            <p class="text-[9px] text-slate-400 uppercase font-bold">City & Court Location</p>
-                            <h3 class="text-xs font-bold text-purple-300" x-text="(user.city || 'Karachi') + ' / ' + (user.area || 'City Court')"></h3>
+                            <p class="text-[9px] text-slate-400 uppercase font-bold">City & Chamber Location</p>
+                            <h3 class="text-xs font-bold text-purple-300" x-text="(user.city || 'Karachi') + ' / ' + (user.area || 'Saddar')"></h3>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 1: ADVOCATES VIEW (FIXED ALIGNMENT FOR SEARCH & DROPDOWNS) -->
+            <!-- TAB 1: ADVOCATES VIEW -->
             <section x-show="activeTab === 'advocates'" x-transition:enter="transition ease-out duration-200" class="space-y-6">
                 <div class="glass-panel p-3.5 sm:p-5 rounded-2xl border border-slate-800 space-y-3.5 shadow-xl">
                     
                     <!-- PERFECT RESPONSIVE GRID CONTROL ROW -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
                         
-                        <!-- 1. SEARCH BAR (Full Width on Mobile, 6 Cols on Desktop) -->
+                        <!-- 1. SEARCH BAR -->
                         <div class="relative sm:col-span-2 lg:col-span-6">
                             <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                            <input type="text" x-model="searchQuery" placeholder="Search lawyer name, court, Saddar, Sukkur, Karachi..." 
+                            <input type="text" x-model="searchQuery" placeholder="Search Supreme Court, High Court, Saddar, Sukkur, Karachi..." 
                                    class="w-full bg-navy-950/90 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500 shadow-inner">
                         </div>
 
-                        <!-- 2. CITY SELECTOR BOX (Full Width on Mobile, 3 Cols on Desktop) -->
+                        <!-- 2. CITY SELECTOR BOX -->
                         <div class="lg:col-span-3">
                             <select x-model="selectedCity" @change="selectedArea = 'All'" 
                                     class="w-full bg-navy-950/90 border border-slate-700 text-gold-400 font-bold rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer shadow-md truncate">
@@ -479,7 +500,7 @@
                             </select>
                         </div>
 
-                        <!-- 3. COURT / AREA SELECTOR BOX (Full Width on Mobile, 3 Cols on Desktop) -->
+                        <!-- 3. COURT / AREA SELECTOR BOX -->
                         <div class="lg:col-span-3">
                             <select x-model="selectedArea" 
                                     class="w-full bg-navy-950/90 border border-slate-700 text-slate-200 font-bold rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer shadow-md truncate">
@@ -505,7 +526,7 @@
                     </div>
                 </div>
 
-                <!-- ADVOCATES CARDS GRID (ORDERED BY NEAREST DISTANCE FIRST) -->
+                <!-- ADVOCATES CARDS GRID (WITH MULTI-COURT BADGES & CHAMBER ADDRESS) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     <template x-for="adv in filteredAdvocates" :key="adv.id">
                         <div class="glass-panel rounded-2xl p-4 sm:p-5 border transition-all duration-300 flex flex-col justify-between group border-slate-800 hover:border-slate-700">
@@ -532,17 +553,32 @@
 
                                 <h3 class="font-cinzel text-sm sm:text-base font-bold text-white group-hover:text-gold-400 transition" x-text="adv.name"></h3>
                                 
-                                <!-- CITY AND AREA DISPLAY BADGES -->
-                                <div class="flex flex-wrap items-center gap-1.5 text-[10px] font-bold my-2">
-                                    <span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-gold-400 border border-amber-500/30 flex items-center gap-1">
-                                        <i class="fa-solid fa-city"></i> <span x-text="adv.city"></span>
-                                    </span>
-                                    <span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-200 border border-slate-700 flex items-center gap-1">
-                                        <i class="fa-solid fa-location-dot text-rose-400"></i> <span x-text="adv.area"></span>
-                                    </span>
+                                <!-- MULTI-COURT PRACTICE BADGES -->
+                                <div class="flex flex-wrap items-center gap-1 my-2">
+                                    <template x-for="court in adv.courts" :key="court">
+                                        <span class="px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase border flex items-center gap-1"
+                                              :class="{
+                                                  'bg-purple-500/20 text-purple-300 border-purple-500/30': court.includes('Supreme'),
+                                                  'bg-amber-500/20 text-gold-400 border-amber-500/30': court.includes('High'),
+                                                  'bg-sapphire-500/20 text-sapphire-300 border-sapphire-500/30': court.includes('District') || court.includes('City')
+                                              }">
+                                            <i class="fa-solid fa-building-columns"></i>
+                                            <span x-text="court"></span>
+                                        </span>
+                                    </template>
                                 </div>
 
-                                <p class="text-xs text-slate-400 font-medium mb-3" x-text="adv.barAssociation"></p>
+                                <!-- CITY & AREA LOCATION -->
+                                <div class="flex items-center gap-1.5 text-[10px] text-slate-300 font-semibold mb-2">
+                                    <i class="fa-solid fa-location-dot text-rose-400"></i>
+                                    <span x-text="adv.city + ' • ' + adv.area"></span>
+                                </div>
+
+                                <!-- CHAMBER / OFFICE ADDRESS -->
+                                <div class="p-2 bg-navy-950/80 rounded-xl border border-slate-800 text-[11px] text-slate-300 mb-3 space-y-0.5">
+                                    <p class="text-[9px] font-bold text-gold-400 uppercase tracking-wider"><i class="fa-solid fa-door-open mr-1"></i> Chamber Address:</p>
+                                    <p class="text-slate-300 font-medium" x-text="adv.chamberAddress || 'Chamber No. 104, High Court Bar'"></p>
+                                </div>
 
                                 <div class="flex flex-wrap gap-1.5 mb-3">
                                     <span class="px-2 py-0.5 rounded-md bg-slate-800/80 text-gold-400 text-[10px] font-semibold border border-slate-700" x-text="adv.specialty"></span>
@@ -670,19 +706,19 @@
         <!-- FOOTER -->
         <footer class="glass-panel border-t border-slate-800/80 py-4 px-4 mt-8">
             <div class="max-w-7xl mx-auto text-center text-[11px] text-slate-500">
-                <p>© 2026 LawNexa Bar Network. Proximity Priority & High Court Maps Active.</p>
+                <p>© 2026 LawNexa Bar Network. Proximity Priority & Multi-Court Practice Active.</p>
             </div>
         </footer>
     </div>
 
     <!-- ================= MODALS ================= -->
 
-    <!-- PROFILE UPDATE MODAL -->
+    <!-- PROFILE UPDATE MODAL (WITH MULTI-COURT & CHAMBER ADDRESS) -->
     <div x-show="showProfileModal" x-transition.opacity class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
         <div @click.outside="showProfileModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-gold-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar gold-glow">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-user-pen text-gold-400"></i> Update Profile & Practice Location
+                    <i class="fa-solid fa-user-pen text-gold-400"></i> Update Profile & Practice Details
                 </h3>
                 <button @click="showProfileModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
@@ -722,10 +758,27 @@
                 <!-- Advocate Specific Details (Lawyer Role Only) -->
                 <template x-if="user.role === 'lawyer'">
                     <div class="space-y-2 pt-2 border-t border-slate-800">
-                        <p class="text-[10px] uppercase font-bold text-purple-400">Advocate City & Court Location:</p>
+                        <p class="text-[10px] uppercase font-bold text-purple-400">Practicing Courts & Chamber Location:</p>
+                        
+                        <!-- MULTI-COURT CHECKBOXES -->
+                        <div class="space-y-1.5 p-2.5 bg-navy-950 border border-slate-800 rounded-xl text-xs">
+                            <label class="flex items-center gap-2 cursor-pointer text-slate-200">
+                                <input type="checkbox" value="Supreme Court" x-model="profileForm.courts" class="rounded accent-gold-500">
+                                <span>🏛️ Supreme Court of Pakistan</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer text-slate-200">
+                                <input type="checkbox" value="High Court" x-model="profileForm.courts" class="rounded accent-gold-500">
+                                <span>⚖️ High Court (Main Bench / Circuit)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer text-slate-200">
+                                <input type="checkbox" value="District & Sessions Court" x-model="profileForm.courts" class="rounded accent-gold-500">
+                                <span>📜 District & Sessions / City Court</span>
+                            </label>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="block text-slate-400 mb-1">City *</label>
+                                <label class="block text-slate-400 mb-1">Primary City *</label>
                                 <select x-model="profileForm.city" required class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
                                     <template x-for="c in Object.keys(cityAreas)" :key="c">
                                         <option :value="c" x-text="c"></option>
@@ -733,9 +786,14 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-slate-400 mb-1">Area / Court Location *</label>
+                                <label class="block text-slate-400 mb-1">Primary Court Area *</label>
                                 <input type="text" x-model="profileForm.area" required placeholder="Saddar, High Court..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
                             </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-slate-400 mb-1">Chamber / Office Address *</label>
+                            <input type="text" x-model="profileForm.chamberAddress" required placeholder="Chamber # 104, Sindh High Court Bar, Karachi..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
                         </div>
 
                         <div class="grid grid-cols-2 gap-2">
@@ -907,11 +965,11 @@
                 searchQuery: '',
 
                 loginForm: { role: 'lawyer', id: '', password: '' },
-                registerForm: { role: 'lawyer', name: '', phone: '', email: '', password: '', city: 'Karachi', area: 'Saddar / City Court', specialty: '', license: '', bar: '', exp: '' },
+                registerForm: { role: 'lawyer', name: '', phone: '', email: '', password: '', city: 'Karachi', area: 'Saddar / City Court', courts: ['High Court', 'District & Sessions Court'], chamberAddress: '', specialty: '', license: '', bar: '', exp: '' },
 
                 showNewPostModal: false,
                 showProfileModal: false,
-                profileForm: { name: '', phone: '', email: '', avatar: '', city: '', area: '', specialty: '', license: '', bar: '', exp: '' },
+                profileForm: { name: '', phone: '', email: '', avatar: '', city: '', area: '', courts: [], chamberAddress: '', specialty: '', license: '', bar: '', exp: '' },
 
                 showAiAnalyzerModal: false,
                 showDocGeneratorModal: false,
@@ -933,31 +991,33 @@
                     role: 'lawyer',
                     city: 'Karachi',
                     area: 'Saddar / City Court',
+                    courts: ['Supreme Court', 'High Court', 'District & Sessions Court'],
+                    chamberAddress: 'Chamber # 104, Sindh High Court Bar, Karachi',
                     specialty: 'Criminal Law',
                     license: 'KBA-98421',
                     bar: 'Karachi Bar Association',
                     exp: 14,
-                    designation: 'High Court Advocate',
+                    designation: 'Supreme Court & High Court Advocate',
                     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250'
                 },
 
                 bookingForm: { date: '', time: '', location: '', summary: '' },
                 categories: ['All', 'Criminal Law', 'Corporate & Tax', 'Constitutional', 'Family & Civil'],
 
-                // ADVOCATES SAMPLE DATA (WITH PROXIMITY DISTANCES IN KM)
+                // ADVOCATES SAMPLE DATA (WITH MULTI-COURT PRACTICES & EXACT CHAMBER ADDRESSES)
                 advocates: [
-                    { id: 1, name: 'Adv. Ali Shah', city: 'Karachi', area: 'Saddar / City Court', specialty: 'Criminal Law', barAssociation: 'Karachi Bar Association', experience: 14, rating: 4.9, casesWon: 120, distance: 1.2, aiScore: 98, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250' },
-                    { id: 2, name: 'Adv. Sara Chaudhry', city: 'Karachi', area: 'Sindh High Court (Main Bench)', specialty: 'Corporate & Tax', barAssociation: 'Sindh High Court Bar', experience: 11, rating: 4.8, casesWon: 85, distance: 3.5, aiScore: 92, avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=250' },
-                    { id: 3, name: 'Adv. Tariq Sukkurvi', city: 'Sukkur', area: 'High Court Sukkur Bench', specialty: 'Criminal Law', barAssociation: 'Sukkur High Court Bar', experience: 15, rating: 4.9, casesWon: 130, distance: 4.0, aiScore: 95, avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250' },
-                    { id: 4, name: 'Adv. Bilal Khan Niazi', city: 'Lahore', area: 'Lahore High Court (Principal Seat)', specialty: 'Constitutional', barAssociation: 'Lahore High Court Bar', experience: 16, rating: 4.9, casesWon: 140, distance: 2.1, aiScore: 96, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=250' },
-                    { id: 5, name: 'Adv. Zohaib Abbasi', city: 'Islamabad', area: 'Islamabad High Court (IHC)', specialty: 'Corporate & Tax', barAssociation: 'IHC Bar Association', experience: 10, rating: 4.7, casesWon: 75, distance: 5.3, aiScore: 90, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=250' },
-                    { id: 6, name: 'Adv. Asad Durrani', city: 'Peshawar', area: 'Peshawar High Court (PHC)', specialty: 'Criminal Law', barAssociation: 'PHC Bar Association', experience: 13, rating: 4.8, casesWon: 95, distance: 3.8, aiScore: 93, avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=250' }
+                    { id: 1, name: 'Adv. Ali Shah', city: 'Karachi', area: 'Saddar / City Court', courts: ['Supreme Court', 'High Court', 'District & Sessions Court'], chamberAddress: 'Chamber # 104, Sindh High Court Bar, Karachi', specialty: 'Criminal Law', barAssociation: 'Karachi Bar Association', experience: 14, rating: 4.9, casesWon: 120, distance: 1.2, aiScore: 98, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250' },
+                    { id: 2, name: 'Adv. Sara Chaudhry', city: 'Karachi', area: 'Sindh High Court (Main Bench)', courts: ['High Court', 'District & Sessions Court'], chamberAddress: 'Office # 302, DHA Phase 8 / High Court Bench, Karachi', specialty: 'Corporate & Tax', barAssociation: 'Sindh High Court Bar', experience: 11, rating: 4.8, casesWon: 85, distance: 3.5, aiScore: 92, avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=250' },
+                    { id: 3, name: 'Adv. Tariq Sukkurvi', city: 'Sukkur', area: 'High Court Sukkur Bench', courts: ['High Court', 'District & Sessions Court'], chamberAddress: 'Chamber No. 12, High Court Bench, Sukkur', specialty: 'Criminal Law', barAssociation: 'Sukkur High Court Bar', experience: 15, rating: 4.9, casesWon: 130, distance: 4.0, aiScore: 95, avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250' },
+                    { id: 4, name: 'Adv. Bilal Khan Niazi', city: 'Lahore', area: 'Lahore High Court (Principal Seat)', courts: ['Supreme Court', 'High Court'], chamberAddress: 'Aiwan-e-Adl Chamber # 55, Lahore', specialty: 'Constitutional', barAssociation: 'Lahore High Court Bar', experience: 16, rating: 4.9, casesWon: 140, distance: 2.1, aiScore: 96, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=250' },
+                    { id: 5, name: 'Adv. Zohaib Abbasi', city: 'Islamabad', area: 'Islamabad High Court (IHC)', courts: ['High Court', 'District & Sessions Court'], chamberAddress: 'Blue Area Block C, Office 4, Islamabad', specialty: 'Corporate & Tax', barAssociation: 'IHC Bar Association', experience: 10, rating: 4.7, casesWon: 75, distance: 5.3, aiScore: 90, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=250' },
+                    { id: 6, name: 'Adv. Asad Durrani', city: 'Peshawar', area: 'Peshawar High Court (PHC)', courts: ['High Court', 'District & Sessions Court'], chamberAddress: 'PHC Bar Room Chamber # 8, Peshawar', specialty: 'Criminal Law', barAssociation: 'PHC Bar Association', experience: 13, rating: 4.8, casesWon: 95, distance: 3.8, aiScore: 93, avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=250' }
                 ],
 
                 posts: [
                     {
-                        id: 1, author: 'Adv. Ali Shah', authorRole: 'Advocate Karachi City Court', authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-                        verified: true, category: 'Legal Insight & Analysis', timestamp: '30 mins ago', title: '⚖️ Urgent Bail Guidance for City Court Cases',
+                        id: 1, author: 'Adv. Ali Shah', authorRole: 'Supreme Court & High Court Advocate', authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
+                        verified: true, category: 'Legal Insight & Analysis', timestamp: '30 mins ago', title: '⚖️ Urgent Bail Guidance for City Court & High Court Cases',
                         content: 'Clients coming from Sukkur or other cities can book late-night virtual appointments for immediate chamber advisory.', likes: 145, liked: true
                     }
                 ],
@@ -980,7 +1040,7 @@
                     return this.cityAreas[this.selectedCity];
                 },
 
-                // DYNAMIC MULTI-FILTER COMPUTED FUNCTION (SORTED BY NEAREST DISTANCE FIRST)
+                // DYNAMIC MULTI-FILTER COMPUTED FUNCTION (WITH MULTI-COURT & NEAREST SEARCH)
                 get filteredAdvocates() {
                     return this.advocates
                         .filter(a => {
@@ -989,10 +1049,13 @@
                             const matchArea = this.selectedArea === 'All' || a.area === this.selectedArea;
                             
                             const q = this.searchQuery.toLowerCase().trim();
+                            const courtsString = (a.courts || []).join(' ').toLowerCase();
                             const matchSearch = !q || 
                                 a.name.toLowerCase().includes(q) || 
                                 a.city.toLowerCase().includes(q) || 
                                 a.area.toLowerCase().includes(q) ||
+                                (a.chamberAddress && a.chamberAddress.toLowerCase().includes(q)) ||
+                                courtsString.includes(q) ||
                                 a.specialty.toLowerCase().includes(q);
 
                             return matchCat && matchCity && matchArea && matchSearch;
@@ -1020,6 +1083,8 @@
                         avatar: this.user.avatar || '',
                         city: this.user.city || 'Karachi',
                         area: this.user.area || 'Saddar / City Court',
+                        courts: this.user.courts ? [...this.user.courts] : ['High Court'],
+                        chamberAddress: this.user.chamberAddress || '',
                         specialty: this.user.specialty || '',
                         license: this.user.license || '',
                         bar: this.user.bar || '',
@@ -1037,6 +1102,8 @@
                     if (this.user.role === 'lawyer') {
                         this.user.city = this.profileForm.city;
                         this.user.area = this.profileForm.area;
+                        this.user.courts = [...this.profileForm.courts];
+                        this.user.chamberAddress = this.profileForm.chamberAddress;
                         this.user.specialty = this.profileForm.specialty;
                         this.user.license = this.profileForm.license;
                         this.user.bar = this.profileForm.bar;
@@ -1044,7 +1111,7 @@
                     }
 
                     this.showProfileModal = false;
-                    this.showToast('Profile & Location details saved!', 'success');
+                    this.showToast('Profile & Multi-Court Practice updated!', 'success');
                 },
 
                 openChatModal(adv) {
@@ -1082,9 +1149,13 @@
                 handleRegister() {
                     this.user.role = this.registerForm.role;
                     this.user.name = this.registerForm.name;
+                    if (this.user.role === 'lawyer') {
+                        this.user.courts = [...this.registerForm.courts];
+                        this.user.chamberAddress = this.registerForm.chamberAddress;
+                    }
                     this.resetDefaultTab();
                     this.isLoggedIn = true;
-                    this.showToast('Account created!', 'success');
+                    this.showToast('Account created with Multi-Court practice!', 'success');
                 },
 
                 resetDefaultTab() {
@@ -1110,7 +1181,7 @@
 
                 openBookingModal(adv) {
                     this.bookingAdvocate = adv;
-                    this.bookingForm.location = `${adv.area}, ${adv.city}`;
+                    this.bookingForm.location = `${adv.chamberAddress || adv.area + ', ' + adv.city}`;
                     this.showBookingModal = true;
                 },
 
