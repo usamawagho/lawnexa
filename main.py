@@ -165,226 +165,15 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return db.query(UserDB).filter(UserDB.id == user_id).first()
 
 
-# ================= AUTHENTICATION ENDPOINTS =================
-@app.post("/api/v1/auth/register")
-def register_user(
-    name: str = Form(...),
-    phone: str = Form(...),
-    email: str = Form(...),
-    password: str = Form(...),
-    role: str = Form("client"),
-    specialty: Optional[str] = Form(None),
-    license: Optional[str] = Form(None),
-    bar: Optional[str] = Form(None),
-    exp: Optional[int] = Form(None),
-    city: Optional[str] = Form(None),
-    area: Optional[str] = Form(None),
-    chamberAddress: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
-):
-    # 1. Strict Password Validation (Exact 8 chars, Capital, Small, Number)
-    validate_password_complexity(password)
+import google.generativeai as genai
 
-    # 2. Duplicate User Check
-    existing_user = db.query(UserDB).filter(
-        (UserDB.phone == phone) | (UserDB.email == email)
-    ).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Yeh Phone Number ya Email pehle se registered hai!"
-        )
-
-    # 3. Save User to Database
-    is_approved = True if role == "client" else False  # Lawyers wait for admin approval
-    hashed_pwd = get_password_hash(password)
-
-    new_user = UserDB(
-        name=name,
-        phone=phone,
-        email=email,
-        hashed_password=hashed_pwd,
-        role=role,
-        is_approved=is_approved,
-        specialty=specialty,
-        license_number=license,
-        bar_association=bar,
-        experience_years=exp,
-        city=city,
-        area=area,
-        chamber_address=chamberAddress
-    )
-
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
-    return {
-        "message": "User Account Successfully Created!",
-        "user_id": new_user.id,
-        "role": new_user.role,
-        "is_approved": new_user.is_approved
-    }
-
-
-@app.post("/api/v1/auth/token")
-def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
-):
-    username = form_data.username  # Phone or Email
-
-    # Search User by Phone or Email
-    user = db.query(UserDB).filter(
-        (UserDB.phone == username) | (UserDB.email == username)
-    ).first()
-
-    # Check User existence and Password Match
-    if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Ghalat Phone/Email ya Password! Dobara koshish karein.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    # Generate JWT Token
-    access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user_id": user.id,
-        "name": user.name,
-        "role": user.role
-    }
-
-
-# ================= LAWYER DIRECTORY =================
-@app.get("/api/v1/lawyers/nearby")
-def get_nearby_lawyers(db: Session = Depends(get_db)):
-    # Fetch approved lawyers only
-    lawyers = db.query(UserDB).filter(
-        UserDB.role == "lawyer",
-        UserDB.is_approved == True
-    ).all()
-
-    return [
-        {
-            "id": l.id,
-            "name": l.name,
-            "specialty": l.specialty or "General Practice",
-            "license_number": l.license_number,
-            "bar_association": l.bar_association or "High Court Bar",
-            "experience_years": l.experience_years or 0,
-            "city": l.city or "Karachi",
-            "area": l.area or "Saddar",
-            "chamber": l.chamber_address
-        }
-        for l in lawyers
-    ]
-
-
-# ================= SOCIAL POSTS =================
-@app.get("/api/v1/posts")
-def get_posts(db: Session = Depends(get_db)):
-    posts = db.query(PostDB).order_by(PostDB.created_at.desc()).all()
-    return [
-        {
-            "id": p.id,
-            "content": p.content,
-            "bar_association": p.bar_association,
-            "likes": p.likes,
-            "created_at": p.created_at.strftime("%Y-%m-%d %H:%M")
-        }
-        for p in posts
-    ]
-
-
-@app.post("/api/v1/posts")
-def create_post(
-    content: str = Form(...),
-    bar_association: Optional[str] = Form("High Court Bar"),
-    current_user: Optional[UserDB] = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    author_id = current_user.id if current_user else 1
-    new_post = PostDB(content=content, bar_association=bar_association, author_id=author_id)
-    db.add(new_post)
-    db.commit()
-    db.refresh(new_post)
-    return {"message": "Post published successfully!", "id": new_post.id}
-
-
-@app.post("/api/v1/posts/{post_id}/like")
-def like_post(post_id: int, db: Session = Depends(get_db)):
-    post = db.query(PostDB).filter(PostDB.id == post_id).first()
-    if not post:
-        raise HTTPException(status_code=404, detail="Post not found")
-    post.likes += 1
-    db.commit()
-    return {"likes": post.likes}
-
-
-# ================= CONFIDENTIAL CHAT & QUOTES =================
-@app.post("/api/v1/chat/send")
-def send_chat_message(
-    payload: dict,
-    current_user: Optional[UserDB] = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    sender_id = current_user.id if current_user else 1
-    receiver_id = payload.get("receiver_id")
-    msg_text = payload.get("message")
-    quote_amt = payload.get("quote_amount")
-
-    new_msg = MessageDB(
-        sender_id=sender_id,
-        receiver_id=receiver_id,
-        message=msg_text,
-        quote_amount=quote_amt,
-        quote_status="pending" if quote_amt else None
-    )
-    db.add(new_msg)
-    db.commit()
-    return {"message": "Message sent!"}
-
-
-@app.get("/api/v1/chat/history/{other_id}")
-def get_chat_history(
-    other_id: int,
-    current_user: Optional[UserDB] = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    my_id = current_user.id if current_user else 1
-    messages = db.query(MessageDB).filter(
-        ((MessageDB.sender_id == my_id) & (MessageDB.receiver_id == other_id)) |
-        ((MessageDB.sender_id == other_id) & (MessageDB.receiver_id == my_id))
-    ).order_by(MessageDB.created_at.asc()).all()
-
-    return [
-        {
-            "id": m.id,
-            "sender_id": m.sender_id,
-            "receiver_id": m.receiver_id,
-            "message": m.message,
-            "quote_amount": m.quote_amount,
-            "quote_status": m.quote_status
-        }
-        for m in messages
-    ]
-
-
-@app.post("/api/v1/chat/quote/{msg_id}/respond")
-def respond_to_quote(
-    msg_id: int,
-    action: str = "accepted",
-    db: Session = Depends(get_db)
-):
-    msg = db.query(MessageDB).filter(MessageDB.id == msg_id).first()
-    if not msg:
-        raise HTTPException(status_code=404, detail="Quote message not found")
-    msg.quote_status = action
-    db.commit()
-    return {"message": f"Quote status updated to {action}"}
+# Gemini AI Setup
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+    except Exception as e:
+        print(f"Gemini Config Warning: {e}")
 
 
 # ================= AI LEGAL TOOLS =================
@@ -403,34 +192,230 @@ def analyze_fir(fir_text: str = Form("")):
 
 @app.post("/api/ai/generate-doc")
 def generate_doc(payload: dict):
-    doc_type = payload.get("doc_type", "Petition")
-    p1 = payload.get("party1", "Petitioner")
-    p2 = payload.get("party2", "Respondent")
-    court = payload.get("court", "Sessions Court Karachi")
+    doc_type = payload.get("doc_type", "Agreement").strip()
+    p1 = payload.get("party1", "First Party / Applicant").strip()
+    p2 = payload.get("party2", "Second Party / Respondent").strip()
+    court = payload.get("court", "Karachi, Pakistan").strip()
+    purpose = payload.get("purpose", "").strip()
 
-    draft = f"""
-IN THE COURT OF {court.upper()}
+    # -------------------------------------------------------------
+    # LAYER 1: GEMINI AI REAL-TIME DRAFTING ENGINE (If Key Present)
+    # -------------------------------------------------------------
+    if GEMINI_API_KEY:
+        try:
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            prompt = f"""
+You are an expert Senior Advocate of the High Court in Pakistan with 25 years of experience in legal drafting.
+Generate a COMPLETE, HIGHLY DETAILED, AND PROFESSIONALLY FORMATTED legal document in English according to the Laws of the Islamic Republic of Pakistan (Contract Act 1872, Registration Act 1908, PPC, CrPC, CPC, Transfer of Property Act 1882, etc.).
 
-In the matter of:
-{p1} ... (Applicant / Petitioner)
-VERSUS
-{p2} ... (Respondent / State)
+DOCUMENT DETAILS:
+- Document Category / Title: {doc_type}
+- First Party / Applicant / Petitioner: {p1}
+- Second Party / Respondent / Opposite Party: {p2}
+- Court / Jurisdiction / Location: {court}
+- Additional Facts / Specific Purpose: {purpose}
 
-SUBJECT: PETITION FOR {doc_type.upper()} UNDER APPLICABLE LAW.
+DRAFTING INSTRUCTIONS:
+1. Provide the complete legal document. Do NOT shorten or use ellipses (...) in main clauses.
+2. For Court Petitions (Bail, Suits, Writs): Use exact Pakistan Court Headings, Memo of Parties, Facts 1 to 7, Grounds, Interim & Final Prayer, Verification clause, and Advocate signatures.
+3. For Contracts / Agreements (Sale, Rent, Partnership): Include Title, Consideration/Price, Obligations, Default & Penalty Clauses, Indemnity, Dispute Resolution, Jurisdiction, Schedule of Property, and Witness signature blocks (Witness 1 & 2 with CNIC).
+4. For Power of Attorney (Mukhtar Nama): Mention stamp paper reference, specific powers granted, revocation rules, and Sub-Registrar endorsement layout.
+5. Strictly adhere to Pakistani court/legal terminology used in Karachi, Lahore, Islamabad, and High Courts.
+"""
+            response = model.generate_content(prompt)
+            if response and response.text:
+                return {"draft": response.text.strip()}
+        except Exception as err:
+            print(f"Gemini Generation Exception: {err}")
+
+    # -------------------------------------------------------------
+    # LAYER 2: COMPREHENSIVE PAKISTANI LEGAL TEMPLATE FALLBACKS
+    # -------------------------------------------------------------
+    doc_lower = doc_type.lower()
+
+    # 1. BAIL PETITIONS (497 / 498 CrPC)
+    if "bail" in doc_lower or "498" in doc_lower or "497" in doc_lower:
+        sec = "498" if "pre" in doc_lower or "498" in doc_lower else "497"
+        b_type = "PRE-ARREST BAIL" if sec == "498" else "POST-ARREST BAIL"
+        draft = f"""IN THE COURT OF THE DISTRICT & SESSIONS JUDGE AT {court.upper()}
+
+Bail Application No. _________ of 2026
+
+{p1}
+S/o ________________________, R/o ________________________________________.
+... Applicant / Accused
+
+---VERSUS---
+
+1. {p2}
+2. The State / S.H.O., Police Station ____________________.
+... Respondents
+
+APPLICATION FOR {b_type} UNDER SECTION {sec} Cr.P.C.
+IN CASE FIR NO. _________ / 2026, OFFENSE U/S ________________ PPC, P.S. ____________________
 
 Respectfully Sheweth:
-1. That the applicant is a respectable citizen of Pakistan and has been falsely implicated.
-2. That there is no independent witness to support the prosecution story.
-3. That the applicant is ready to furnish reliable surety bonds to the satisfaction of this Honorable Court.
+1. That the Applicant is a peaceful, law-abiding citizen of Pakistan and has been falsely implicated in the aforementioned FIR with malicious intent.
+2. That the police, at the instance of complainant, are attempting to illegally arrest and humiliate the Applicant.
+3. That the Applicant has no nexus or role in the alleged offense and no specific active role is attributed to him.
+4. That the allegations are false, baseless, fabricated, and motivated by personal rivalry and mala fide intention.
+5. That the Applicant is a respectable resident, has permanent abode in Pakistan, and there is no apprehension of his absconding or tampering with evidence.
+6. That the Applicant is willing to join police investigation as required and ready to furnish reliable surety bonds.
 
 PRAYER:
-It is humbly prayed that this Application/Petition may kindly be allowed in the interest of justice.
+It is humbly prayed that this Honorable Court may graciously be pleased to:
+a) Grant Interim {b_type} to the Applicant directing Respondent No. 2 not to arrest the Applicant.
+b) Confirm the {b_type} after hearing both parties, in the ultimate interest of justice.
 
-Advocate for Applicant
-    """
+Applicant / Accused
+Through: Advocate High Court / Sessions Court, Karachi Bar Association
+
+VERIFICATION:
+Verified on Oath at {court} on _____ day of ____________ 2026, that contents of paragraphs 1-6 are true to the best of my knowledge and belief.
+DEPONENT ({p1})"""
+
+    # 2. SALE AGREEMENT FOR PROPERTY / VEHICLE (Contract Act 1872)
+    elif "sale" in doc_lower or "buy" in doc_lower or "property" in doc_lower:
+        draft = f"""AGREEMENT TO SELL
+
+This Agreement to Sell is executed at {court} on this _____ day of ____________ 2026, by and between:
+
+FIRST PARTY (SELLER):
+{p1}, holding CNIC No. ________________________, Resident of ________________________________________________.
+
+SECOND PARTY (PURCHASER):
+{p2}, holding CNIC No. ________________________, Resident of ________________________________________________.
+
+WHEREAS the First Party is the absolute lawful owner in possession of the property/vehicle described as: {purpose or 'Property / Vehicle details as per title deed'}.
+
+NOW THIS AGREEMENT WITNESSETH AS UNDER:
+1. TOTAL CONSIDERATION: The total sale price is fixed at PKR _______________/- (Pakistani Rupees ________________________________________ Only).
+2. EARNEST MONEY / ADVANCE: The Purchaser has paid advance amount of PKR _______________/- to the Seller, receipt whereof is hereby acknowledged by the Seller.
+3. BALANCE PAYMENT: The Purchaser agrees to pay balance sum of PKR _______________/- on or before ____________ 2026, at time of final deed execution.
+4. TITLE CLEARANCE: Seller guarantees that property is free from all encumbrances, claims, mortgages, litigation, or government dues.
+5. DEFAULT CLAUSE: If Purchaser defaults, earnest money shall stand forfeited. If Seller defaults, Seller shall refund double advance amount to Purchaser.
+
+IN WITNESS WHEREOF both parties have signed this Agreement before witnesses.
+
+SELLER (First Party): ______________________  
+PURCHASER (Second Party): ______________________
+
+WITNESS 1:                                WITNESS 2:
+Name: _______________________________     Name: _______________________________
+CNIC: _______________________________     CNIC: _______________________________"""
+
+    # 3. RENT / TENANCY AGREEMENT
+    elif "rent" in doc_lower or "tenant" in doc_lower or "tenancy" in doc_lower:
+        draft = f"""TENANCY / RENT AGREEMENT
+
+This Tenancy Agreement is executed at {court} on this _____ day of ____________ 2026, between:
+
+LANDLORD (OWNER):
+{p1}, CNIC No. ________________________, Resident of ________________________________________________.
+
+TENANT:
+{p2}, CNIC No. ________________________, Resident of ________________________________________________.
+
+PREMISES DETAILS:
+Landlord agrees to let out premises: {purpose or 'Residential Premises / Shop / Office Address'} to the Tenant on monthly rental basis.
+
+TERMS AND CONDITIONS:
+1. TENURE: Rent period is fixed for 11 Months commencing from ____________ 2026 to ____________ 2027.
+2. MONTHLY RENT: Rent is fixed at PKR _______________/- per month, payable in advance on/before 5th of each calendar month.
+3. SECURITY DEPOSIT: Tenant has deposited interest-free refundable security deposit of PKR _______________/-.
+4. UTILITIES: Tenant shall pay electricity, gas, water, and maintenance bills directly to authorities.
+5. MAINTENANCE & SUBLETTING: Tenant shall maintain premises in good condition and shall not sublet or alter premises without written consent.
+6. TERMINATION: Either party may terminate agreement by giving 1 Month prior written notice.
+
+LANDLORD: ___________________________    TENANT: ___________________________
+
+WITNESS 1: ___________________________    WITNESS 2: ___________________________"""
+
+    # 4. GENERAL / SPECIAL POWER OF ATTORNEY (Mukhtar Nama)
+    elif "power" in doc_lower or "attorney" in doc_lower or "mukhtar" in doc_lower:
+        draft = f"""GENERAL POWER OF ATTORNEY (MUKHTAR NAMA AAM)
+
+KNOW ALL MEN BY THESE PRESENTS that I,
+EXECUTANT: {p1}, CNIC No. ________________________, Resident of ________________________________________________.
+
+DO HEREBY CONSTITUTE, APPOINT AND ORDAIN:
+ATTORNEY: {p2}, CNIC No. ________________________, Resident of ________________________________________________.
+
+To be my lawful Attorney in my name and on my behalf to perform following acts, deeds, and things regarding: {purpose or 'All property and legal matters at Karachi'}.
+
+POWERS CONFERRED:
+1. To manage, look after, supervise, lease, or sell the property mentioned hereinabove.
+2. To appear, plead, and represent me before all Courts, Sub-Registrar, KDA, KMC, Excise, FBR, and Utility Departments.
+3. To engage Advocates, sign plaints, written statements, affidavits, petitions, and record evidence.
+4. To receive sale consideration, issue valid receipts, and execute registered sale deeds before Sub-Registrar.
+
+I hereby ratify and confirm all acts done by my lawful Attorney as if done by me personally.
+
+EXECUTANT ({p1}): ______________________
+
+WITNESS 1: ___________________________    WITNESS 2: ___________________________"""
+
+    # 5. LEGAL NOTICE (Notice Before Suit)
+    elif "notice" in doc_lower:
+        draft = f"""LEGAL NOTICE BEFORE SUIT
+
+BY REGISTERED A.D. / COURIER
+
+TO:
+{p2},
+Resident of ________________________________________________.
+
+FROM:
+Advocate High Court, on behalf of Client:
+{p1}, Resident of ________________________________________________.
+
+SUBJECT: LEGAL NOTICE FOR {doc_type.upper()} / {purpose.upper()}
+
+Sir/Madam,
+Under instructions from my Client above-named, I hereby serve upon you this Legal Notice as under:
+
+1. That my Client is a law-abiding citizen and entered into legal business relationship with you regarding {purpose or 'contractual transaction'}.
+2. That you failed to fulfill your legal obligation and breached the terms despite multiple requests.
+3. That your deliberate non-compliance has caused severe pecuniary loss, distress, and mental agony to my Client.
+
+DEMAND:
+I hereby call upon you to comply with demands / pay outstanding dues of PKR _______________/- within 14 DAYS of receipt of this notice, failing which my Client has issued clear instructions to file Civil/Criminal proceedings against you in Court of competent jurisdiction at {court} at your risk and cost.
+
+Advocate High Court
+Karachi Bar Association"""
+
+    # 6. DEFAULT / CIVIL SUIT / OTHER LEGAL DOCUMENTS
+    else:
+        draft = f"""IN THE COURT OF SENIOR CIVIL JUDGE AT {court.upper()}
+
+Civil Suit No. _________ of 2026
+
+{p1}
+... Plaintiff / Petitioner
+
+---VERSUS---
+
+{p2}
+... Defendant / Respondent
+
+SUIT FOR DECLARATION, PERMANENT INJUNCTION AND RELIEF REGARDING {doc_type.upper()}
+
+Respectfully Sheweth:
+1. That the Plaintiff is lawful citizen residing within territorial jurisdiction of this Honorable Court.
+2. Cause of action arose on ____________ 2026 when Defendant unlawfully interfered with Plaintiff's legal rights regarding: {purpose or 'subject matter'}.
+3. Court fee has been properly affixed and this Court has pecuniary and territorial jurisdiction to try this suit.
+
+PRAYER:
+It is humbly prayed that Decree for Declaration and Permanent Injunction be passed in favor of Plaintiff against Defendant with costs.
+
+Plaintiff
+Through Advocate High Court
+
+VERIFICATION:
+Verified at {court} on _____ day of ____________ 2026 that contents of Paras 1 to 3 are true.
+DEPONENT ({p1})"""
+
     return {"draft": draft.strip()}
-
-
 # ================= ADMIN PANEL =================
 @app.get("/api/v1/admin/lawyers/pending")
 def get_pending_lawyers(db: Session = Depends(get_db)):
