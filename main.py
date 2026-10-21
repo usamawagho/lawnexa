@@ -358,11 +358,6 @@ def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # BLOCK UNAPPROVED LAWYERS FROM LOGGING IN
-    if user.role == "lawyer" and not user.is_approved:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Aapka Advocate account abhi pending status par hai. Admin approval ke baad aap sign in kar sakenge!"
         )
 
     access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
