@@ -316,30 +316,15 @@ def register_user(
 
     is_approved = True if role == "client" else False
 
-    new_user = UserDB(
-        name=name.strip(),
-        phone=phone.strip(),
-        email=email.strip().lower(),
-        hashed_password=get_password_hash(password),
-        role=role.lower(),
-        is_approved=is_approved,
-        specialty=specialty,
-        license_number=license,
-        bar_association=bar,
-        experience_years=exp,
-        city=city,
-        area=area,
-        chamber_address=chamberAddress
-    )
-
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
-    msg = "Client account successfully created!" if is_approved else "Advocate account submitted! Admin approval ke baad aap login kar sakenge."
-    return {"message": msg, "user_id": new_user.id, "role": new_user.role, "is_approved": new_user.is_approved}
-
-
+    new_user = User(
+    full_name=name,
+    email=email,
+    phone=phone,
+    hashed_password=get_password_hash(password),
+    role=role,
+    is_approved=True,  # <-- In 2 lines ko add kar dein
+    is_active=True     # <-- Is se instant login active ho jayega
+)
 @app.post("/api/v1/auth/token")
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     # User find karein email ya phone se
