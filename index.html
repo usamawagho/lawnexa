@@ -1161,11 +1161,12 @@
     function lawNexaApp() {
         return {
             token: localStorage.getItem('token') || '',
-            isLoggedIn: !!localStorage.getItem('token'),
+            isLoggedIn: !localStorage.getItem('token'),
+            isLoading: false, // Mobile loading spinner
             mobileMenuOpen: false,
             authTab: 'login',
             activeTab: 'advocates',
-            currentLocation: 'Detecting Location...',
+            currentLocation: 'Location detect ho rahi hai...',
             userLat: null,
             userLng: null,
 
@@ -1183,12 +1184,8 @@
             selectedCategory: 'All',
             searchQuery: '',
 
-            loginForm: { role: 'lawyer', id: '', password: '' },
-            registerForm: { role: 'lawyer', name: '', phone: '', email: '', password: '', city: 'Karachi', area: 'Saddar / City Court', specialty: '', license: '', bar: '', exp: '' },
-
-            showForgotModal: false,
-            otpSent: false,
-            forgotForm: { id: '', otp: '', newPassword: '' },
+            loginForm: { id: '', password: '' },
+            registerForm: { role: 'client', name: '', phone: '', email: '', password: '', city: 'Karachi', area: 'Saddar / City Court', specialty: '', license: '', bar: '', exp: '' },
 
             showProfileModal: false,
             profileForm: { name: '', phone: '', email: '', avatar: '', city: '', area: '', chamberAddress: '', specialty: '', license: '', bar: '', exp: '' },
@@ -1198,13 +1195,31 @@
             generatedDocText: '',
 
             toast: { show: false, message: '', type: 'info' },
-            user: JSON.parse(localStorage.getItem('user') || '{"id":0, "name":"Guest", "role":"client"}'),
+            user: this.getSafeStorage('user', { id: 0, name: 'Guest', role: 'client' }),
             advocates: [],
+
+            // Safe LocalStorage Helper (Prevents Mobile Crash)
+            getSafeStorage(key, defaultValue) {
+                try {
+                    const item = localStorage.getItem(key);
+                    return item ? JSON.parse(item) : defaultValue;
+                } catch (e) {
+                    return defaultValue;
+                }
+            },
+
+            setSafeStorage(key, value) {
+                try {
+                    localStorage.setItem(key, typeof value === 'object' ? JSON.stringify(value) : value);
+                } catch (e) {
+                    console.warn("LocalStorage Quota Exceeded on Mobile");
+                }
+            },
 
             async init() {
                 window.appInstance = this;
                 this.initGPSLocation();
-                this.fetchLawyers();
+                await this.fetchLawyers();
                 if (this.token) {
                     await this.verifySession();
                 }
@@ -1218,9 +1233,8 @@
                             this.userLng = position.coords.longitude;
                             this.currentLocation = `GPS Active (${this.userLat.toFixed(2)}, ${this.userLng.toFixed(2)})`;
                         },
-                        () => {
-                            this.currentLocation = 'Pakistan High Court Network';
-                        }
+                        () => { this.currentLocation = 'Pakistan High Court Network'; },
+                        { timeout: 5000 }
                     );
                 } else {
                     this.currentLocation = 'Pakistan High Court Network';
@@ -1237,9 +1251,9 @@
                         const userData = await res.json();
                         this.user = userData;
                         this.isLoggedIn = true;
-                        localStorage.setItem('user', JSON.stringify(this.user));
+                        this.setSafeStorage('user', this.user);
 
-                        // Set Active Tab according to Role
+                        // Role-Based Tab Setup
                         if (this.user.role === 'lawyer' || this.user.role === 'advocate') {
                             this.activeTab = 'dashboard';
                         }
@@ -1251,17 +1265,69 @@
                 }
             },
 
+            async handleLogin() {
+                if (!this.loginForm.id.trim() || !this.loginForm.password.trim()) {
+                    this.showToast('Please Email/Phone aur Password enter karein!', 'error');
+                    return;
+                }
+
+                this.isLoading = true;
+                const formData = new FormData();
+                formData.append('username', this.loginForm.id.trim());
+                formData.append('password', this.loginForm.password.trim());
+
+                try {
+                    const res = await fetch(`${API_BASE}/api/v1/auth/token`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+
+                    if (res.ok && data.access_token) {
+                        this.token = data.access_token;
+                        const detectedRole = data.role || (data.user && data.user.role) || 'client';
+                        
+                        this.user = { 
+                            id: data.user_id || (data.user && data.user.id), 
+                            name: data.name || (data.user && data.user.name), 
+                            role: detectedRole,
+                            ...(data.user || {})
+                        };
+
+                        this.setSafeStorage('token', this.token);
+                        this.setSafeStorage('user', this.user);
+                        this.isLoggedIn = true;
+
+                        if (detectedRole === 'lawyer' || detectedRole === 'advocate') {
+                            this.activeTab = 'dashboard';
+                        } else {
+                            this.activeTab = 'advocates';
+                        }
+
+                        this.showToast('Welcome back! Login successful.', 'success');
+                        await this.fetchLawyers();
+                    } else {
+                        this.showToast(data.detail || 'Ghalat details entered!', 'error');
+                    }
+                } catch (e) {
+                    this.showToast('Backend connection error!', 'error');
+                } finally {
+                    this.isLoading = false;
+                }
+            },
+
             async handleRegister() {
                 if (!this.registerForm.email.trim() && !this.registerForm.phone.trim()) {
-                    alert('Kam se kam Mobile Number ya Email dakhil karna zaroori hai!');
+                    this.showToast('Kam se kam Mobile Number ya Email enter karein!', 'error');
                     return;
                 }
 
-                if (!this.registerForm.password || this.registerForm.password.length < 8 || this.registerForm.password.length > 10) {
-                    alert('Password kam se kam 8 aur ziada se ziada 10 characters ka hona zaroori hai!');
+                if (!this.registerForm.password || this.registerForm.password.length < 8) {
+                    this.showToast('Password minimum 8 characters ka hona chahiye!', 'error');
                     return;
                 }
 
+                this.isLoading = true;
                 const formData = new FormData();
                 formData.append('name', this.registerForm.name.trim());
                 formData.append('phone', this.registerForm.phone.trim());
@@ -1288,74 +1354,87 @@
                     if (res.ok && data.access_token) {
                         this.token = data.access_token;
                         this.user = data.user;
-                        localStorage.setItem('token', this.token);
-                        localStorage.setItem('user', JSON.stringify(this.user));
+                        this.setSafeStorage('token', this.token);
+                        this.setSafeStorage('user', this.user);
                         this.isLoggedIn = true;
 
-                        // Redirect / Tab Switch
                         if (this.user.role === 'lawyer' || this.user.role === 'advocate') {
                             this.activeTab = 'dashboard';
                         } else {
                             this.activeTab = 'advocates';
                         }
 
-                        this.showToast(data.message || 'Account created successfully!', 'success');
-                        this.fetchLawyers();
+                        this.showToast('Account successfully create ho gaya hai!', 'success');
+                        await this.fetchLawyers();
                     } else {
-                        alert("❌ " + (data.detail || 'Registration fail!'));
+                        this.showToast(data.detail || 'Registration fail ho gayi', 'error');
                     }
                 } catch (e) {
-                    alert('Error submitting registration form!');
+                    this.showToast('Server connection fail!', 'error');
+                } finally {
+                    this.isLoading = false;
                 }
             },
 
-            async handleLogin() {
-                const formData = new FormData();
-                formData.append('username', this.loginForm.id.trim());
-                formData.append('password', this.loginForm.password.trim());
+            // High-Speed Mobile Image Compressor
+            handleAvatarUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
 
+                if (file.size > 12 * 1024 * 1024) {
+                    this.showToast('Image bohot badi hai. Please choti photo select karein.', 'error');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 300; // Resize to 300px for mobile speed
+                        const scaleFactor = MAX_WIDTH / img.width;
+                        
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scaleFactor;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                        // Lightweight compressed JPEG
+                        this.profileForm.avatar = canvas.toDataURL('image/jpeg', 0.65);
+                        this.showToast('Photo optimize ho gayi hai! Save par click karein.', 'success');
+                    };
+                };
+                reader.readAsDataURL(file);
+            },
+
+            async updateProfile() {
+                this.isLoading = true;
                 try {
-                    const res = await fetch(`${API_BASE}/api/v1/auth/token`, {
+                    const res = await fetch(`${API_BASE}/api/v1/users/profile`, {
                         method: 'POST',
-                        body: formData
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.token}`
+                        },
+                        body: JSON.stringify(this.profileForm)
                     });
+
                     const data = await res.json();
-
-                    if (res.ok && data.access_token) {
-                        this.token = data.access_token;
-                        
-                        // Extract Role Safely
-                        const detectedRole = data.role || (data.user && data.user.role) || 'client';
-                        
-                        this.user = { 
-                            id: data.user_id || (data.user && data.user.id), 
-                            name: data.name || (data.user && data.user.name), 
-                            role: detectedRole,
-                            ...(data.user || {})
-                        };
-
-                        localStorage.setItem('token', this.token);
-                        localStorage.setItem('user', JSON.stringify(this.user));
-                        this.isLoggedIn = true;
-
-                        // ================= ADVOCATE VS CLIENT ROUTING =================
-                        if (detectedRole === 'lawyer' || detectedRole === 'advocate') {
-                            this.activeTab = 'dashboard'; // Advocate Dashboard View
-                            
-                            // Agar aapka Advocate Dashboard alag HTML page par hai, to is line ko uncomment karein:
-                            // window.location.href = '/advocate_dashboard.html';
-                        } else {
-                            this.activeTab = 'advocates'; // Client View
-                        }
-                        // =============================================================
-
-                        this.showToast('Login Successful!', 'success');
-                        this.fetchLawyers();
+                    if (res.ok) {
+                        this.user = { ...this.user, ...data.user };
+                        this.setSafeStorage('user', this.user);
+                        this.showProfileModal = false;
+                        this.showToast('Profile update ho gayi hai!', 'success');
+                        await this.fetchLawyers();
                     } else {
-                        alert("❌ " + (data.detail || 'Ghalat Phone/Email ya Password!'));
+                        this.showToast(data.detail || 'Update fail ho gaya', 'error');
                     }
                 } catch (e) {
-                    alert('Backend server se connection fail ho gaya!');
+                    this.showToast('Server error during profile update', 'error');
+                } finally {
+                    this.isLoading = false;
                 }
             },
 
@@ -1379,79 +1458,9 @@
                 });
             },
 
-            openProfileModal() {
-                this.profileForm = {
-                    name: this.user.name || '',
-                    phone: this.user.phone || '',
-                    email: this.user.email || '',
-                    avatar: this.user.avatar || '',
-                    city: this.user.city || 'Karachi',
-                    area: this.user.area || 'Saddar / City Court',
-                    chamberAddress: this.user.chamberAddress || '',
-                    specialty: this.user.specialty || '',
-                    license: this.user.license || '',
-                    bar: this.user.bar || '',
-                    exp: this.user.exp || 1
-                };
-                this.showProfileModal = true;
-            },
-
-            handleAvatarUpload(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        this.profileForm.avatar = e.target.result;
-                        this.showToast('Photo uploaded! Click Save to confirm.', 'success');
-                    };
-                    reader.readAsDataURL(file);
-                }
-            },
-
-            async updateProfile() {
-                try {
-                    const res = await fetch(`${API_BASE}/api/v1/users/profile`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${this.token}`
-                        },
-                        body: JSON.stringify(this.profileForm)
-                    });
-
-                    const data = await res.json();
-                    if (res.ok) {
-                        this.user = { ...this.user, ...data.user };
-                        localStorage.setItem('user', JSON.stringify(this.user));
-                        this.showProfileModal = false;
-                        this.showToast('Profile updated successfully!', 'success');
-                        this.fetchLawyers();
-                    } else {
-                        this.showToast(data.detail || 'Update failed', 'error');
-                    }
-                } catch (e) {
-                    this.showToast('Server error', 'error');
-                }
-            },
-
-            async generateDocument() {
-                try {
-                    const res = await fetch(`${API_BASE}/api/ai/generate-doc`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(this.docForm)
-                    });
-                    const data = await res.json();
-                    this.generatedDocText = data.draft;
-                    this.showToast('Document Draft Generated!', 'success');
-                } catch (e) {
-                    this.showToast('Generation failed', 'error');
-                }
-            },
-
             showToast(message, type = 'info') {
                 this.toast = { show: true, message, type };
-                setTimeout(() => { this.toast.show = false; }, 3000);
+                setTimeout(() => { this.toast.show = false; }, 3500);
             },
 
             logout() {
@@ -1463,46 +1472,5 @@
                 this.fetchLawyers();
             }
         };
-    }
-
-    function openLawyerRegistrationModal() {
-        const modal = document.getElementById('lawyerModal');
-        if (modal) modal.style.display = 'flex';
-    }
-
-    async function handleLawyerSubmit(event) {
-        event.preventDefault();
-        const formData = new FormData(event.target);
-        formData.append('role', 'lawyer');
-
-        try {
-            const response = await fetch(`${API_BASE}/api/v1/auth/register-lawyer`, {
-                method: 'POST',
-                body: formData
-            });
-
-            const result = await response.json();
-            if (response.ok && result.access_token) {
-                localStorage.setItem('token', result.access_token);
-                localStorage.setItem('user', JSON.stringify(result.user));
-                
-                if (window.appInstance) {
-                    window.appInstance.token = result.access_token;
-                    window.appInstance.user = result.user;
-                    window.appInstance.isLoggedIn = true;
-                    window.appInstance.activeTab = 'dashboard';
-                    window.appInstance.fetchLawyers();
-                }
-                
-                alert("✅ " + result.message);
-                const modal = document.getElementById('lawyerModal');
-                if (modal) modal.style.display = 'none';
-                event.target.reset();
-            } else {
-                alert("❌ Error: " + (result.detail || "Registration Fail!"));
-            }
-        } catch (err) {
-            alert("⚠️ Server connection fail!");
-        }
     }
 </script>
