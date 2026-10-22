@@ -68,6 +68,7 @@ class UserDB(Base):
     role = Column(String, default="client")  # 'client', 'lawyer', 'admin'
     is_approved = Column(Boolean, default=True)
     is_active = Column(Boolean, default=True)
+    avatar = Column(Text, nullable=True)  # Base64 Profile Picture
 
     specialty = Column(String, nullable=True)
     license_number = Column(String, nullable=True)
@@ -263,7 +264,7 @@ def reset_password(
     return {"message": "Password successfully reset! Ab aap naye password se login kar sakte hain."}
 
 
-# ================= COMPLETE & CRASH-PROOF UNIFIED REGISTRATION =================
+# ================= UNIFIED REGISTRATION ENDPOINT =================
 @app.post("/api/v1/auth/register")
 @app.post("/api/v1/auth/register-lawyer")
 def register_user(
@@ -290,7 +291,7 @@ def register_user(
     if not display_name:
         raise HTTPException(status_code=400, detail="Pura naam dakhil karein!")
 
-    # Password Length Check (8-10 Characters)
+    # Password Length Validation (8-10 Characters)
     if len(password) < 8 or len(password) > 10:
         raise HTTPException(status_code=400, detail="Password 8-10 characters ka hona zaroori hai!")
 
@@ -301,7 +302,6 @@ def register_user(
 
     hashed_pwd = pwd_context.hash(password)
 
-    # Experience conversion
     exp_years = None
     exp_val = exp or experience
     if exp_val:
@@ -373,7 +373,60 @@ def verify_token_and_get_user(current_user: UserDB = Depends(get_current_user)):
         "email": current_user.email,
         "phone": current_user.phone,
         "role": current_user.role,
-        "is_approved": current_user.is_approved
+        "is_approved": current_user.is_approved,
+        "avatar": current_user.avatar,
+        "city": current_user.city,
+        "area": current_user.area,
+        "specialty": current_user.specialty,
+        "license": current_user.license_number,
+        "bar": current_user.bar_association,
+        "exp": current_user.experience_years
+    }
+
+
+# ================= UPDATE PROFILE & PHOTO ENDPOINT =================
+@app.post("/api/v1/users/profile")
+def update_profile(
+    payload: dict,
+    current_user: UserDB = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    current_user.name = payload.get("name", current_user.name)
+    current_user.phone = payload.get("phone", current_user.phone)
+    current_user.email = payload.get("email", current_user.email)
+    
+    if "avatar" in payload and payload["avatar"]:
+        current_user.avatar = payload["avatar"]
+
+    if current_user.role == "lawyer":
+        current_user.city = payload.get("city", current_user.city)
+        current_user.area = payload.get("area", current_user.area)
+        current_user.chamber_address = payload.get("chamberAddress", current_user.chamber_address)
+        current_user.specialty = payload.get("specialty", current_user.specialty)
+        current_user.license_number = payload.get("license", current_user.license_number)
+        current_user.bar_association = payload.get("bar", current_user.bar_association)
+        
+        exp_val = payload.get("exp")
+        if exp_val is not None:
+            try:
+                current_user.experience_years = int(exp_val)
+            except ValueError:
+                pass
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {
+        "status": "success",
+        "message": "Profile & Photo updated successfully!",
+        "user": {
+            "id": current_user.id,
+            "name": current_user.name,
+            "email": current_user.email,
+            "phone": current_user.phone,
+            "role": current_user.role,
+            "avatar": current_user.avatar
+        }
     }
 
 
@@ -389,6 +442,7 @@ def get_nearby_lawyers(db: Session = Depends(get_db)):
         {
             "id": l.id,
             "name": l.name,
+            "avatar": l.avatar,
             "specialty": l.specialty or "General Practice",
             "license_number": l.license_number,
             "bar_association": l.bar_association or "High Court Bar",
@@ -538,7 +592,7 @@ def generate_doc(payload: dict):
             model = genai.GenerativeModel("gemini-1.5-flash")
             prompt = f"""
 You are an expert Senior Advocate of the High Court in Pakistan with 25 years of legal experience.
-Generate a COMPLETE, HIGHLY DETAILED, AND PROFESSIONALLY FORMATTED legal document in English according to the Laws of the Islamic Republic of Pakistan (Contract Act 1872, Registration Act 1908, PPC, CrPC, CPC, Transfer of Property Act 1882).
+Generate a COMPLETE, HIGHLY DETAILED, AND PROFESSIONALLY FORMATTED legal document in English according to the Laws of the Islamic Republic of Pakistan.
 
 DETAILS:
 - Document Category: {doc_type}
