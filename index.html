@@ -1155,31 +1155,28 @@
 </div>
 
 
-<!-- 2. JAVASCRIPT CODE (HTML Modal ke NICHE single script tag mein rakhein) -->
 <script>
     const API_BASE = 'https://lawnexa.onrender.com';
 
     function lawNexaApp() {
         return {
-            isLoggedIn: false,
+            // LocalStorage se persistent login state load karein
+            token: localStorage.getItem('token') || '',
+            isLoggedIn: !!localStorage.getItem('token'),
             mobileMenuOpen: false,
             authTab: 'login',
             activeTab: 'advocates',
-            currentLocation: 'Pakistan High Court Network',
-            token: localStorage.getItem('token') || '',
+            currentLocation: 'Detecting Location...',
+            userLat: null,
+            userLng: null,
 
             cityAreas: {
                 'Karachi': ['Saddar / City Court', 'Sindh High Court (Main Bench)', 'Malir District Court', 'Clifton / DHA Chambers', 'Karachi East / West Courts'],
-                'Sukkur': ['High Court Sukkur Bench', 'District & Sessions Court Sukkur', 'City Area Sukkur'],
-                'Hyderabad': ['High Court Circuit Bench Hyderabad', 'District Court Hyderabad', 'Latifabad Chambers'],
-                'Lahore': ['Lahore High Court (Principal Seat)', 'Aiwan-e-Adl / Sessions Court', 'Model Town Courts', 'Cantt Courts'],
-                'Rawalpindi': ['Lahore High Court Rawalpindi Bench', 'District Courts Rawalpindi', 'Kacheri Chowk'],
-                'Multan': ['Lahore High Court Multan Bench', 'District Courts Multan', 'Kutchery Road'],
-                'Bahawalpur': ['Lahore High Court Bahawalpur Bench', 'District Courts Bahawalpur'],
-                'Islamabad': ['Islamabad High Court (IHC)', 'F-8 District Courts', 'Blue Area Chambers'],
-                'Peshawar': ['Peshawar High Court (PHC)', 'District Courts Peshawar', 'University Road'],
-                'Abbottabad': ['PHC Abbottabad Bench', 'District Courts Abbottabad'],
-                'Quetta': ['Balochistan High Court (BHC)', 'District Courts Quetta', 'Zarghoon Road']
+                'Sukkur': ['High Court Sukkur Bench', 'District & Sessions Court Sukkur'],
+                'Hyderabad': ['High Court Circuit Bench Hyderabad', 'District Court Hyderabad'],
+                'Lahore': ['Lahore High Court (Principal Seat)', 'Aiwan-e-Adl / Sessions Court'],
+                'Rawalpindi': ['Lahore High Court Rawalpindi Bench', 'District Courts Rawalpindi'],
+                'Islamabad': ['Islamabad High Court (IHC)', 'F-8 District Courts']
             },
 
             selectedCity: 'All',
@@ -1188,57 +1185,51 @@
             searchQuery: '',
 
             loginForm: { role: 'lawyer', id: '', password: '' },
-            registerForm: { role: 'lawyer', name: '', phone: '', email: '', password: '', city: 'Karachi', area: 'Saddar / City Court', courts: ['High Court', 'District & Sessions Court'], chamberAddress: '', specialty: '', license: '', bar: '', exp: '' },
+            registerForm: { role: 'lawyer', name: '', phone: '', email: '', password: '', city: 'Karachi', area: 'Saddar / City Court', specialty: '', license: '', bar: '', exp: '' },
 
             showForgotModal: false,
             otpSent: false,
             forgotForm: { id: '', otp: '', newPassword: '' },
 
-            showNewPostModal: false,
-            newPostForm: { title: '', category: 'Election Campaign / Manifesto', content: '', mediaUrl: '', mediaType: 'none', fileName: '' },
-
             showProfileModal: false,
-            profileForm: { name: '', phone: '', email: '', avatar: '', city: '', area: '', courts: [], chamberAddress: '', specialty: '', license: '', bar: '', exp: '' },
-
-            showAiAnalyzerModal: false,
-            aiAnalyzerText: '',
-            uploadedFirFileName: '',
-            isAnalyzing: false,
-            aiResult: null,
+            profileForm: { name: '', phone: '', email: '', avatar: '', city: '', area: '', chamberAddress: '', specialty: '', license: '', bar: '', exp: '' },
 
             showDocGeneratorModal: false,
-            docForm: { type: 'Rent Agreement', party1: '', party2: '', applicant: '', respondent: '', deponent: '', purpose: '', location: '', court: '' },
+            docForm: { type: 'Rent Agreement', party1: '', party2: '', court: '', purpose: '' },
             generatedDocText: '',
 
-            showBookingModal: false,
-            bookingAdvocate: null,
-
-            showChatModal: false,
-            activeChatAdvocate: null,
-            chatInputText: '',
-            chatMessages: [],
-
             toast: { show: false, message: '', type: 'info' },
-            pendingLawyers: [],
-
             user: JSON.parse(localStorage.getItem('user') || '{"id":0, "name":"Guest", "role":"client"}'),
-
-            bookingForm: { date: '', time: '', location: '', summary: '' },
-            categories: ['All', 'Criminal Law', 'Corporate & Tax', 'Constitutional', 'Family & Civil'],
-
             advocates: [],
-            posts: [],
-            myBookings: [],
 
             async init() {
+                this.initGPSLocation();
+                this.fetchLawyers();
                 if (this.token) {
                     await this.verifySession();
-                } else {
-                    this.logout();
                 }
             },
 
+            initGPSLocation() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            this.userLat = position.coords.latitude;
+                            this.userLng = position.coords.longitude;
+                            this.currentLocation = `GPS Active (${this.userLat.toFixed(2)}, ${this.userLng.toFixed(2)})`;
+                        },
+                        () => {
+                            this.currentLocation = 'Pakistan High Court Network';
+                        }
+                    );
+                } else {
+                    this.currentLocation = 'Pakistan High Court Network';
+                }
+            },
+
+            // PERSISTENT SESSION VERIFICATION
             async verifySession() {
+                if (!this.token) return;
                 try {
                     const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
                         headers: { 'Authorization': `Bearer ${this.token}` }
@@ -1248,25 +1239,20 @@
                         this.user = userData;
                         this.isLoggedIn = true;
                         localStorage.setItem('user', JSON.stringify(this.user));
-                        this.fetchLawyers();
-                        this.fetchPosts();
-                        if (this.user.role === 'admin') this.fetchPendingLawyers();
-                    } else {
+                    } else if (res.status === 401 || res.status === 403) {
+                        // SIRF TABHI LOGOUT KAREIN JAB SERVER EXPLICIT 401 UN-AUTHORIZED BHEJE
                         this.logout();
                     }
                 } catch (e) {
-                    this.logout();
+                    // Network slow hone ya Render sleep mode par hone par LOG OUT MAT KAREIN!
+                    console.warn("Backend server connection warming up...");
                 }
             },
 
             async handleLogin() {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                this.isLoggedIn = false;
-
                 const formData = new FormData();
                 formData.append('username', this.loginForm.id.trim());
-                formData.append('password', this.loginForm.password);
+                formData.append('password', this.loginForm.password.trim());
 
                 try {
                     const res = await fetch(`${API_BASE}/api/v1/auth/token`, {
@@ -1283,152 +1269,12 @@
                         this.isLoggedIn = true;
                         this.showToast('Login Successful!', 'success');
                         this.fetchLawyers();
-                        this.fetchPosts();
-                        if (this.user.role === 'admin') this.fetchPendingLawyers();
                     } else {
-                        this.isLoggedIn = false;
                         alert(data.detail || 'Ghalat Phone/Email ya Password!');
                     }
                 } catch (e) {
-                    this.isLoggedIn = false;
                     alert('Backend server se connection fail ho gaya!');
                 }
-            },
-
-            async handleRegister() {
-                if (!this.registerForm.password || this.registerForm.password.length < 8 || this.registerForm.password.length > 10) {
-                    alert('Password kam se kam 8 aur ziada se ziada 10 characters ka hona zaroori hai!');
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('name', this.registerForm.name);
-                formData.append('phone', this.registerForm.phone);
-                formData.append('email', this.registerForm.email);
-                formData.append('password', this.registerForm.password);
-                formData.append('role', this.registerForm.role);
-
-                if (this.registerForm.role === 'lawyer') {
-                    formData.append('specialty', this.registerForm.specialty);
-                    formData.append('license', this.registerForm.license);
-                    formData.append('bar', this.registerForm.bar);
-                    formData.append('exp', this.registerForm.exp);
-                    formData.append('city', this.registerForm.city);
-                    formData.append('area', this.registerForm.area);
-                    formData.append('chamberAddress', this.registerForm.chamberAddress);
-                }
-
-                try {
-                    const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await res.json();
-
-                    if (res.ok) {
-                        alert(data.message || 'Account successfully created! Please sign in.');
-                        this.authTab = 'login';
-                    } else {
-                        alert(data.detail || 'Registration failed!');
-                    }
-                } catch (e) {
-                    alert('Error submitting registration form!');
-                }
-            },
-
-            async sendOtp() {
-                if (!this.forgotForm.id.trim()) {
-                    alert('Pehle Phone ya Email enter karein!');
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('username', this.forgotForm.id.trim());
-
-                try {
-                    const res = await fetch(`${API_BASE}/api/v1/auth/forgot-password`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await res.json();
-
-                    if (res.ok) {
-                        this.otpSent = true;
-                        this.showToast('OTP code sent successfully!', 'success');
-                    } else {
-                        alert(data.detail || 'OTP bhejne mein masla aaya!');
-                    }
-                } catch (e) {
-                    alert('Server connection fail ho gaya!');
-                }
-            },
-
-            async submitResetPassword() {
-                if (!this.forgotForm.otp.trim() || !this.forgotForm.newPassword) {
-                    alert('OTP aur Naya Password dono enter karein!');
-                    return;
-                }
-
-                if (this.forgotForm.newPassword.length < 8 || this.forgotForm.newPassword.length > 10) {
-                    alert('Password kam se kam 8 aur ziada se ziada 10 characters ka hona chahiye!');
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('username', this.forgotForm.id.trim());
-                formData.append('otp', this.forgotForm.otp.trim());
-                formData.append('new_password', this.forgotForm.newPassword);
-
-                try {
-                    const res = await fetch(`${API_BASE}/api/v1/auth/reset-password`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await res.json();
-
-                    if (res.ok) {
-                        alert('Password kamyabi se reset ho gaya! Ab naye password se login karein.');
-                        this.showForgotModal = false;
-                        this.otpSent = false;
-                        this.forgotForm = { id: '', otp: '', newPassword: '' };
-                    } else {
-                        alert(data.detail || 'Password reset fail ho gaya!');
-                    }
-                } catch (e) {
-                    alert('Error connecting to backend!');
-                }
-            },
-
-            logout() {
-                localStorage.clear();
-                this.token = '';
-                this.isLoggedIn = false;
-                this.user = { id: 0, name: 'Guest', role: 'client' };
-            },
-
-            getAvailableAreas() {
-                if (this.selectedCity === 'All' || !this.cityAreas[this.selectedCity]) {
-                    let allAreas = [];
-                    Object.values(this.cityAreas).forEach(areas => {
-                        areas.forEach(a => { if (!allAreas.includes(a)) allAreas.push(a); });
-                    });
-                    return allAreas;
-                }
-                return this.cityAreas[this.selectedCity];
-            },
-
-            get filteredAdvocates() {
-                return this.advocates
-                    .filter(a => {
-                        const matchCat = this.selectedCategory === 'All' || a.specialty === this.selectedCategory;
-                        const matchCity = this.selectedCity === 'All' || a.city === this.selectedCity;
-                        const matchArea = this.selectedArea === 'All' || a.area === this.selectedArea;
-                        const q = this.searchQuery.toLowerCase().trim();
-                        const courtsString = (a.courts || []).join(' ').toLowerCase();
-                        const matchSearch = !q || a.name.toLowerCase().includes(q) || a.city.toLowerCase().includes(q) || a.area.toLowerCase().includes(q) || (a.chamberAddress && a.chamberAddress.toLowerCase().includes(q)) || courtsString.includes(q) || a.specialty.toLowerCase().includes(q);
-                        return matchCat && matchCity && matchArea && matchSearch;
-                    })
-                    .sort((a, b) => (a.distance || 0) - (b.distance || 0));
             },
 
             async fetchLawyers() {
@@ -1440,142 +1286,15 @@
                 } catch (e) {}
             },
 
-            async fetchPosts() {
-                try {
-                    const res = await fetch(`${API_BASE}/api/v1/posts`);
-                    if (res.ok) {
-                        this.posts = await res.json();
-                    }
-                } catch (e) {}
-            },
-
-            async likePost(postId) {
-                try {
-                    const res = await fetch(`${API_BASE}/api/v1/posts/${postId}/like`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${this.token}` }
-                    });
-                    if (res.ok) {
-                        this.fetchPosts();
-                    }
-                } catch (e) {}
-            },
-
-            async createPost() {
-                if (!this.newPostForm.title.trim() || !this.newPostForm.content.trim()) {
-                    this.showToast('Title aur Description fill karein', 'error');
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('content', `${this.newPostForm.title}\n\n${this.newPostForm.content}`);
-                formData.append('bar_association', this.user.bar || 'High Court Bar');
-
-                try {
-                    const res = await fetch(`${API_BASE}/api/v1/posts`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${this.token}` },
-                        body: formData
-                    });
-
-                    if (res.ok) {
-                        this.newPostForm = { title: '', category: 'Election Campaign / Manifesto', content: '', mediaUrl: '', mediaType: 'none', fileName: '' };
-                        this.showNewPostModal = false;
-                        this.activeTab = 'feed';
-                        this.showToast('Post published successfully!', 'success');
-                        this.fetchPosts();
-                    } else {
-                        this.showToast('Post creation failed', 'error');
-                    }
-                } catch (e) {}
-            },
-
-            async openChat(advocate) {
-                this.activeChatAdvocate = advocate;
-                this.showChatModal = true;
-                this.fetchChatHistory();
-            },
-
-            async fetchChatHistory() {
-                if (!this.activeChatAdvocate) return;
-                try {
-                    const res = await fetch(`${API_BASE}/api/v1/chat/history/${this.activeChatAdvocate.id}`, {
-                        headers: { 'Authorization': `Bearer ${this.token}` }
-                    });
-                    if (res.ok) {
-                        this.chatMessages = await res.json();
-                    }
-                } catch (e) {}
-            },
-
-            async sendChat() {
-                if (!this.chatInputText.trim()) return;
-                try {
-                    const res = await fetch(`${API_BASE}/api/v1/chat/send`, {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${this.token}` 
-                        },
-                        body: JSON.stringify({
-                            receiver_id: this.activeChatAdvocate.id,
-                            message: this.chatInputText
-                        })
-                    });
-                    if (res.ok) {
-                        this.chatInputText = '';
-                        this.fetchChatHistory();
-                    }
-                } catch (e) {}
-            },
-
-            async runFirAnalysis() {
-                if (!this.aiAnalyzerText.trim()) {
-                    this.showToast('FIR Text enter karein', 'error');
-                    return;
-                }
-                this.isAnalyzing = true;
-                const formData = new FormData();
-                formData.append('fir_text', this.aiAnalyzerText);
-
-                try {
-                    const res = await fetch(`${API_BASE}/api/ai/analyze-fir`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await res.json();
-                    this.aiResult = data.report;
-                } catch (e) {
-                    this.showToast('Analysis failed', 'error');
-                } finally {
-                    this.isAnalyzing = false;
-                }
-            },
-
-            async generateDocument() {
-                try {
-                    const res = await fetch(`${API_BASE}/api/ai/generate-doc`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            doc_type: this.docForm.type,
-                            party1: this.docForm.party1 || this.docForm.applicant || 'Party 1',
-                            party2: this.docForm.party2 || this.docForm.respondent || 'Party 2',
-                            court: this.docForm.court || 'District & Sessions Court Karachi',
-                            purpose: this.docForm.purpose
-                        })
-                    });
-                    const data = await res.json();
-                    this.generatedDocText = data.draft;
-                    this.showToast(`${this.docForm.type} Drafted!`, 'success');
-                } catch (e) {
-                    this.showToast('Doc Generation failed', 'error');
-                }
-            },
-
-            copyGeneratedDoc() {
-                navigator.clipboard.writeText(this.generatedDocText);
-                this.showToast('Draft Copied to Clipboard!', 'success');
+            get filteredAdvocates() {
+                return this.advocates.filter(a => {
+                    const matchCat = this.selectedCategory === 'All' || a.specialty === this.selectedCategory;
+                    const matchCity = this.selectedCity === 'All' || a.city === this.selectedCity;
+                    const matchArea = this.selectedArea === 'All' || a.area === this.selectedArea;
+                    const q = this.searchQuery.toLowerCase().trim();
+                    const matchSearch = !q || a.name.toLowerCase().includes(q) || a.city.toLowerCase().includes(q) || a.area.toLowerCase().includes(q) || a.specialty.toLowerCase().includes(q);
+                    return matchCat && matchCity && matchArea && matchSearch;
+                });
             },
 
             openProfileModal() {
@@ -1586,12 +1305,11 @@
                     avatar: this.user.avatar || '',
                     city: this.user.city || 'Karachi',
                     area: this.user.area || 'Saddar / City Court',
-                    courts: this.user.courts ? [...this.user.courts] : ['High Court'],
                     chamberAddress: this.user.chamberAddress || '',
                     specialty: this.user.specialty || '',
                     license: this.user.license || '',
                     bar: this.user.bar || '',
-                    exp: this.user.exp || 0
+                    exp: this.user.exp || 1
                 };
                 this.showProfileModal = true;
             },
@@ -1602,7 +1320,7 @@
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         this.profileForm.avatar = e.target.result;
-                        this.showToast('Profile photo ready to save!', 'success');
+                        this.showToast('Photo uploaded! Click Save to confirm.', 'success');
                     };
                     reader.readAsDataURL(file);
                 }
@@ -1620,18 +1338,32 @@
                     });
 
                     const data = await res.json();
-
                     if (res.ok) {
                         this.user = { ...this.user, ...data.user };
                         localStorage.setItem('user', JSON.stringify(this.user));
                         this.showProfileModal = false;
-                        this.showToast('Profile & Photo successfully saved!', 'success');
+                        this.showToast('Profile and picture updated successfully!', 'success');
                         this.fetchLawyers();
                     } else {
-                        this.showToast(data.detail || 'Profile update failed', 'error');
+                        this.showToast(data.detail || 'Update failed', 'error');
                     }
                 } catch (e) {
-                    this.showToast('Server connection fail ho gaya!', 'error');
+                    this.showToast('Server error', 'error');
+                }
+            },
+
+            async generateDocument() {
+                try {
+                    const res = await fetch(`${API_BASE}/api/ai/generate-doc`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.docForm)
+                    });
+                    const data = await res.json();
+                    this.generatedDocText = data.draft;
+                    this.showToast('Document Draft Generated!', 'success');
+                } catch (e) {
+                    this.showToast('Generation failed', 'error');
                 }
             },
 
@@ -1640,27 +1372,12 @@
                 setTimeout(() => { this.toast.show = false; }, 3000);
             },
 
-            handlePostMediaUpload(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    this.newPostForm.fileName = file.name;
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        this.newPostForm.mediaUrl = e.target.result;
-                        this.newPostForm.mediaType = file.type.startsWith('video') ? 'video' : 'image';
-                        this.showToast('Media file attached!', 'success');
-                    };
-                    reader.readAsDataURL(file);
-                }
-            },
-
-            handleFirFileUpload(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    this.uploadedFirFileName = file.name;
-                    this.aiAnalyzerText = `[FIR Scanned Copy: ${file.name}] - Scanned FIR text under Section 337-A, 506, 34 PPC. Incident reported at Police Station Saddar.`;
-                    this.showToast('FIR Document Attached!', 'success');
-                }
+            logout() {
+                localStorage.clear();
+                this.token = '';
+                this.isLoggedIn = false;
+                this.user = { id: 0, name: 'Guest', role: 'client' };
+                this.fetchLawyers();
             }
         };
     }
@@ -1673,13 +1390,6 @@
     async function handleLawyerSubmit(event) {
         event.preventDefault();
         const formData = new FormData(event.target);
-        const pwd = formData.get('password') || '';
-
-        if (pwd.length < 8 || pwd.length > 10) {
-            alert("❌ Password kam se kam 8 aur ziada se ziada 10 characters ka hona zaroori hai!");
-            return;
-        }
-
         try {
             const response = await fetch(`${API_BASE}/api/v1/auth/register-lawyer`, {
                 method: 'POST',
@@ -1687,17 +1397,17 @@
             });
 
             const result = await response.json();
-
             if (response.ok) {
-                alert("✅ " + (result.message || "Account successfully register ho gaya!"));
+                alert("✅ " + result.message);
                 const modal = document.getElementById('lawyerModal');
                 if (modal) modal.style.display = 'none';
                 event.target.reset();
+                window.location.reload();
             } else {
                 alert("❌ Error: " + (result.detail || "Registration Fail!"));
             }
         } catch (err) {
-            alert("⚠️ Server connection fail ho gaya! Pehle backend awaken hone dein.");
+            alert("⚠️ Server connection fail!");
         }
     }
 </script>
