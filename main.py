@@ -605,6 +605,7 @@ def get_pending_lawyers(
     ]
 
 
+# 1. ADMIN APPROVAL ENDPOINT (FIXED)
 @app.post("/api/v1/admin/lawyers/{lawyer_id}/approve")
 def approve_lawyer(
     lawyer_id: int,
@@ -614,10 +615,16 @@ def approve_lawyer(
     lawyer = db.query(UserDB).filter(UserDB.id == lawyer_id).first()
     if not lawyer:
         raise HTTPException(status_code=404, detail="Lawyer not found")
+    
     lawyer.is_approved = True
+    lawyer.is_active = True
     db.commit()
-    return {"message": f"Advocate {lawyer.name} has been approved successfully!"}
-  # PUBLIC LAWYER SELF-REGISTRATION (AUTO-APPROVED)
+    
+    lawyer_name = getattr(lawyer, 'full_name', getattr(lawyer, 'name', 'Lawyer'))
+    return {"message": f"Advocate {lawyer_name} has been approved successfully!"}
+
+
+# 2. PUBLIC LAWYER SELF-REGISTRATION (DIRECT DB SAVE & AUTO-APPROVED)
 @app.post("/api/v1/auth/register-lawyer")
 def register_lawyer_direct(
     full_name: str = Form(...),
@@ -627,14 +634,44 @@ def register_lawyer_direct(
     jurisdiction: str = Form(...),
     category: str = Form(...),
     experience: int = Form(...),
-    password: str = Form(...)
+    password: str = Form(...),
+    db: Session = Depends(get_db)
 ):
-    # Strict 8-10 Character Password Validation
+    # Strict 8-10 Character Password Complexity Check
     if not re.match(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,10}$", password):
         raise HTTPException(
             status_code=400, 
             detail="Password 8-10 characters ka hona chahiye jisme Uppercase, Lowercase aur Numbers shamil hon!"
         )
+
+    # Email / Phone Duplicate Check
+    existing_user = db.query(UserDB).filter((UserDB.email == email) | (UserDB.phone == phone)).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Yeh Email ya Mobile Number pehle se registered hai!")
+
+    # Password Hash & Save to Database
+    hashed_pwd = pwd_context.hash(password)
+
+    new_lawyer = UserDB(
+        full_name=full_name,
+        email=email,
+        phone=phone,
+        hashed_password=hashed_pwd,
+        role="lawyer",
+        is_approved=True,  # Direct Approved (No Admin Pending Status)
+        is_active=True     # Direct Active
+    )
+
+    db.add(new_lawyer)
+    db.commit()
+    db.refresh(new_lawyer)
+
+    print(f"🎉 DIRECT LAWYER REGISTERED & APPROVED: {full_name} | Phone: {phone}")
+
+    return {
+        "status": "success",
+        "message": f"Advocate {full_name}, aapka account successfully active ho gaya hai! Ab direct login karein."
+    }
 
     # ---------------------------------------------------------
     # AUTOMATIC APPROVAL LOGIC (No Admin Required)
