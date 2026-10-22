@@ -1202,7 +1202,7 @@
             advocates: [],
 
             async init() {
-                window.appInstance = this; // Global instance binding
+                window.appInstance = this;
                 this.initGPSLocation();
                 this.fetchLawyers();
                 if (this.token) {
@@ -1247,6 +1247,11 @@
             },
 
             async handleRegister() {
+                if (!this.registerForm.email.trim() && !this.registerForm.phone.trim()) {
+                    alert('Kam se kam Mobile Number ya Email dakhil karna zaroori hai!');
+                    return;
+                }
+
                 if (!this.registerForm.password || this.registerForm.password.length < 8 || this.registerForm.password.length > 10) {
                     alert('Password kam se kam 8 aur ziada se ziada 10 characters ka hona zaroori hai!');
                     return;
@@ -1284,7 +1289,7 @@
                         this.showToast(data.message || 'Account created successfully!', 'success');
                         this.fetchLawyers();
                     } else {
-                        alert(data.detail || 'Registration failed!');
+                        alert("❌ " + (data.detail || 'Registration fail!'));
                     }
                 } catch (e) {
                     alert('Error submitting registration form!');
@@ -1312,7 +1317,7 @@
                         this.showToast('Login Successful!', 'success');
                         this.fetchLawyers();
                     } else {
-                        alert(data.detail || 'Ghalat Phone/Email ya Password!');
+                        alert("❌ " + (data.detail || 'Ghalat Phone/Email ya Password!'));
                     }
                 } catch (e) {
                     alert('Backend server se connection fail ho gaya!');
