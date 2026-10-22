@@ -1157,7 +1157,40 @@
         <i class="fa-solid fa-circle-info"></i>
         <span x-text="toast.message"></span>
     </div>
-<!-- ================= ALPINE.JS LOGIC ================= -->
+<!-- 1. HTML MODAL (Script tag se BILKUL BAAHAR rakhein) -->
+<div id="lawyerModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center;">
+  <div style="background:#0F172A; color:#FFF; padding:25px; border-radius:12px; width:90%; max-width:500px; border:1px solid #C5A880;">
+    <h2 style="color:#C5A880; font-size:20px; font-weight:bold; margin-bottom:15px;">Wakeel Account Registration</h2>
+    
+    <form id="lawyerForm" onsubmit="handleLawyerSubmit(event)">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <input type="text" name="full_name" placeholder="Pura Naam (e.g. Adv. Ali Khan)" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
+        <input type="email" name="email" placeholder="Email Address" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
+        <input type="text" name="phone" placeholder="Mobile Number (03XXXXXXXXX)" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
+        <input type="text" name="license_no" placeholder="Bar Council License No (PBC-XXXXX)" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
+        
+        <select name="jurisdiction" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
+          <option value="Sindh High Court">Sindh High Court</option>
+          <option value="Lahore High Court">Lahore High Court</option>
+          <option value="Islamabad High Court">Islamabad High Court</option>
+          <option value="Supreme Court">Supreme Court of Pakistan</option>
+        </select>
+
+        <input type="text" name="category" placeholder="Specialization (Criminal, Civil, Corporate)" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
+        <input type="number" name="experience" placeholder="Tajurba (Experience in Years)" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
+        <input type="password" name="password" placeholder="Password (8-10 chars, e.g. Law12345)" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
+        
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button type="submit" style="flex:1; padding:10px; background:#C5A880; color:#0F172A; font-weight:bold; border:none; border-radius:6px; cursor:pointer;">Register Ho Jayein</button>
+          <button type="button" onclick="document.getElementById('lawyerModal').style.display='none'" style="padding:10px; background:#334155; color:#FFF; border:none; border-radius:6px; cursor:pointer;">Cancel</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- 2. JAVASCRIPT CODE (HTML Modal ke NICHE single script tag mein rakhein) -->
 <script>
     const API_BASE = 'https://lawnexa.onrender.com';
 
@@ -1170,7 +1203,6 @@
             currentLocation: 'Pakistan High Court Network',
             token: localStorage.getItem('token') || '',
 
-            // CITIES & AREAS
             cityAreas: {
                 'Karachi': ['Saddar / City Court', 'Sindh High Court (Main Bench)', 'Malir District Court', 'Clifton / DHA Chambers', 'Karachi East / West Courts'],
                 'Sukkur': ['High Court Sukkur Bench', 'District & Sessions Court Sukkur', 'City Area Sukkur'],
@@ -1185,7 +1217,6 @@
                 'Quetta': ['Balochistan High Court (BHC)', 'District Courts Quetta', 'Zarghoon Road']
             },
 
-            // FILTER STATES
             selectedCity: 'All',
             selectedArea: 'All',
             selectedCategory: 'All',
@@ -1194,7 +1225,6 @@
             loginForm: { role: 'lawyer', id: '', password: '' },
             registerForm: { role: 'lawyer', name: '', phone: '', email: '', password: '', city: 'Karachi', area: 'Saddar / City Court', courts: ['High Court', 'District & Sessions Court'], chamberAddress: '', specialty: '', license: '', bar: '', exp: '' },
 
-            // FORGOT PASSWORD & OTP STATES
             showForgotModal: false,
             otpSent: false,
             forgotForm: { id: '', otp: '', newPassword: '' },
@@ -1235,7 +1265,6 @@
             posts: [],
             myBookings: [],
 
-            // APP INITIALIZATION
             async init() {
                 if (this.token) {
                     await this.verifySession();
@@ -1342,7 +1371,6 @@
                 }
             },
 
-            // OTP FUNCTIONS
             async sendOtp() {
                 if (!this.forgotForm.id.trim()) {
                     alert('Pehle Phone ya Email enter karein!');
@@ -1603,25 +1631,43 @@
                 this.showProfileModal = true;
             },
 
-            updateProfile() {
-                this.user.name = this.profileForm.name;
-                this.user.phone = this.profileForm.phone;
-                this.user.email = this.profileForm.email;
-                if (this.profileForm.avatar) this.user.avatar = this.profileForm.avatar;
-
-                if (this.user.role === 'lawyer') {
-                    this.user.city = this.profileForm.city;
-                    this.user.area = this.profileForm.area;
-                    this.user.courts = [...this.profileForm.courts];
-                    this.user.chamberAddress = this.profileForm.chamberAddress;
-                    this.user.specialty = this.profileForm.specialty;
-                    this.user.license = this.profileForm.license;
-                    this.user.bar = this.profileForm.bar;
-                    this.user.exp = this.profileForm.exp;
+            handleAvatarUpload(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.profileForm.avatar = e.target.result;
+                        this.showToast('Profile photo ready to save!', 'success');
+                    };
+                    reader.readAsDataURL(file);
                 }
+            },
 
-                this.showProfileModal = false;
-                this.showToast('Profile updated!', 'success');
+            async updateProfile() {
+                try {
+                    const res = await fetch(`${API_BASE}/api/v1/users/profile`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.token}`
+                        },
+                        body: JSON.stringify(this.profileForm)
+                    });
+
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        this.user = { ...this.user, ...data.user };
+                        localStorage.setItem('user', JSON.stringify(this.user));
+                        this.showProfileModal = false;
+                        this.showToast('Profile & Photo successfully saved!', 'success');
+                        this.fetchLawyers();
+                    } else {
+                        this.showToast(data.detail || 'Profile update failed', 'error');
+                    }
+                } catch (e) {
+                    this.showToast('Server connection fail ho gaya!', 'error');
+                }
             },
 
             showToast(message, type = 'info') {
@@ -1653,75 +1699,40 @@
             }
         };
     }
-</script>
 
-<!-- LAWYER REGISTRATION MODAL -->
-<div id="lawyerModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center;">
-  <div style="background:#0F172A; color:#FFF; padding:25px; border-radius:12px; width:90%; max-width:500px; border:1px solid #C5A880;">
-    <h2 style="color:#C5A880; font-size:20px; font-weight:bold; margin-bottom:15px;">Wakeel Account Registration</h2>
-    
-    <form id="lawyerForm" onsubmit="handleLawyerSubmit(event)">
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        <input type="text" name="full_name" placeholder="Pura Naam (e.g. Adv. Ali Khan)" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
-        <input type="email" name="email" placeholder="Email Address" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
-        <input type="text" name="phone" placeholder="Mobile Number (03XXXXXXXXX)" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
-        <input type="text" name="license_no" placeholder="Bar Council License No (PBC-XXXXX)" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
-        
-        <select name="jurisdiction" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
-          <option value="Sindh High Court">Sindh High Court</option>
-          <option value="Lahore High Court">Lahore High Court</option>
-          <option value="Islamabad High Court">Islamabad High Court</option>
-          <option value="Supreme Court">Supreme Court of Pakistan</option>
-        </select>
-
-        <input type="text" name="category" placeholder="Specialization (Criminal, Civil, Corporate)" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
-        <input type="number" name="experience" placeholder="Tajurba (Experience in Years)" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
-        <input type="password" name="password" placeholder="Password (8-10 chars, e.g. Law12345)" required style="padding:10px; background:#1E293B; border:1px solid #334155; color:#FFF; border-radius:6px;">
-        
-        <div style="display:flex; gap:10px; margin-top:10px;">
-          <button type="submit" style="flex:1; padding:10px; background:#C5A880; color:#0F172A; font-weight:bold; border:none; border-radius:6px; cursor:pointer;">Register Ho Jayein</button>
-          <button type="button" onclick="document.getElementById('lawyerModal').style.display='none'" style="padding:10px; background:#334155; color:#FFF; border:none; border-radius:6px; cursor:pointer;">Cancel</button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
-
-<script>
-function openLawyerRegistrationModal() {
-  document.getElementById('lawyerModal').style.display = 'flex';
-}
-
-async function handleLawyerSubmit(event) {
-  event.preventDefault();
-  const formData = new FormData(event.target);
-  const pwd = formData.get('password') || '';
-
-  // Client-side 8-10 Password check
-  if (pwd.length < 8 || pwd.length > 10) {
-    alert("❌ Password kam se kam 8 aur ziada se ziada 10 characters ka hona zaroori hai!");
-    return;
-  }
-
-  try {
-    const response = await fetch('https://lawnexa.onrender.com/api/v1/auth/register-lawyer', {
-      method: 'POST',
-      body: formData
-    });
-
-    const result = await response.json();
-
-    if (response.ok) {
-      alert("✅ " + (result.message || "Account successfully register ho gaya!"));
-      document.getElementById('lawyerModal').style.display = 'none';
-      event.target.reset();
-    } else {
-      alert("❌ Error: " + (result.detail || "Registration Fail!"));
+    function openLawyerRegistrationModal() {
+        const modal = document.getElementById('lawyerModal');
+        if (modal) modal.style.display = 'flex';
     }
-  } catch (err) {
-    alert("⚠️ Server connection fail ho gaya! Pehle backend awaken hone dein.");
-  }
-}
+
+    async function handleLawyerSubmit(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const pwd = formData.get('password') || '';
+
+        if (pwd.length < 8 || pwd.length > 10) {
+            alert("❌ Password kam se kam 8 aur ziada se ziada 10 characters ka hona zaroori hai!");
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/api/v1/auth/register-lawyer`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert("✅ " + (result.message || "Account successfully register ho gaya!"));
+                const modal = document.getElementById('lawyerModal');
+                if (modal) modal.style.display = 'none';
+                event.target.reset();
+            } else {
+                alert("❌ Error: " + (result.detail || "Registration Fail!"));
+            }
+        } catch (err) {
+            alert("⚠️ Server connection fail ho gaya! Pehle backend awaken hone dein.");
+        }
+    }
 </script>
-    </body>
-</html>
