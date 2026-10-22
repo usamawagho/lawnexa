@@ -78,6 +78,11 @@ class UserDB(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+# ================= DATABASE CLEAN SLATE / RESET =================
+# Pehle tamam purane tables aur accounts drop ho jayenge:
+Base.metadata.drop_all(bind=engine)
+
+# Phir bilkul fresh naye empty tables ban jayenge:
 Base.metadata.create_all(bind=engine)
 
 
