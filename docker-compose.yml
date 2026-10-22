@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: legalconnect_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: legaluser
+      POSTGRES_PASSWORD: legalpassword
+      POSTGRES_DB: legalconnect_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build:
+      context: .
+    container_name: legalconnect_api
+    restart: always
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://legaluser:legalpassword@db:5432/legalconnect_db
+    depends_on:
+      - db
+    volumes:
+      - ./uploads:/app/uploads
+
+volumes:
+  postgres_data:
