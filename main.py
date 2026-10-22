@@ -1,6 +1,6 @@
 import os
 import re
-import random  # <-- YEH MISSING THA! Isko add kar diya hai
+import random
 from datetime import datetime, timedelta
 from typing import Optional, List
 
@@ -14,19 +14,6 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 import google.generativeai as genai
 
-app = FastAPI(title="LawNexa API")
-
-# Enable CORS for Vercel Frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Global OTP Store (In-Memory)
-otp_store = {}
 # ================= CONFIGURATION & DATABASE =================
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./lawnexa.db")
 
@@ -65,6 +52,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Global OTP Store (In-Memory)
+otp_store = {}
+
 
 # ================= DATABASE MODELS =================
 class UserDB(Base):
@@ -77,6 +67,7 @@ class UserDB(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(String, default="client")  # 'client', 'lawyer', 'admin'
     is_approved = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True)
 
     specialty = Column(String, nullable=True)
     license_number = Column(String, nullable=True)
@@ -86,6 +77,10 @@ class UserDB(Base):
     area = Column(String, nullable=True)
     chamber_address = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    @property
+    def full_name(self):
+        return self.name
 
 
 class PostDB(Base):
@@ -127,7 +122,8 @@ def seed_admin_user():
                 email="admin@lawnexa.pk",
                 hashed_password=pwd_context.hash("Admin123"),
                 role="admin",
-                is_approved=True
+                is_approved=True,
+                is_active=True
             )
             db.add(admin_user)
             db.commit()
@@ -151,6 +147,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
+
 def validate_password_complexity(password: str):
     """Between 8 and 10 Characters with Capital, Small letter, and Number"""
     if len(password) < 8 or len(password) > 10:
@@ -173,78 +170,7 @@ def validate_password_complexity(password: str):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password mein kam se kam EK number (0-9) hona zaroori hai!"
         )
-        import random
-from datetime import datetime, timedelta
 
-# In-memory OTP Storage (Production mein Redis ya DB columns use hotay hain)
-otp_store = {}
-
-# 1. SEND OTP ENDPOINT
-@app.post("/api/v1/auth/forgot-password")
-def forgot_password(username: str = Form(...)):
-    user_id = username.strip()
-    
-    # Check if user exists in DB
-    # Note: Replace with your actual DB query logic if required
-    # user = db.query(User).filter((User.phone == user_id) | (User.email == user_id)).first()
-    # if not user:
-    #     raise HTTPException(status_code=404, detail="Yeh Phone/Email registered nahi hai!")
-
-    # Generate 6-digit random OTP
-    otp = f"{random.randint(100000, 999999)}"
-    
-    # Store OTP with 5-minute expiry
-    otp_store[user_id] = {
-        "otp": otp,
-        "expires_at": datetime.utcnow() + timedelta(minutes=5)
-    }
-
-    # Console / Server Logs par OTP print karein (Realtime verification ke liye)
-    print(f"\n==========================================")
-    print(f"🔑 REALTIME OTP FOR [{user_id}]: {otp}")
-    print(f"==========================================\n")
-
-    # (Optional: Yahan SMS Gateway like Twilio / FastSMS ya Email SMTP ka API call add hota hai)
-
-    return {"message": f"OTP sent successfully to {user_id}! Check server logs or phone."}
-
-
-# 2. VERIFY OTP & RESET PASSWORD ENDPOINT
-@app.post("/api/v1/auth/reset-password")
-def reset_password(
-    username: str = Form(...), 
-    otp: str = Form(...), 
-    new_password: str = Form(...)
-):
-    user_id = username.strip()
-    record = otp_store.get(user_id)
-
-    # Validate OTP
-    if not record or record["otp"] != otp.strip():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Ghalat OTP Code! Sahi OTP dakhil karein."
-        )
-
-    # Check OTP Expiry
-    if datetime.utcnow() > record["expires_at"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="OTP expire ho chuka hai! Naya OTP mangwayein."
-        )
-
-    # Validate new password strength (8 to 10 characters)
-    validate_password_complexity(new_password)
-
-    # Password Update in Database
-    # hashed = hash_password(new_password)
-    # user.password_hash = hashed
-    # db.commit()
-
-    # Clear OTP after successful reset
-    del otp_store[user_id]
-
-    return {"message": "Password successfully reset! Ab aap naye password se login kar sakte hain."}
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -253,7 +179,6 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-# STRICT AUTHENTICATION GUARD: Rejects unauthenticated requests
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> UserDB:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -286,69 +211,138 @@ def get_current_admin(current_user: UserDB = Depends(get_current_user)) -> UserD
     return current_user
 
 
-# ================= AUTHENTICATION ENDPOINTS =================
-# ================= COMPLETE & CRASH-PROOF REGISTRATION ENDPOINT =================
+# ================= OTP & PASSWORD RESET ENDPOINTS =================
+@app.post("/api/v1/auth/forgot-password")
+def forgot_password(username: str = Form(...)):
+    user_id = username.strip()
+    otp = f"{random.randint(100000, 999999)}"
+    
+    otp_store[user_id] = {
+        "otp": otp,
+        "expires_at": datetime.utcnow() + timedelta(minutes=5)
+    }
+
+    print(f"\n==========================================")
+    print(f"🔑 REALTIME OTP FOR [{user_id}]: {otp}")
+    print(f"==========================================\n")
+
+    return {"message": f"OTP sent successfully to {user_id}! Check server logs or phone."}
+
+
+@app.post("/api/v1/auth/reset-password")
+def reset_password(
+    username: str = Form(...), 
+    otp: str = Form(...), 
+    new_password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    user_id = username.strip()
+    record = otp_store.get(user_id)
+
+    if not record or record["otp"] != otp.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Ghalat OTP Code! Sahi OTP dakhil karein."
+        )
+
+    if datetime.utcnow() > record["expires_at"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="OTP expire ho chuka hai! Naya OTP mangwayein."
+        )
+
+    validate_password_complexity(new_password)
+
+    user = db.query(UserDB).filter((UserDB.phone == user_id) | (UserDB.email == user_id)).first()
+    if user:
+        user.hashed_password = get_password_hash(new_password)
+        db.commit()
+
+    del otp_store[user_id]
+
+    return {"message": "Password successfully reset! Ab aap naye password se login kar sakte hain."}
+
+
+# ================= COMPLETE & CRASH-PROOF UNIFIED REGISTRATION =================
 @app.post("/api/v1/auth/register")
+@app.post("/api/v1/auth/register-lawyer")
 def register_user(
-    name: str = Form(...),
+    name: Optional[str] = Form(None),
+    full_name: Optional[str] = Form(None),
     email: str = Form(...),
     phone: str = Form(...),
     password: str = Form(...),
     role: str = Form("lawyer"),
     specialty: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
     license: Optional[str] = Form(None),
+    license_no: Optional[str] = Form(None),
     bar: Optional[str] = Form(None),
+    jurisdiction: Optional[str] = Form(None),
     exp: Optional[str] = Form(None),
+    experience: Optional[str] = Form(None),
     city: Optional[str] = Form(None),
     area: Optional[str] = Form(None),
     chamberAddress: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
+    display_name = (name or full_name or "").strip()
+    if not display_name:
+        raise HTTPException(status_code=400, detail="Pura naam dakhil karein!")
+
     # Password Length Check (8-10 Characters)
     if len(password) < 8 or len(password) > 10:
         raise HTTPException(status_code=400, detail="Password 8-10 characters ka hona zaroori hai!")
 
-    # Check if Email or Phone already exists
-    existing_user = db.query(User).filter((User.email == email) | (User.phone == phone)).first()
+    # Check duplicate Email or Phone
+    existing_user = db.query(UserDB).filter((UserDB.email == email) | (UserDB.phone == phone)).first()
     if existing_user:
-        raise HTTPException(status_code=400, detail="Yeh Email ya Phone pehle se registered hai!")
+        raise HTTPException(status_code=400, detail="Yeh Email ya Mobile Number pehle se registered hai!")
 
-    # Hash Password & Create User
     hashed_pwd = pwd_context.hash(password)
-    
-    new_user = User(
-        full_name=name,
+
+    # Experience conversion
+    exp_years = None
+    exp_val = exp or experience
+    if exp_val:
+        try:
+            exp_years = int(re.sub(r'\D', '', str(exp_val)))
+        except ValueError:
+            exp_years = 0
+
+    new_user = UserDB(
+        name=display_name,
         email=email,
         phone=phone,
         hashed_password=hashed_pwd,
         role=role,
-        is_approved=True,  # Direct Active without admin approval
-        is_active=True
+        is_approved=True,  # Auto-Approve Enabled
+        is_active=True,    # Direct Active
+        specialty=specialty or category,
+        license_number=license or license_no,
+        bar_association=bar or jurisdiction,
+        experience_years=exp_years,
+        city=city,
+        area=area,
+        chamber_address=chamberAddress
     )
 
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
 
-    print(f"🎉 USER REGISTERED SUCCESSFULLY: {name} ({role})")
+    print(f"🎉 USER REGISTERED SUCCESSFULLY: {display_name} ({role})")
 
     return {
         "status": "success",
-        "message": f"Account successfully ban gaya hai! Ab naye password se login karein."
+        "message": f"Advocate {display_name}, aapka account successfully active ho gaya hai! Ab direct login karein."
     }
-    new_user = User(
-    full_name=name,
-    email=email,
-    phone=phone,
-    hashed_password=get_password_hash(password),
-    role=role,
-    is_approved=True,  # <-- In 2 lines ko add kar dein
-    is_active=True     # <-- Is se instant login active ho jayega
-)
+
+
+# ================= AUTHENTICATION LOGIN ENDPOINT =================
 @app.post("/api/v1/auth/token")
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    # User find karein email ya phone se
-    user = db.query(User).filter((User.email == form_data.username) | (User.phone == form_data.username)).first()
+    user = db.query(UserDB).filter((UserDB.email == form_data.username) | (UserDB.phone == form_data.username)).first()
     
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -356,9 +350,6 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
             detail="Ghalat Phone/Email ya Password!",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-    # 🛑 YAHAN PAR 'if not user.is_approved' WALI CONDITION KO BILKUL HATA DENGAY
-    # Ab bina kisi admin approval check ke direct token generate hoga
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -369,9 +360,10 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
         "access_token": access_token,
         "token_type": "bearer",
         "user_id": user.id,
-        "name": user.full_name,
+        "name": user.name,
         "role": user.role
     }
+
 
 @app.get("/api/v1/auth/me")
 def verify_token_and_get_user(current_user: UserDB = Depends(get_current_user)):
@@ -561,7 +553,6 @@ DETAILS:
         except Exception as err:
             print(f"Gemini Exception: {err}")
 
-    # Fallback Legal Template
     draft = f"""IN THE COURT OF {court.upper()}
 
 In the matter of:
@@ -605,7 +596,6 @@ def get_pending_lawyers(
     ]
 
 
-# 1. ADMIN APPROVAL ENDPOINT (FIXED)
 @app.post("/api/v1/admin/lawyers/{lawyer_id}/approve")
 def approve_lawyer(
     lawyer_id: int,
@@ -620,75 +610,4 @@ def approve_lawyer(
     lawyer.is_active = True
     db.commit()
     
-    lawyer_name = getattr(lawyer, 'full_name', getattr(lawyer, 'name', 'Lawyer'))
-    return {"message": f"Advocate {lawyer_name} has been approved successfully!"}
-
-
-# 2. PUBLIC LAWYER SELF-REGISTRATION (DIRECT DB SAVE & AUTO-APPROVED)
-@app.post("/api/v1/auth/register-lawyer")
-def register_lawyer_direct(
-    full_name: str = Form(...),
-    email: str = Form(...),
-    phone: str = Form(...),
-    license_no: str = Form(...),
-    jurisdiction: str = Form(...),
-    category: str = Form(...),
-    experience: int = Form(...),
-    password: str = Form(...),
-    db: Session = Depends(get_db)
-):
-    # Strict 8-10 Character Password Complexity Check
-    if not re.match(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,10}$", password):
-        raise HTTPException(
-            status_code=400, 
-            detail="Password 8-10 characters ka hona chahiye jisme Uppercase, Lowercase aur Numbers shamil hon!"
-        )
-
-    # Email / Phone Duplicate Check
-    existing_user = db.query(UserDB).filter((UserDB.email == email) | (UserDB.phone == phone)).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Yeh Email ya Mobile Number pehle se registered hai!")
-
-    # Password Hash & Save to Database
-    hashed_pwd = pwd_context.hash(password)
-
-    new_lawyer = UserDB(
-        full_name=full_name,
-        email=email,
-        phone=phone,
-        hashed_password=hashed_pwd,
-        role="lawyer",
-        is_approved=True,  # Direct Approved (No Admin Pending Status)
-        is_active=True     # Direct Active
-    )
-
-    db.add(new_lawyer)
-    db.commit()
-    db.refresh(new_lawyer)
-
-    print(f"🎉 DIRECT LAWYER REGISTERED & APPROVED: {full_name} | Phone: {phone}")
-
-    return {
-        "status": "success",
-        "message": f"Advocate {full_name}, aapka account successfully active ho gaya hai! Ab direct login karein."
-    }
-
-    # ---------------------------------------------------------
-    # AUTOMATIC APPROVAL LOGIC (No Admin Required)
-    # ---------------------------------------------------------
-    # Database Record Save Structure (Status = Active & Approved = True):
-    # user = User(
-    #     full_name=full_name,
-    #     email=email,
-    #     phone=phone,
-    #     role="lawyer",
-    #     is_approved=True,   # <-- Auto-Approve Enabled!
-    #     is_active=True,     # <-- Direct Active Status!
-    # )
-
-    print(f"🎉 INSTANT AUTO-APPROVED LAWYER: {full_name} | Phone: {phone}")
-
-    return {
-        "status": "success",
-        "message": f"Advocate {full_name}, aapka account instantly approve ho gaya hai! Ab aap direct login kar sakte hain."
-    }
+    return {"message": f"Advocate {lawyer.name} has been approved successfully!"}
