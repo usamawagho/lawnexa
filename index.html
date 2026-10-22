@@ -1160,7 +1160,6 @@
 
     function lawNexaApp() {
         return {
-            // LocalStorage se persistent login state load karein
             token: localStorage.getItem('token') || '',
             isLoggedIn: !!localStorage.getItem('token'),
             mobileMenuOpen: false,
@@ -1203,6 +1202,7 @@
             advocates: [],
 
             async init() {
+                window.appInstance = this; // Global instance binding
                 this.initGPSLocation();
                 this.fetchLawyers();
                 if (this.token) {
@@ -1227,7 +1227,6 @@
                 }
             },
 
-            // PERSISTENT SESSION VERIFICATION
             async verifySession() {
                 if (!this.token) return;
                 try {
@@ -1240,12 +1239,55 @@
                         this.isLoggedIn = true;
                         localStorage.setItem('user', JSON.stringify(this.user));
                     } else if (res.status === 401 || res.status === 403) {
-                        // SIRF TABHI LOGOUT KAREIN JAB SERVER EXPLICIT 401 UN-AUTHORIZED BHEJE
                         this.logout();
                     }
                 } catch (e) {
-                    // Network slow hone ya Render sleep mode par hone par LOG OUT MAT KAREIN!
                     console.warn("Backend server connection warming up...");
+                }
+            },
+
+            async handleRegister() {
+                if (!this.registerForm.password || this.registerForm.password.length < 8 || this.registerForm.password.length > 10) {
+                    alert('Password kam se kam 8 aur ziada se ziada 10 characters ka hona zaroori hai!');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('name', this.registerForm.name.trim());
+                formData.append('phone', this.registerForm.phone.trim());
+                formData.append('email', this.registerForm.email.trim());
+                formData.append('password', this.registerForm.password.trim());
+                formData.append('role', this.registerForm.role);
+
+                if (this.registerForm.role === 'lawyer') {
+                    formData.append('specialty', this.registerForm.specialty);
+                    formData.append('license', this.registerForm.license);
+                    formData.append('bar', this.registerForm.bar);
+                    formData.append('exp', this.registerForm.exp);
+                    formData.append('city', this.registerForm.city);
+                    formData.append('area', this.registerForm.area);
+                }
+
+                try {
+                    const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+
+                    if (res.ok && data.access_token) {
+                        this.token = data.access_token;
+                        this.user = data.user;
+                        localStorage.setItem('token', this.token);
+                        localStorage.setItem('user', JSON.stringify(this.user));
+                        this.isLoggedIn = true;
+                        this.showToast(data.message || 'Account created successfully!', 'success');
+                        this.fetchLawyers();
+                    } else {
+                        alert(data.detail || 'Registration failed!');
+                    }
+                } catch (e) {
+                    alert('Error submitting registration form!');
                 }
             },
 
@@ -1342,7 +1384,7 @@
                         this.user = { ...this.user, ...data.user };
                         localStorage.setItem('user', JSON.stringify(this.user));
                         this.showProfileModal = false;
-                        this.showToast('Profile and picture updated successfully!', 'success');
+                        this.showToast('Profile updated successfully!', 'success');
                         this.fetchLawyers();
                     } else {
                         this.showToast(data.detail || 'Update failed', 'error');
@@ -1397,12 +1439,21 @@
             });
 
             const result = await response.json();
-            if (response.ok) {
+            if (response.ok && result.access_token) {
+                localStorage.setItem('token', result.access_token);
+                localStorage.setItem('user', JSON.stringify(result.user));
+                
+                if (window.appInstance) {
+                    window.appInstance.token = result.access_token;
+                    window.appInstance.user = result.user;
+                    window.appInstance.isLoggedIn = true;
+                    window.appInstance.fetchLawyers();
+                }
+                
                 alert("✅ " + result.message);
                 const modal = document.getElementById('lawyerModal');
                 if (modal) modal.style.display = 'none';
                 event.target.reset();
-                window.location.reload();
             } else {
                 alert("❌ Error: " + (result.detail || "Registration Fail!"));
             }
