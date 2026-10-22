@@ -1238,6 +1238,11 @@
                         this.user = userData;
                         this.isLoggedIn = true;
                         localStorage.setItem('user', JSON.stringify(this.user));
+
+                        // Set Active Tab according to Role
+                        if (this.user.role === 'lawyer' || this.user.role === 'advocate') {
+                            this.activeTab = 'dashboard';
+                        }
                     } else if (res.status === 401 || res.status === 403) {
                         this.logout();
                     }
@@ -1264,7 +1269,7 @@
                 formData.append('password', this.registerForm.password.trim());
                 formData.append('role', this.registerForm.role);
 
-                if (this.registerForm.role === 'lawyer') {
+                if (this.registerForm.role === 'lawyer' || this.registerForm.role === 'advocate') {
                     formData.append('specialty', this.registerForm.specialty);
                     formData.append('license', this.registerForm.license);
                     formData.append('bar', this.registerForm.bar);
@@ -1286,6 +1291,14 @@
                         localStorage.setItem('token', this.token);
                         localStorage.setItem('user', JSON.stringify(this.user));
                         this.isLoggedIn = true;
+
+                        // Redirect / Tab Switch
+                        if (this.user.role === 'lawyer' || this.user.role === 'advocate') {
+                            this.activeTab = 'dashboard';
+                        } else {
+                            this.activeTab = 'advocates';
+                        }
+
                         this.showToast(data.message || 'Account created successfully!', 'success');
                         this.fetchLawyers();
                     } else {
@@ -1310,10 +1323,32 @@
 
                     if (res.ok && data.access_token) {
                         this.token = data.access_token;
-                        this.user = { id: data.user_id, name: data.name, role: data.role };
+                        
+                        // Extract Role Safely
+                        const detectedRole = data.role || (data.user && data.user.role) || 'client';
+                        
+                        this.user = { 
+                            id: data.user_id || (data.user && data.user.id), 
+                            name: data.name || (data.user && data.user.name), 
+                            role: detectedRole,
+                            ...(data.user || {})
+                        };
+
                         localStorage.setItem('token', this.token);
                         localStorage.setItem('user', JSON.stringify(this.user));
                         this.isLoggedIn = true;
+
+                        // ================= ADVOCATE VS CLIENT ROUTING =================
+                        if (detectedRole === 'lawyer' || detectedRole === 'advocate') {
+                            this.activeTab = 'dashboard'; // Advocate Dashboard View
+                            
+                            // Agar aapka Advocate Dashboard alag HTML page par hai, to is line ko uncomment karein:
+                            // window.location.href = '/advocate_dashboard.html';
+                        } else {
+                            this.activeTab = 'advocates'; // Client View
+                        }
+                        // =============================================================
+
                         this.showToast('Login Successful!', 'success');
                         this.fetchLawyers();
                     } else {
@@ -1423,6 +1458,7 @@
                 localStorage.clear();
                 this.token = '';
                 this.isLoggedIn = false;
+                this.activeTab = 'advocates';
                 this.user = { id: 0, name: 'Guest', role: 'client' };
                 this.fetchLawyers();
             }
@@ -1437,6 +1473,8 @@
     async function handleLawyerSubmit(event) {
         event.preventDefault();
         const formData = new FormData(event.target);
+        formData.append('role', 'lawyer');
+
         try {
             const response = await fetch(`${API_BASE}/api/v1/auth/register-lawyer`, {
                 method: 'POST',
@@ -1452,6 +1490,7 @@
                     window.appInstance.token = result.access_token;
                     window.appInstance.user = result.user;
                     window.appInstance.isLoggedIn = true;
+                    window.appInstance.activeTab = 'dashboard';
                     window.appInstance.fetchLawyers();
                 }
                 
