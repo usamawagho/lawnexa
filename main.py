@@ -29,7 +29,7 @@ Base = declarative_base()
 
 SECRET_KEY = os.getenv("SECRET_KEY", "super_secret_lawnexa_jwt_key_2026")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30  # 30 Days Validity
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30  # 30 Days Token Expiration
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
@@ -51,8 +51,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-otp_store = {}
-
 
 # ================= DATABASE MODELS =================
 class UserDB(Base):
@@ -60,8 +58,8 @@ class UserDB(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    phone = Column(String, unique=True, index=True, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
+    phone = Column(String, unique=True, index=True, nullable=True)  # Nullable for optional phone
+    email = Column(String, unique=True, index=True, nullable=True)  # Nullable for optional email
     hashed_password = Column(String, nullable=False)
     role = Column(String, default="client")
     is_approved = Column(Boolean, default=True)
@@ -78,7 +76,6 @@ class UserDB(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
-# Base.metadata.drop_all(bind=engine) # Comment out after reset
 Base.metadata.create_all(bind=engine)
 
 
@@ -128,14 +125,14 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 
-# ================= REGISTRATION & DIRECT AUTO-LOGIN =================
+# ================= REGISTRATION ENDPOINT =================
 @app.post("/api/v1/auth/register")
 @app.post("/api/v1/auth/register-lawyer")
 def register_user(
     name: Optional[str] = Form(None),
     full_name: Optional[str] = Form(None),
-    email: str = Form(...),
-    phone: str = Form(...),
+    email: Optional[str] = Form(None),
+    phone: Optional[str] = Form(None),
     password: str = Form(...),
     role: str = Form("lawyer"),
     specialty: Optional[str] = Form(None),
@@ -152,22 +149,29 @@ def register_user(
     db: Session = Depends(get_db)
 ):
     display_name = (name or full_name or "").strip()
-    clean_email = email.strip().lower()
-    clean_phone = phone.strip()
+    clean_email = email.strip().lower() if email and email.strip() else None
+    clean_phone = phone.strip() if phone and phone.strip() else None
     clean_password = password.strip()
 
     if not display_name:
         raise HTTPException(status_code=400, detail="Pura naam dakhil karein!")
 
+    if not clean_email and not clean_phone:
+        raise HTTPException(status_code=400, detail="Kam se kam Email ya Phone Number mein se ek dakhil karein!")
+
     if len(clean_password) < 8 or len(clean_password) > 10:
         raise HTTPException(status_code=400, detail="Password 8-10 characters ka hona zaroori hai!")
 
-    existing_user = db.query(UserDB).filter(
-        (UserDB.email == clean_email) | (UserDB.phone == clean_phone)
-    ).first()
-    
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Yeh Email ya Mobile Number pehle se registered hai!")
+    # Strict Duplicate Checks (No Repeats)
+    if clean_email:
+        existing_email = db.query(UserDB).filter(UserDB.email == clean_email).first()
+        if existing_email:
+            raise HTTPException(status_code=400, detail="Yeh Email Address pehle se registered hai!")
+
+    if clean_phone:
+        existing_phone = db.query(UserDB).filter(UserDB.phone == clean_phone).first()
+        if existing_phone:
+            raise HTTPException(status_code=400, detail="Yeh Mobile Number pehle se registered hai!")
 
     exp_years = None
     exp_val = exp or experience
@@ -229,6 +233,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     clean_email = clean_id.lower()
     clean_password = form_data.password.strip()
 
+    # Match via Email OR Phone
     user = db.query(UserDB).filter(
         (UserDB.email == clean_email) | (UserDB.phone == clean_id)
     ).first()
@@ -278,8 +283,10 @@ def update_profile(
     db: Session = Depends(get_db)
 ):
     current_user.name = payload.get("name", current_user.name).strip()
-    current_user.phone = payload.get("phone", current_user.phone).strip()
-    current_user.email = payload.get("email", current_user.email).strip().lower()
+    if payload.get("phone"):
+        current_user.phone = payload.get("phone").strip()
+    if payload.get("email"):
+        current_user.email = payload.get("email").strip().lower()
     
     if "avatar" in payload and payload["avatar"]:
         current_user.avatar = payload["avatar"]
