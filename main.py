@@ -189,6 +189,32 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     )
     return {"access_token": token, "token_type": "bearer", "role": user.role}
 
+# --- IS KE BAAD DALEIN (Yeh pehle se likha hoga) ---
+@app.post("/api/v1/auth/token")
+def login(...):
+    # ... login logic ...
+
+@app.get("/api/v1/auth/me")
+def verify_token_and_get_user(current_user: UserDB = Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "name": current_user.name,
+        "email": current_user.email,
+        "phone": current_user.phone,
+        "role": current_user.role,
+        "avatar": current_user.avatar,
+        "city": current_user.city,
+        "area": current_user.area,
+        "chamberAddress": current_user.chamber_address,
+        "specialty": current_user.specialty
+    }
+
+
+# --- IS SE PEHLE (Yeh aapki file mein pehle se hoga) ---
+@app.put("/api/v1/users/profile")
+def update_profile(...):
+    # ... update logic ...
+
 
 @app.put("/api/v1/users/profile")
 def update_profile(payload: UserUpdate, current_user: UserDB = Depends(get_current_user), db: Session = Depends(get_db)):
