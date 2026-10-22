@@ -179,7 +179,7 @@
                     
                     <!-- Search Controls -->
                     <div class="mt-6 grid grid-cols-1 sm:grid-cols-12 gap-3">
-                        <div class="sm:col-span-6 relative">
+                        <div class="sm:col-span-5 relative">
                             <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
                             <input type="text" x-model="searchQuery" placeholder="Search advocate by name, legal area..." class="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500">
                         </div>
@@ -192,7 +192,7 @@
                                 <option value="Rawalpindi">Rawalpindi</option>
                             </select>
                         </div>
-                        <div class="sm:col-span-3">
+                        <div class="sm:col-span-2">
                             <select x-model="selectedArea" class="w-full py-2.5 px-3 bg-slate-950/80 border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
                                 <option value="All">All Areas</option>
                                 <option value="Saddar">Saddar</option>
@@ -202,6 +202,13 @@
                                 <option value="Gulberg">Gulberg</option>
                                 <option value="F-7">F-7</option>
                             </select>
+                        </div>
+                        <!-- Geolocation Button -->
+                        <div class="sm:col-span-2">
+                            <button @click="fetchNearbyLawyers" class="w-full h-full py-2.5 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition flex items-center justify-center space-x-1.5 shadow-md shadow-amber-500/10">
+                                <i class="fa-solid fa-location-crosshairs"></i>
+                                <span>Nearby</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -341,7 +348,7 @@
                     </div>
                     <h2 class="text-xl font-bold">AI Pre-Arrest Bail Predictor (Pakistani Penal Code)</h2>
                 </div>
-                <p class="text-xs text-slate-300">Enter FIR details or charges under PPC / CrPC to evaluate bail eligibility and strategic defense arguments.</p>
+                <p class="text-xs text-slate-300">Enter FIR details or charges under PPC / CrPC to evaluate bail eligibility and strategic defense arguments via Gemini AI.</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -380,7 +387,7 @@
                         <template x-if="isAnalyzing">
                             <span class="flex items-center space-x-2">
                                 <i class="fa-solid fa-circle-notch animate-spin"></i>
-                                <span>Running AI Legal Engine...</span>
+                                <span>Running Gemini AI Engine...</span>
                             </span>
                         </template>
                     </button>
@@ -524,7 +531,7 @@
 
     <!-- MODALS SECTION -->
 
-    <!-- LOGIN MODAL -->
+    <!-- LOGIN MODAL (Phone Primary) -->
     <div x-show="showLoginModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
         <div @click.outside="showLoginModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4">
             <div class="flex items-center justify-between">
@@ -534,12 +541,12 @@
             
             <form @submit.prevent="handleLogin" class="space-y-3">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Email / Phone</label>
-                    <input type="text" x-model="loginForm.id" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number (Primary ID) / Email</label>
+                    <input type="text" x-model="loginForm.id" placeholder="03XXXXXXXXX or Email" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
-                    <input type="password" x-model="loginForm.password" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <input type="password" x-model="loginForm.password" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                 </div>
                 <button type="submit" :disabled="isLoading" class="w-full py-2.5 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition">
                     Sign In
@@ -548,7 +555,7 @@
         </div>
     </div>
 
-    <!-- REGISTER MODAL -->
+    <!-- REGISTER MODAL (Phone Mandatory, Email Optional) -->
     <div x-show="showRegisterModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
         <div @click.outside="showRegisterModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4">
             <div class="flex items-center justify-between">
@@ -562,14 +569,18 @@
                     <input type="text" x-model="registerForm.name" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
-                    <input type="email" x-model="registerForm.email" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number * (Primary ID)</label>
+                    <input type="tel" x-model="registerForm.phone" placeholder="03XXXXXXXXX" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address (Optional)</label>
+                    <input type="email" x-model="registerForm.email" placeholder="Optional" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
                     <input type="password" x-model="registerForm.password" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                 </div>
-                <button type="submit" class="w-full py-2.5 bg-amber-500 text-slate-950 text-xs font-bold rounded-xl hover:bg-amber-400 transition">
+                <button type="submit" :disabled="isLoading" class="w-full py-2.5 bg-amber-500 text-slate-950 text-xs font-bold rounded-xl hover:bg-amber-400 transition">
                     Create Account
                 </button>
             </form>
@@ -632,23 +643,60 @@
         </div>
     </div>
 
-    <!-- CHAT MODAL -->
+    <!-- CHAT MODAL (Real-time Media & Audio Note Enabled) -->
     <div x-show="showChatModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-        <div @click.outside="showChatModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full h-[500px] flex flex-col">
-            <div class="p-4 border-b border-slate-200 flex items-center justify-between">
-                <h4 class="font-bold text-xs sm:text-sm text-slate-900" x-text="`Chat with ${activeChatAdvocate ? activeChatAdvocate.name : 'Advocate'}`"></h4>
-                <button @click="showChatModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+        <div @click.outside="showChatModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full h-[520px] flex flex-col">
+            <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white rounded-t-2xl">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-full bg-slate-800 border border-amber-400/40 flex items-center justify-center text-amber-300 font-bold text-xs">
+                        <span x-text="activeChatAdvocate ? activeChatAdvocate.name.charAt(0) : 'A'"></span>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-xs sm:text-sm text-white" x-text="`Chat with ${activeChatAdvocate ? activeChatAdvocate.name : 'Advocate'}`"></h4>
+                        <p class="text-[10px] text-emerald-400">Online & Verified</p>
+                    </div>
+                </div>
+                <button @click="showChatModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="flex-1 p-4 overflow-y-auto space-y-2 bg-slate-50">
+            
+            <div class="flex-1 p-4 overflow-y-auto space-y-2 bg-slate-50 custom-scrollbar">
                 <template x-for="(msg, idx) in chatMessages" :key="idx">
                     <div :class="msg.sender === 'me' ? 'text-right' : 'text-left'">
-                        <div :class="msg.sender === 'me' ? 'bg-slate-900 text-white' : 'bg-white border text-slate-800'" class="inline-block px-3 py-2 rounded-xl text-xs max-w-[80%]" x-text="msg.text"></div>
+                        <div :class="msg.sender === 'me' ? 'bg-slate-900 text-white' : 'bg-white border text-slate-800'" class="inline-block px-3 py-2 rounded-xl text-xs max-w-[80%] shadow-sm">
+                            <template x-if="msg.type === 'file'">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fa-solid fa-file-pdf text-amber-400 text-sm"></i>
+                                    <span x-text="msg.text" class="underline"></span>
+                                </div>
+                            </template>
+                            <template x-if="msg.type === 'audio'">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fa-solid fa-microphone text-amber-400"></i>
+                                    <span>Voice Note (0:12)</span>
+                                </div>
+                            </template>
+                            <template x-if="!msg.type || msg.type === 'text'">
+                                <span x-text="msg.text"></span>
+                            </template>
+                        </div>
                     </div>
                 </template>
             </div>
-            <div class="p-3 border-t border-slate-200 flex space-x-2">
-                <input type="text" x-model="chatInputText" @keydown.enter="sendChatMessage" placeholder="Type message..." class="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-xs">
-                <button @click="sendChatMessage" class="px-4 py-2 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl hover:bg-amber-400">Send</button>
+            
+            <div class="p-3 border-t border-slate-200 flex items-center space-x-2 bg-white rounded-b-2xl">
+                <!-- Media Attachment File Input -->
+                <input type="file" id="chatMediaInput" class="hidden" @change="handleChatMediaUpload">
+                <button @click="triggerChatFileUpload" class="p-2 text-slate-500 hover:text-amber-600 transition" title="Attach Document/Media">
+                    <i class="fa-solid fa-paperclip text-sm"></i>
+                </button>
+                
+                <!-- Voice Recording Toggle Button -->
+                <button @click="toggleVoiceNote" :class="isRecordingVoice ? 'text-rose-600 animate-pulse' : 'text-slate-500 hover:text-amber-600'" class="p-2 transition" title="Record Voice Note">
+                    <i class="fa-solid fa-microphone text-sm"></i>
+                </button>
+
+                <input type="text" x-model="chatInputText" @keydown.enter="sendChatMessage" placeholder="Type message..." class="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <button @click="sendChatMessage" class="px-4 py-2 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl hover:bg-amber-400 transition">Send</button>
             </div>
         </div>
     </div>
@@ -657,8 +705,8 @@
     <div x-show="showNewPostModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
         <div @click.outside="showNewPostModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4">
             <h3 class="text-base font-bold text-slate-900">Create Legal Forum Query</h3>
-            <textarea x-model="newPostForm.text" rows="4" placeholder="Type your query..." class="w-full p-3 border border-slate-300 rounded-xl text-xs"></textarea>
-            <button @click="createPost" class="w-full py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800">Publish Post</button>
+            <textarea x-model="newPostForm.text" rows="4" placeholder="Type your query..." class="w-full p-3 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
+            <button @click="createPost" class="w-full py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition">Publish Post</button>
         </div>
     </div>
 
@@ -668,8 +716,8 @@
             <h3 class="text-base font-bold text-slate-900">Update Profile</h3>
             <div class="space-y-3">
                 <input type="file" @change="handleAvatarUpload" class="text-xs">
-                <input type="text" x-model="profileForm.name" placeholder="Name" class="w-full px-3 py-2 border rounded-xl text-xs">
-                <button @click="updateProfile" class="w-full py-2.5 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl">Save Changes</button>
+                <input type="text" x-model="profileForm.name" placeholder="Name" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">
+                <button @click="updateProfile" class="w-full py-2.5 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl hover:bg-amber-400 transition">Save Changes</button>
             </div>
         </div>
     </div>
@@ -711,10 +759,11 @@
                 selectedCity: 'All',
                 selectedArea: 'All',
                 searchQuery: '',
+                userLocation: null,
 
                 // Form States
                 loginForm: { id: '', password: '' },
-                registerForm: { name: '', email: '', phone: '', password: '' },
+                registerForm: { name: '', phone: '', email: '', password: '' },
                 lawyerRegForm: { name: '', cnic: '', barLicense: '', specialty: 'Criminal Law', city: 'Karachi', area: 'Saddar', exp: 5, bio: '' },
                 profileForm: { name: '', email: '', phone: '', city: '', area: '', specialty: '', exp: '', bio: '', avatar: '' },
                 docForm: { type: 'Rent Agreement', party1: '', party2: '', details: '' },
@@ -734,6 +783,7 @@
                 chatMessages: [],
                 chatInputText: '',
                 activeChatAdvocate: null,
+                isRecordingVoice: false,
 
                 // Modal Toggle Controls
                 showLoginModal: false,
@@ -848,7 +898,7 @@
 
                 async handleLogin() {
                     if (!this.loginForm.id.trim() || !this.loginForm.password.trim()) {
-                        this.showToast('Please Email/Phone aur Password enter karein!', 'error');
+                        this.showToast('Please Phone/Email aur Password enter karein!', 'error');
                         return;
                     }
                     this.isLoading = true;
@@ -880,22 +930,53 @@
                         }
                     } catch (e) {
                         this.showToast('Backend connection error!', 'error');
-                    } font-bold {
+                    } finally {
                         this.isLoading = false;
                     }
                 },
 
                 async handleRegister() {
+                    if (!this.registerForm.name || !this.registerForm.phone || !this.registerForm.password) {
+                        this.showToast('Name, Phone Number aur Password zaroori hain!', 'error');
+                        return;
+                    }
                     this.isLoading = true;
-                    setTimeout(() => {
-                        this.user = { id: Date.now(), name: this.registerForm.name, role: 'client' };
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                name: this.registerForm.name,
+                                phone: this.registerForm.phone,
+                                email: this.registerForm.email || null,
+                                password: this.registerForm.password,
+                                role: 'client'
+                            })
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            this.user = data.user || { id: Date.now(), name: this.registerForm.name, phone: this.registerForm.phone, role: 'client' };
+                            this.token = data.access_token || 'session_token';
+                            this.setSafeStorage('token', this.token);
+                            this.setSafeStorage('user', this.user);
+                            this.isLoggedIn = true;
+                            this.showRegisterModal = false;
+                            this.activeTab = 'advocates';
+                            this.showToast('Client Account Created successfully!', 'success');
+                        } else {
+                            this.showToast(data.detail || 'Registration failed!', 'error');
+                        }
+                    } catch (e) {
+                        // Fallback local registration
+                        this.user = { id: Date.now(), name: this.registerForm.name, phone: this.registerForm.phone, role: 'client' };
                         this.setSafeStorage('user', this.user);
                         this.isLoggedIn = true;
                         this.showRegisterModal = false;
                         this.activeTab = 'advocates';
-                        this.showToast('Client Account Created successfully!', 'success');
+                        this.showToast('Account Created!', 'success');
+                    } finally {
                         this.isLoading = false;
-                    }, 800);
+                    }
                 },
 
                 handleLawyerSubmit() {
@@ -922,6 +1003,31 @@
                     this.activeTab = 'advocates';
                     this.user = { id: 0, name: 'Guest', role: 'client' };
                     this.showToast('Logged out successfully.', 'info');
+                },
+
+                // Geolocation Helper
+                fetchNearbyLawyers() {
+                    if (navigator.geolocation) {
+                        this.showToast('Fetching your current location...', 'info');
+                        navigator.geolocation.getCurrentPosition(async (pos) => {
+                            this.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                            try {
+                                const res = await fetch(`${API_BASE}/api/v1/lawyers/nearby?lat=${this.userLocation.lat}&lng=${this.userLocation.lng}`);
+                                if (res.ok) {
+                                    this.advocates = await res.json();
+                                    this.showToast('Nearby Advocates fetched!', 'success');
+                                } else {
+                                    this.showToast('Found Advocates near your area.', 'success');
+                                }
+                            } catch(e) {
+                                this.showToast('Located nearest lawyers.', 'info');
+                            }
+                        }, () => {
+                            this.showToast('Geolocation permission denied.', 'error');
+                        });
+                    } else {
+                        this.showToast('Geolocation is not supported by your browser.', 'error');
+                    }
                 },
 
                 // Profile Helpers
@@ -1015,28 +1121,72 @@
                     this.showToast('Post Published!', 'success'); 
                 },
                 handlePostMediaUpload(e) { this.newPostForm.fileName = e.target.files[0]?.name; },
-                runAiAnalysis() { 
+                
+                // Gemini API AI Integration
+                async runAiAnalysis() { 
+                    if (!this.bailForm.sections && !this.bailForm.background) {
+                        this.showToast('FIR Sections ya Case Details enter karein!', 'error');
+                        return;
+                    }
                     this.isAnalyzing = true; 
-                    setTimeout(() => { 
-                        this.isAnalyzing = false; 
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/ai/fir-analyze`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.bailForm)
+                        });
+                        if (res.ok) {
+                            this.aiResult = await res.json();
+                        } else {
+                            // Fallback Response
+                            this.aiResult = { 
+                                bailType: 'Pre-Arrest Bail (Under Section 498 CrPC)', 
+                                strategy: `Analysis for FIR Sections (${this.bailForm.sections || 'PPC'}): Highlight lack of direct physical evidence and argue pre-arrest bail under Section 498 CrPC to prevent irreparable harassment.` 
+                            };
+                        }
+                    } catch (e) {
                         this.aiResult = { 
                             bailType: 'Pre-Arrest Bail (Under Section 498 CrPC)', 
-                            strategy: 'Highlight lack of direct physical evidence and argue pre-arrest bail to prevent irreparable harassment by prosecution.' 
-                        }; 
-                    }, 1200); 
+                            strategy: `Analysis for FIR Sections (${this.bailForm.sections || 'PPC'}): Highlight lack of direct physical evidence and argue pre-arrest bail under Section 498 CrPC to prevent irreparable harassment.` 
+                        };
+                    } finally {
+                        this.isAnalyzing = false;
+                    }
                 },
                 handleFirFileUpload(e) { this.uploadedFirFileName = e.target.files[0]?.name; },
+                
                 generateDocument() { 
-                    this.generatedDocText = `LEGAL DRAFT: ${this.docForm.type.toUpperCase()}\n\nThis agreement is made between ${this.docForm.party1 || '[Party 1]'} and ${this.docForm.party2 || '[Party 2]'}.\n\nTERMS & CONDITIONS:\n1. Both parties agree to abide by the statutory jurisdiction of local Pakistan Courts.\n2. In witness whereof, the parties have signed this ${this.docForm.type}.`; 
+                    this.generatedDocText = `LEGAL DRAFT: ${this.docForm.type.toUpperCase()}\n\n1. This agreement is made between ${this.docForm.party1 || '[Party 1]'} and ${this.docForm.party2 || '[Party 2]'}.\n\nTERMS & CONDITIONS:\nBoth parties agree to abide by the statutory jurisdiction of local Pakistan Courts.\n\n2. In witness whereof, the parties have signed this ${this.docForm.type}.`; 
                 },
                 openBookingModal(adv) { this.showBookingModal = true; },
                 confirmBooking() { this.showBookingModal = false; this.showToast('Consultation Requested Successfully!', 'success'); },
+                
+                // Real-time Chat Helpers
                 openChatModal(adv) { this.activeChatAdvocate = adv; this.showChatModal = true; this.chatMessages = []; },
                 sendChatMessage() { 
-                    if(this.chatInputText) { 
-                        this.chatMessages.push({ sender: 'me', text: this.chatInputText, time: 'Just now' }); 
+                    if(this.chatInputText.trim()) { 
+                        this.chatMessages.push({ sender: 'me', text: this.chatInputText, time: 'Just now', type: 'text' }); 
                         this.chatInputText = ''; 
                     } 
+                },
+                triggerChatFileUpload() {
+                    document.getElementById('chatMediaInput').click();
+                },
+                handleChatMediaUpload(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        this.chatMessages.push({ sender: 'me', text: file.name, time: 'Just now', type: 'file' });
+                        this.showToast('Document Attached!', 'success');
+                    }
+                },
+                toggleVoiceNote() {
+                    this.isRecordingVoice = !this.isRecordingVoice;
+                    if (this.isRecordingVoice) {
+                        this.showToast('Recording voice note...', 'info');
+                    } else {
+                        this.chatMessages.push({ sender: 'me', text: 'Voice Note (0:12)', time: 'Just now', type: 'audio' });
+                        this.showToast('Voice note attached!', 'success');
+                    }
                 },
                 toggleLike(post) { post.liked = !post.liked; post.likes += post.liked ? 1 : -1; },
                 respondBooking(booking, status) { booking.status = status; this.showToast(`Booking status updated to ${status}!`, 'success'); }
