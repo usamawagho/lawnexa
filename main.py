@@ -90,7 +90,10 @@ def get_db():
         db.close()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password.strip(), hashed_password)
+    try:
+        return pwd_context.verify(plain_password.strip(), hashed_password)
+    except Exception:
+        return False
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password.strip())
@@ -124,7 +127,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 
-# ================= REGISTRATION WITH DIRECT AUTO-LOGIN TOKEN =================
+# ================= REGISTRATION & DIRECT AUTO-LOGIN =================
 @app.post("/api/v1/auth/register")
 @app.post("/api/v1/auth/register-lawyer")
 def register_user(
@@ -194,13 +197,12 @@ def register_user(
     db.commit()
     db.refresh(new_user)
 
-    # AUTO-LOGIN TOKEN GENERATION
     access_token = create_access_token(data={"sub": str(new_user.id), "role": new_user.role})
 
     greeting = f"Advocate {display_name}" if role == "lawyer" else f"Welcome {display_name}"
     return {
         "status": "success",
-        "message": f"{greeting}, aapka account create ho gaya hai aur aap direct login ho chuke hain!",
+        "message": f"{greeting}, aapka account successfully create ho gaya hai!",
         "access_token": access_token,
         "token_type": "bearer",
         "user": {
@@ -219,13 +221,15 @@ def register_user(
     }
 
 
+# ================= LOGIN ENDPOINT =================
 @app.post("/api/v1/auth/token")
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    clean_username = form_data.username.strip().lower()
+    clean_id = form_data.username.strip()
+    clean_email = clean_id.lower()
     clean_password = form_data.password.strip()
 
     user = db.query(UserDB).filter(
-        (UserDB.email == clean_username) | (UserDB.phone == form_data.username.strip())
+        (UserDB.email == clean_email) | (UserDB.phone == clean_id)
     ).first()
     
     if not user or not verify_password(clean_password, user.hashed_password):
@@ -373,4 +377,4 @@ It is respectfully prayed that this petition be granted in accordance with law.
 Advocate High Court"""
         return {"draft": draft}
     except Exception as general_err:
-        return {"draft": f"LEGAL DRAFT TEMPLATE\n\nDocument Category: Legal Document\nLocation: Pakistan"}
+        return {"draft": f"LEGAL DRAFT TEMPLATE\n\nDocument Category: Legal Document"}
