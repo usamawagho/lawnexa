@@ -265,6 +265,7 @@ def reset_password(
 
 
 # ================= UNIFIED REGISTRATION ENDPOINT =================
+# ================= UNIFIED REGISTRATION ENDPOINT =================
 @app.post("/api/v1/auth/register")
 @app.post("/api/v1/auth/register-lawyer")
 def register_user(
@@ -333,11 +334,16 @@ def register_user(
 
     print(f"🎉 USER REGISTERED SUCCESSFULLY: {display_name} ({role})")
 
+    # Dynamic greeting based on role
+    if role == "lawyer":
+        greeting = f"Advocate {display_name}"
+    else:
+        greeting = f"Welcome {display_name}"
+
     return {
         "status": "success",
-        "message": f"Advocate {display_name}, aapka account successfully active ho gaya hai! Ab direct login karein."
+        "message": f"{greeting}, aapka account successfully create ho gaya hai! Ab direct login karein."
     }
-
 
 # ================= AUTHENTICATION LOGIN ENDPOINT =================
 @app.post("/api/v1/auth/token")
