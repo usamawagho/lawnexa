@@ -29,7 +29,7 @@ Base = declarative_base()
 
 SECRET_KEY = os.getenv("SECRET_KEY", "super_secret_lawnexa_jwt_key_2026")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 Days Token Validity
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30  # 30 Days Validity
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
@@ -75,29 +75,6 @@ class UserDB(Base):
     city = Column(String, nullable=True)
     area = Column(String, nullable=True)
     chamber_address = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-
-class PostDB(Base):
-    __tablename__ = "posts"
-
-    id = Column(Integer, primary_key=True, index=True)
-    author_id = Column(Integer, ForeignKey("users.id"))
-    content = Column(Text, nullable=False)
-    bar_association = Column(String, nullable=True)
-    likes = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-
-class MessageDB(Base):
-    __tablename__ = "messages"
-
-    id = Column(Integer, primary_key=True, index=True)
-    sender_id = Column(Integer, ForeignKey("users.id"))
-    receiver_id = Column(Integer, ForeignKey("users.id"))
-    message = Column(Text, nullable=False)
-    quote_amount = Column(Float, nullable=True)
-    quote_status = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -147,7 +124,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 
-# ================= REGISTRATION & AUTH =================
+# ================= REGISTRATION WITH DIRECT AUTO-LOGIN TOKEN =================
 @app.post("/api/v1/auth/register")
 @app.post("/api/v1/auth/register-lawyer")
 def register_user(
@@ -217,10 +194,28 @@ def register_user(
     db.commit()
     db.refresh(new_user)
 
+    # AUTO-LOGIN TOKEN GENERATION
+    access_token = create_access_token(data={"sub": str(new_user.id), "role": new_user.role})
+
     greeting = f"Advocate {display_name}" if role == "lawyer" else f"Welcome {display_name}"
     return {
         "status": "success",
-        "message": f"{greeting}, aapka account successfully create ho gaya hai! Ab direct login karein."
+        "message": f"{greeting}, aapka account create ho gaya hai aur aap direct login ho chuke hain!",
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": new_user.id,
+            "name": new_user.name,
+            "email": new_user.email,
+            "phone": new_user.phone,
+            "role": new_user.role,
+            "city": new_user.city,
+            "area": new_user.area,
+            "specialty": new_user.specialty,
+            "license": new_user.license_number,
+            "bar": new_user.bar_association,
+            "exp": new_user.experience_years
+        }
     }
 
 
@@ -271,7 +266,6 @@ def verify_token_and_get_user(current_user: UserDB = Depends(get_current_user)):
     }
 
 
-# ================= PROFILE UPDATE =================
 @app.post("/api/v1/users/profile")
 def update_profile(
     payload: dict,
@@ -303,7 +297,7 @@ def update_profile(
 
     return {
         "status": "success",
-        "message": "Profile & Picture updated successfully!",
+        "message": "Profile updated successfully!",
         "user": {
             "id": current_user.id,
             "name": current_user.name,
@@ -322,7 +316,6 @@ def update_profile(
     }
 
 
-# ================= LAWYER DIRECTORY =================
 @app.get("/api/v1/lawyers/nearby")
 def get_nearby_lawyers(db: Session = Depends(get_db)):
     lawyers = db.query(UserDB).filter(UserDB.role == "lawyer").all()
@@ -343,7 +336,6 @@ def get_nearby_lawyers(db: Session = Depends(get_db)):
     ]
 
 
-# ================= CRASH-PROOF DOC GENERATOR =================
 @app.post("/api/ai/generate-doc")
 def generate_doc(payload: dict):
     try:
@@ -381,4 +373,4 @@ It is respectfully prayed that this petition be granted in accordance with law.
 Advocate High Court"""
         return {"draft": draft}
     except Exception as general_err:
-        return {"draft": f"LEGAL DRAFT TEMPLATE\n\nDocument Category: Legal Document\nLocation: Pakistan\n\nDraft details under review."}
+        return {"draft": f"LEGAL DRAFT TEMPLATE\n\nDocument Category: Legal Document\nLocation: Pakistan"}
