@@ -58,10 +58,10 @@ class UserDB(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    phone = Column(String, unique=True, index=True, nullable=True)  # Nullable for optional phone
-    email = Column(String, unique=True, index=True, nullable=True)  # Nullable for optional email
+    phone = Column(String, unique=True, index=True, nullable=True)
+    email = Column(String, unique=True, index=True, nullable=True)
     hashed_password = Column(String, nullable=False)
-    role = Column(String, default="client")
+    role = Column(String, default="client")  # "client" or "lawyer"
     is_approved = Column(Boolean, default=True)
     is_active = Column(Boolean, default=True)
     avatar = Column(Text, nullable=True)
@@ -134,7 +134,7 @@ def register_user(
     email: Optional[str] = Form(None),
     phone: Optional[str] = Form(None),
     password: str = Form(...),
-    role: str = Form("lawyer"),
+    role: Optional[str] = Form(None),
     specialty: Optional[str] = Form(None),
     category: Optional[str] = Form(None),
     license: Optional[str] = Form(None),
@@ -153,6 +153,13 @@ def register_user(
     clean_phone = phone.strip() if phone and phone.strip() else None
     clean_password = password.strip()
 
+    # Role Normalization ("advocate" -> "lawyer")
+    user_role = (role or "client").strip().lower()
+    if user_role in ["lawyer", "advocate", "vakeel"]:
+        final_role = "lawyer"
+    else:
+        final_role = "client"
+
     if not display_name:
         raise HTTPException(status_code=400, detail="Pura naam dakhil karein!")
 
@@ -162,7 +169,7 @@ def register_user(
     if len(clean_password) < 8 or len(clean_password) > 10:
         raise HTTPException(status_code=400, detail="Password 8-10 characters ka hona zaroori hai!")
 
-    # Strict Duplicate Checks (No Repeats)
+    # Strict Duplicate Checks
     if clean_email:
         existing_email = db.query(UserDB).filter(UserDB.email == clean_email).first()
         if existing_email:
@@ -186,16 +193,16 @@ def register_user(
         email=clean_email,
         phone=clean_phone,
         hashed_password=get_password_hash(clean_password),
-        role=role,
+        role=final_role,
         is_approved=True,
         is_active=True,
-        specialty=specialty or category or "General Practice",
-        license_number=license or license_no or "PBC-REG",
-        bar_association=bar or jurisdiction or "High Court Bar",
-        experience_years=exp_years or 1,
+        specialty=specialty or category or ("General Practice" if final_role == "lawyer" else None),
+        license_number=license or license_no or ("PBC-REG" if final_role == "lawyer" else None),
+        bar_association=bar or jurisdiction or ("High Court Bar" if final_role == "lawyer" else None),
+        experience_years=exp_years or (1 if final_role == "lawyer" else None),
         city=city or "Karachi",
         area=area or "Saddar / City Court",
-        chamber_address=chamberAddress or "Chamber Main Court"
+        chamber_address=chamberAddress or ("Chamber Main Court" if final_role == "lawyer" else None)
     )
 
     db.add(new_user)
@@ -204,7 +211,7 @@ def register_user(
 
     access_token = create_access_token(data={"sub": str(new_user.id), "role": new_user.role})
 
-    greeting = f"Advocate {display_name}" if role == "lawyer" else f"Welcome {display_name}"
+    greeting = f"Advocate {display_name}" if final_role == "lawyer" else f"Welcome {display_name}"
     return {
         "status": "success",
         "message": f"{greeting}, aapka account successfully create ho gaya hai!",
@@ -252,7 +259,14 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
         "token_type": "bearer",
         "user_id": user.id,
         "name": user.name,
-        "role": user.role
+        "role": user.role,  # Returns "lawyer" or "client"
+        "user": {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "phone": user.phone,
+            "role": user.role
+        }
     }
 
 
@@ -385,4 +399,4 @@ It is respectfully prayed that this petition be granted in accordance with law.
 Advocate High Court"""
         return {"draft": draft}
     except Exception as general_err:
-        return {"draft": f"LEGAL DRAFT TEMPLATE\n\nDocument Category: Legal Document"}
+        return {"draft": "LEGAL DRAFT TEMPLATE\n\nDocument Category: Legal Document"}
