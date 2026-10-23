@@ -46,9 +46,8 @@
                     </div>
                 </div>
 
-                <!-- Desktop Navigation Links (Role Order Integrated) -->
+                <!-- Desktop Navigation Links -->
                 <nav class="hidden md:flex space-x-1 lg:space-x-2">
-                    <!-- LAWYER TAB ORDER -->
                     <template x-if="isLoggedIn && isLawyer">
                         <div class="flex items-center space-x-1">
                             <button @click="activeTab = 'bookings'" :class="activeTab === 'bookings' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
@@ -74,7 +73,6 @@
                         </div>
                     </template>
 
-                    <!-- CLIENT TAB ORDER -->
                     <template x-if="!isLoggedIn || !isLawyer">
                         <div class="flex items-center space-x-1">
                             <button @click="activeTab = 'advocates'" :class="activeTab === 'advocates' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
@@ -103,7 +101,7 @@
                     </template>
                 </nav>
 
-                <!-- Auth / Profile Buttons -->
+                <!-- Auth Buttons -->
                 <div class="flex items-center space-x-2">
                     <template x-if="!isLoggedIn">
                         <div class="flex items-center space-x-1.5">
@@ -134,9 +132,6 @@
                                         <p class="font-bold text-slate-100" x-text="user.name"></p>
                                         <p class="text-[10px] text-amber-400 uppercase" x-text="user.role"></p>
                                     </div>
-                                    <button @click="open = false; showProfileModal = true" class="w-full text-left px-4 py-2 hover:bg-slate-700 flex items-center space-x-2">
-                                        <i class="fa-solid fa-user-gear text-slate-400"></i><span>Edit Profile</span>
-                                    </button>
                                     <button @click="open = false; logout()" class="w-full text-left px-4 py-2 hover:bg-rose-500/20 text-rose-300 flex items-center space-x-2 border-t border-slate-700">
                                         <i class="fa-solid fa-right-from-bracket text-rose-400"></i><span>Sign Out</span>
                                     </button>
@@ -149,9 +144,8 @@
         </div>
     </header>
 
-    <!-- MOBILE TABS BAR (STRICT ROLE SEQUENCING) -->
+    <!-- MOBILE TABS BAR -->
     <div class="md:hidden bg-slate-900 border-b border-slate-800 px-3 py-2 flex items-center overflow-x-auto space-x-2 custom-scrollbar">
-        <!-- LAWYER MOBILE SEQUENCE -->
         <template x-if="isLoggedIn && isLawyer">
             <div class="flex items-center space-x-2">
                 <button @click="activeTab = 'bookings'" :class="activeTab === 'bookings' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap flex items-center space-x-1.5">
@@ -173,7 +167,6 @@
             </div>
         </template>
 
-        <!-- CLIENT MOBILE SEQUENCE -->
         <template x-if="!isLoggedIn || !isLawyer">
             <div class="flex items-center space-x-2">
                 <button @click="activeTab = 'advocates'" :class="activeTab === 'advocates' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
@@ -409,51 +402,130 @@
             </div>
         </div>
 
-        <!-- TAB: AI DOCUMENT DRAFTER -->
+        <!-- TAB: AUTOMATED DYNAMIC LEGAL DOCUMENT DRAFTER -->
         <div x-show="activeTab === 'ai-doc'" x-cloak class="max-w-4xl mx-auto space-y-6">
             <div class="bg-slate-900 text-white rounded-2xl p-6 shadow-xl border border-slate-800">
                 <div class="flex items-center space-x-3 mb-2">
                     <div class="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 font-bold flex items-center justify-center"><i class="fa-solid fa-file-contract"></i></div>
                     <h2 class="text-xl font-bold">Automated Legal Document Drafter</h2>
                 </div>
-                <p class="text-xs text-slate-300">Generate legally binding contracts, rent agreements, and petitions instantly.</p>
+                <p class="text-xs text-slate-300">Select document type. Input fields will dynamically adjust automatically.</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <!-- Dynamic Input Form Column -->
                 <div class="md:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Document Type</label>
-                        <select x-model="docForm.type" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <label class="block text-xs font-bold text-slate-800 mb-1">Select Document Type</label>
+                        <select x-model="docForm.type" @change="resetDocForm()" class="w-full px-3 py-2 bg-amber-500/10 border border-amber-400 font-semibold rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <option value="Rent Agreement">Rent Agreement (Kirayanama)</option>
+                            <option value="Affidavit">Affidavit (Bayan-e-Halafi)</option>
                             <option value="Legal Notice">Legal Notice</option>
-                            <option value="Rent Agreement">Rent Agreement</option>
-                            <option value="Affidavit">Affidavit</option>
-                            <option value="Power of Attorney">Power of Attorney</option>
+                            <option value="Power of Attorney">Power of Attorney (Mokhtar-nama)</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">First Party Name</label>
-                        <input type="text" x-model="docForm.party1" placeholder="e.g. Owner / Sender Name" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Second Party Name</label>
-                        <input type="text" x-model="docForm.party2" placeholder="e.g. Tenant / Recipient Name" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                    </div>
-                    <button @click="generateDocument" class="w-full py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-slate-800 transition shadow">Generate Draft</button>
+
+                    <!-- DYNAMIC FIELDS FOR RENT AGREEMENT -->
+                    <template x-if="docForm.type === 'Rent Agreement'">
+                        <div class="space-y-3 pt-2 border-t border-slate-100">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Landlord Name (Malik Makaan)</label>
+                                <input type="text" x-model="docForm.party1" placeholder="e.g. Tariq Mehmood" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Tenant Name (Kirayedar)</label>
+                                <input type="text" x-model="docForm.party2" placeholder="e.g. Muhammad Usama" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Monthly Rent (PKR)</label>
+                                    <input type="text" x-model="docForm.rentAmount" placeholder="e.g. 45,000" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Security Advance</label>
+                                    <input type="text" x-model="docForm.deposit" placeholder="e.g. 100,000" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Property Address</label>
+                                <input type="text" x-model="docForm.address" placeholder="e.g. Flat # 402, Block 13-D, Gulshan-e-Iqbal" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- DYNAMIC FIELDS FOR AFFIDAVIT -->
+                    <template x-if="docForm.type === 'Affidavit'">
+                        <div class="space-y-3 pt-2 border-t border-slate-100">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Deponent Name (Bayan Dene Wala)</label>
+                                <input type="text" x-model="docForm.party1" placeholder="e.g. Muhammad Usama" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Deponent CNIC Number</label>
+                                <input type="text" x-model="docForm.cnic" placeholder="e.g. 42101-1234567-1" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Statement / Purpose of Affidavit</label>
+                                <textarea x-model="docForm.details" rows="3" placeholder="e.g. Declaration of lost document / NOC for electricity connection / Single status certificate..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- DYNAMIC FIELDS FOR LEGAL NOTICE -->
+                    <template x-if="docForm.type === 'Legal Notice'">
+                        <div class="space-y-3 pt-2 border-t border-slate-100">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Sender Name (Client)</label>
+                                <input type="text" x-model="docForm.party1" placeholder="e.g. Client Name / Company" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Recipient Name (Defaulter / Opposite Party)</label>
+                                <input type="text" x-model="docForm.party2" placeholder="e.g. Recipient Name / Company" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Dispute / Demand Details</label>
+                                <textarea x-model="docForm.details" rows="3" placeholder="e.g. Cheque dishonour under 489-F / Non-payment of agreement dues worth PKR 250,000..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- DYNAMIC FIELDS FOR POWER OF ATTORNEY -->
+                    <template x-if="docForm.type === 'Power of Attorney'">
+                        <div class="space-y-3 pt-2 border-t border-slate-100">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Executant Name (Owner / Principal)</label>
+                                <input type="text" x-model="docForm.party1" placeholder="e.g. Principal Owner Name" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Attorney Name (Appointed Representative / Vakil)</label>
+                                <input type="text" x-model="docForm.party2" placeholder="e.g. Appointed Attorney Name" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Authorized Powers / Property Details</label>
+                                <input type="text" x-model="docForm.details" placeholder="e.g. Management & sale of Plot # 45, Sector F-8, Islamabad" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                        </div>
+                    </template>
+
+                    <button @click="generateDocument" class="w-full py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-slate-800 transition shadow">
+                        Generate Custom Draft
+                    </button>
                 </div>
 
+                <!-- Preview Column -->
                 <div class="md:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
                             <h3 class="text-sm font-bold text-slate-900">Document Draft Preview</h3>
                             <button @click="copyToClipboard(generatedDocText)" :disabled="!generatedDocText" class="text-xs text-amber-600 font-semibold hover:underline"><i class="fa-solid fa-copy"></i> Copy Draft</button>
                         </div>
-                        <div class="bg-slate-50 p-4 rounded-xl text-xs text-slate-700 whitespace-pre-line min-h-[220px] border border-slate-200 font-mono" x-text="generatedDocText || 'Click Generate Draft to preview text here...'"></div>
+                        <div class="bg-slate-50 p-4 rounded-xl text-xs text-slate-800 whitespace-pre-line min-h-[260px] border border-slate-200 font-mono leading-relaxed" x-text="generatedDocText || 'Select a document type and click Generate Custom Draft to preview text here...'"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB: CONSULTATIONS & BOOKINGS (DYNAMIC FOR BOTH LAWYER & CLIENT) -->
+        <!-- TAB: CONSULTATIONS & BOOKINGS -->
         <div x-show="activeTab === 'bookings'" x-cloak class="max-w-4xl mx-auto space-y-6">
             <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <h2 class="text-lg font-bold text-slate-900 mb-4" x-text="isLawyer ? 'Client Consultation Requests' : 'My Scheduled Consultations with Advocates'"></h2>
@@ -521,7 +593,7 @@
         </div>
     </div>
 
-    <!-- UNIFIED REGISTRATION MODAL (CLIENT & ADVOCATE TOGGLE) -->
+    <!-- UNIFIED REGISTRATION MODAL -->
     <div x-show="showRegisterModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
         <div @click.outside="showRegisterModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
             
@@ -565,7 +637,7 @@
                 </form>
             </template>
 
-            <!-- ADVOCATE FORM (WITH AUTH FIELDS) -->
+            <!-- ADVOCATE FORM -->
             <template x-if="registerType === 'lawyer'">
                 <form @submit.prevent="handleLawyerSubmit" class="space-y-3">
                     <div class="grid grid-cols-2 gap-3">
@@ -784,8 +856,20 @@
                 loginForm: { id: '', password: '' },
                 registerForm: { name: '', phone: '', email: '', password: '' },
                 lawyerRegForm: { name: '', phone: '', email: '', password: '', barLicense: '', specialty: 'Criminal Law', city: 'Karachi', area: 'Saddar', address: '', exp: 5 },
-                docForm: { type: 'Legal Notice', party1: '', party2: '', details: '' },
+                
+                // DYNAMIC DOC FORM DATA STRUCTURE
+                docForm: { 
+                    type: 'Rent Agreement', 
+                    party1: '', 
+                    party2: '', 
+                    rentAmount: '', 
+                    deposit: '', 
+                    address: '', 
+                    cnic: '', 
+                    details: '' 
+                },
                 generatedDocText: '',
+
                 bailForm: { firNumber: '', station: '', sections: '', background: '', gender: 'Male', priorConviction: 'No' },
                 isAnalyzing: false,
                 aiResult: null,
@@ -799,9 +883,19 @@
                 showBookingModal: false,
                 showChatModal: false,
                 showNewPostModal: false,
-                uploadedFirFileName: '',
 
                 toast: { show: false, message: '', type: 'info' },
+
+                resetDocForm() {
+                    this.docForm.party1 = '';
+                    this.docForm.party2 = '';
+                    this.docForm.rentAmount = '';
+                    this.docForm.deposit = '';
+                    this.docForm.address = '';
+                    this.docForm.cnic = '';
+                    this.docForm.details = '';
+                    this.generatedDocText = '';
+                },
 
                 getSafeStorage(key) {
                     try {
@@ -915,7 +1009,6 @@
                         }
                     } catch (e) {}
 
-                    // Client or Advocate Local Login Fallback
                     const isLaw = this.loginForm.id.includes('lawyer') || this.loginForm.id.includes('advocate');
                     this.user = { 
                         id: Date.now(), 
@@ -1063,12 +1156,72 @@
                     }, 800);
                 },
 
+                // TAILORED DYNAMIC DOCUMENT GENERATOR
                 generateDocument() { 
-                    const p1 = this.docForm.party1 || '[First Party / Sender]';
-                    const p2 = this.docForm.party2 || '[Second Party / Recipient]';
                     const dateStr = new Date().toLocaleDateString('en-PK', { year: 'numeric', month: 'long', day: 'numeric' });
 
-                    if (this.docForm.type === 'Legal Notice') {
+                    if (this.docForm.type === 'Rent Agreement') {
+                        const l = this.docForm.party1 || '[Landlord Name]';
+                        const t = this.docForm.party2 || '[Tenant Name]';
+                        const rent = this.docForm.rentAmount || '45,000';
+                        const dep = this.docForm.deposit || '100,000';
+                        const addr = this.docForm.address || '[Property Address Details]';
+
+                        this.generatedDocText = 
+`TENANCY AGREEMENT (KIRAYANAMA)
+
+This Rent Agreement is executed on this ${dateStr} in Pakistan.
+
+BETWEEN:
+${l} (hereinafter called the 'LANDLORD' / First Party)
+
+AND:
+${t} (hereinafter called the 'TENANT' / Second Party)
+
+PROPERTY DETAILS:
+Demised Premises: ${addr}
+
+TERMS & CONDITIONS:
+1. TENANCY PERIOD: Agreed for a period of 11 MONTHS commencing from today.
+2. MONTHLY RENT: Tenant shall pay PKR ${rent}/- in advance before the 5th of every month.
+3. SECURITY DEPOSIT: Tenant has deposited non-interest bearing advance of PKR ${dep}/- refundable upon peaceful eviction.
+4. UTILITIES & MAINTENANCE: Tenant is responsible for electricity, gas, and water bills during occupation.
+5. JURISDICTION: Subject to local Rent Controller Courts in Pakistan.
+
+IN WITNESS WHEREOF the parties have signed below:
+
+Landlord: ${l}
+Tenant: ${t}
+Witness 1: _________________
+Witness 2: _________________`;
+
+                    } else if (this.docForm.type === 'Affidavit') {
+                        const deponent = this.docForm.party1 || '[Deponent Full Name]';
+                        const cnic = this.docForm.cnic || '[42XXX-XXXXXXX-X]';
+                        const statement = this.docForm.details || 'That I am declaring the facts on oath with full legal responsibility without any fear or coercion.';
+
+                        this.generatedDocText = 
+`AFFIDAVIT ON OATH (BAYAN-E-HALAFI)
+
+I, ${deponent}, holding CNIC No. ${cnic}, resident of Pakistan, do hereby solemnly affirm and declare on oath as under:
+
+1. That I am the deponent of this Affidavit and fully competent to swear this affidavit.
+2. STATEMENT OF FACTS:
+   "${statement}"
+3. That whatever is stated above is true and correct to the best of my knowledge, belief, and information.
+4. That nothing has been concealed or suppressed herein.
+
+DEPONENT: ${deponent}
+CNIC: ${cnic}
+
+VERIFICATION:
+Verified on Oath at Pakistan on ${dateStr} that the contents of this affidavit are true and correct to the best of my knowledge and nothing is false.`;
+
+                    } else if (this.docForm.type === 'Legal Notice') {
+                        const sender = this.docForm.party1 || '[Client / Sender Name]';
+                        const recipient = this.docForm.party2 || '[Recipient / Defaulter Name]';
+                        const claim = this.docForm.details || 'Failing to fulfill contractual obligations and financial dues despite repeated verbal reminders.';
+
                         this.generatedDocText = 
 `LEGAL NOTICE
 (Under Statutory Laws of Islamic Republic of Pakistan)
@@ -1076,76 +1229,51 @@
 Date: ${dateStr}
 
 TO:
-${p2}
+${recipient}
 
 FROM (ON BEHALF OF):
-${p1}
+${sender}
 
 SUBJECT: FINAL LEGAL NOTICE FOR DEMAND OF COMPLIANCE / SETTLEMENT
 
 Sir/Madam,
 
-Under instructions from and on behalf of my client, ${p1}, I do hereby serve you with the following Legal Notice:
+Under instructions from and on behalf of my client, ${sender}, I do hereby serve you with the following Legal Notice:
 
 1. That you entered into a legal transaction / contract with my client.
-2. That despite repeated verbal and written requests, you have failed to fulfill your statutory obligations towards ${p1}.
-3. You are hereby called upon to settle and satisfy the legal demands of my client within 15 DAYS of the receipt of this notice.
+2. CAUSE OF ACTION / DISPUTE:
+   "${claim}"
+3. You are hereby called upon to satisfy the legal demands of my client within 15 DAYS of the receipt of this notice.
 
 Take notice that failure to comply shall compel my client to institute Civil / Criminal Legal Proceedings against you in the competent Courts of Pakistan at your sole risk, cost, and consequences.
 
 ADVOCATE HIGH COURT
 LawNexa Legal Tech Platform`;
-                    } else if (this.docForm.type === 'Rent Agreement') {
-                        this.generatedDocText = 
-`TENANCY AGREEMENT
 
-This Rent Agreement is executed on ${dateStr} in Pakistan.
-
-BETWEEN:
-${p1} (hereinafter called the 'LANDLORD')
-
-AND:
-${p2} (hereinafter called the 'TENANT')
-
-TERMS AND CONDITIONS:
-1. TENANCY PERIOD: Agreed for a total duration of 11 MONTHS commencing from today.
-2. RENTAL PAYMENT: The Tenant shall pay agreed monthly rent in advance on or before the 5th of each calendar month.
-3. SECURITY DEPOSIT: Tenant deposits non-interest-bearing security advance refundable upon peaceful eviction.
-4. JURISDICTION: Subject to local Rent Controller and Courts of Pakistan.
-
-IN WITNESS WHEREOF the parties have signed below:
-
-Landlord: ${p1}
-Tenant: ${p2}`;
-                    } else if (this.docForm.type === 'Affidavit') {
-                        this.generatedDocText = 
-`AFFIDAVIT ON OATH
-
-I, ${p1}, holding CNIC No. _________________, resident of Pakistan, do hereby solemnly affirm and declare on oath as under:
-
-1. That I am the deponent of this Affidavit and fully conversant with the facts.
-2. That the statements made herein regarding ${p2} are true, correct, and legally binding.
-3. That nothing has been concealed or suppressed herein.
-
-DEPONENT: ${p1}
-
-VERIFICATION:
-Verified on Oath at Pakistan on ${dateStr} that the contents of this affidavit are true to the best of my knowledge and belief.`;
                     } else {
+                        const principal = this.docForm.party1 || '[Principal / Executant Name]';
+                        const attorney = this.docForm.party2 || '[Appointed Attorney Name]';
+                        const powers = this.docForm.details || 'Full authority to represent, manage, sign documents, and execute transactions regarding property/legal matters.';
+
                         this.generatedDocText = 
-`GENERAL POWER OF ATTORNEY
+`GENERAL POWER OF ATTORNEY (MOKHTAR-NAMA)
 
-KNOW ALL MEN BY THESE PRESENTS that I, ${p1}, do hereby appoint, nominate, and constitute ${p2} as my true and lawful Attorney-in-Fact.
+KNOW ALL MEN BY THESE PRESENTS that I, ${principal}, do hereby appoint, nominate, and constitute ${attorney} as my true and lawful Attorney-in-Fact.
 
-To represent me, sign documents, and execute legal acts before Courts, Authorities, and Registrars in Pakistan on my behalf.
+POWERS GRANTED:
+"${powers}"
+
+The Attorney is empowered to represent me before Courts, Government Offices, Development Authorities, and Registrars in Pakistan.
 
 Executed on: ${dateStr}
 
-EXECUTANT: ${p1}
-ATTORNEY: ${p2}`;
+EXECUTANT: ${principal}
+ATTORNEY: ${attorney}
+Witness 1: _________________
+Witness 2: _________________`;
                     }
 
-                    this.showToast(`${this.docForm.type} Draft Generated Successfully!`, 'success');
+                    this.showToast(`${this.docForm.type} Draft Generated!`, 'success');
                 },
 
                 openBookingModal(adv) { this.showBookingModal = true; },
@@ -1194,7 +1322,7 @@ ATTORNEY: ${p2}`;
                 respondBooking(booking, status) { booking.status = status; this.showToast(`Booking ${status}!`, 'success'); },
                 copyToClipboard(text) {
                     if (!text) return;
-                    navigator.clipboard.writeText(text).then(() => this.showToast('Copied!', 'success'));
+                    navigator.clipboard.writeText(text).then(() => this.showToast('Copied to Clipboard!', 'success'));
                 }
             };
         }
