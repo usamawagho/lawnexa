@@ -55,7 +55,7 @@ class UserResponse(BaseModel):
     avatar: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -98,7 +98,7 @@ class DocumentRequest(BaseModel):
     court: str = Field("Karachi, Pakistan", max_length=200)
     purpose: str = Field("Legal Representation", max_length=1000)
 
-# Seed Admin User on Application Startup
+# Seed Admin User Function
 @app.on_event("startup")
 def seed_admin_user():
     db = next(get_db())
@@ -119,6 +119,12 @@ def seed_admin_user():
             db.commit()
     finally:
         db.close()
+
+# Explicit seed call to guarantee admin exists for pytest/TestClient
+try:
+    seed_admin_user()
+except Exception:
+    pass
 
 # Auth Dependencies
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
@@ -409,7 +415,7 @@ def respond_booking(booking_id: int, action: str = Query(...), current_user: Use
     db.commit()
     return {"message": f"Booking {booking.status} successfully.", "booking_id": booking.id, "status": booking.status}
 
-# ================= FEATURE A & B: CHAT & FEE QUOTATIONS =================
+# ================= CHAT & FEE QUOTATIONS =================
 
 @app.post("/api/v1/chat/send", status_code=201)
 def send_chat_message(payload: ChatSendRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -443,7 +449,6 @@ def get_chat_history(
     current_user: User = Depends(get_current_user), 
     db: Session = Depends(get_db)
 ):
-    # Authorization: Ensure current_user is a participant in this conversation
     messages = db.query(ChatMessage).filter(
         ((ChatMessage.sender_id == current_user.id) & (ChatMessage.receiver_id == user_id)) |
         ((ChatMessage.sender_id == user_id) & (ChatMessage.receiver_id == current_user.id))
@@ -478,7 +483,7 @@ def respond_quote(chat_id: int, action: str = Query(...), current_user: User = D
     db.commit()
     return {"message": f"Quotation {msg.quote_status} successfully.", "chat_id": msg.id, "status": msg.quote_status}
 
-# ================= FEATURE C: COMMUNITY FORUM =================
+# ================= COMMUNITY FORUM =================
 
 @app.post("/api/v1/posts", status_code=201)
 def create_post(
@@ -589,7 +594,7 @@ def list_comments(post_id: int, db: Session = Depends(get_db)):
         })
     return results
 
-# ================= FEATURE D & E: AI ASSISTANT & FIR ANALYZER =================
+# ================= AI ASSISTANT & FIR ANALYZER =================
 
 @app.post("/api/ai/generate-doc")
 @app.post("/api/v1/ai/generate-doc")
@@ -635,7 +640,6 @@ async def analyze_fir(
 
     extracted_text = text or ""
     if file:
-        # File Size Limits Check (Max 5MB)
         contents = await file.read()
         if len(contents) > 5 * 1024 * 1024:
             raise HTTPException(status_code=400, detail="File size exceeds maximum allowed limit of 5MB.")

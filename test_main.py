@@ -1,7 +1,10 @@
 import io
 import pytest
 from fastapi.testclient import TestClient
-from main import app
+from main import app, seed_admin_user
+
+# Run admin seeding explicitly for pytest environment
+seed_admin_user()
 
 client = TestClient(app)
 
