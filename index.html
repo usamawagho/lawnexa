@@ -663,7 +663,7 @@
             </div>
         </div>
 
-        <!-- TAB: CONSULTATIONS & BOOKINGS -->
+        <!-- TAB: CONSULTATIONS & BOOKINGS WITH CLIENT LOCATION -->
         <div x-show="activeTab === 'bookings'" x-cloak class="max-w-4xl mx-auto space-y-6">
             <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <h2 class="text-lg font-bold text-slate-900 mb-4" x-text="isLawyer ? 'Client Consultation Requests' : 'My Scheduled Consultations with Advocates'"></h2>
@@ -674,6 +674,7 @@
                             <div>
                                 <h4 class="font-bold text-sm text-slate-900" x-text="isLawyer ? booking.clientName : booking.lawyerName"></h4>
                                 <p class="text-xs text-slate-500" x-text="`${booking.service} • ${booking.date} at ${booking.time}`"></p>
+                                <p class="text-[11px] text-slate-500 font-medium mt-0.5" x-text="`Location: ${booking.clientArea || 'Saddar'}, ${booking.clientCity || 'Karachi'}`"></p>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <span class="px-2.5 py-1 rounded-lg text-xs font-bold"
@@ -707,7 +708,7 @@
 
     <!-- MODALS SECTION -->
 
-    <!-- EDIT PROFILE MODAL WITH MULTI-SPECIALTY CARDS -->
+    <!-- EDIT PROFILE MODAL (CLIENT & LAWYER LOCATION ALLOWED) -->
     <div x-show="showProfileModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
         <div @click.outside="showProfileModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -770,9 +771,8 @@
                     <input type="email" x-model="profileEditForm.email" placeholder="example@domain.com" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                 </div>
 
-                <template x-if="isLawyer">
-                    <div class="space-y-3 pt-2 border-t border-slate-100">
-                        <!-- MULTI-SPECIALTY PILL CARDS SELECTOR -->
+                <div class="space-y-3 pt-2 border-t border-slate-100">
+                    <template x-if="isLawyer">
                         <div>
                             <div class="flex items-center justify-between mb-1.5">
                                 <label class="block text-xs font-bold text-slate-800">Specialties / Practice Fields</label>
@@ -792,38 +792,40 @@
                                 </template>
                             </div>
                         </div>
+                    </template>
 
+                    <template x-if="isLawyer">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Experience (Years)</label>
                             <input type="number" x-model="profileEditForm.experience" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                         </div>
+                    </template>
 
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">City</label>
-                                <select x-model="profileEditForm.city" @change="profileEditForm.area = cityAreasMap[profileEditForm.city] ? cityAreasMap[profileEditForm.city][0] : 'Saddar'" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                                    <option value="Karachi">Karachi</option>
-                                    <option value="Lahore">Lahore</option>
-                                    <option value="Islamabad">Islamabad</option>
-                                    <option value="Rawalpindi">Rawalpindi</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Area / Locality</label>
-                                <select x-model="profileEditForm.area" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                                    <template x-for="area in (cityAreasMap[profileEditForm.city] || [])" :key="area">
-                                        <option :value="area" x-text="area"></option>
-                                    </template>
-                                </select>
-                            </div>
-                        </div>
-
+                    <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Office / Chamber Address</label>
-                            <input type="text" x-model="profileEditForm.address" placeholder="e.g. Chamber # 402, High Court Bar Association" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">City *</label>
+                            <select x-model="profileEditForm.city" @change="profileEditForm.area = cityAreasMap[profileEditForm.city] ? cityAreasMap[profileEditForm.city][0] : 'Saddar'" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                <option value="Karachi">Karachi</option>
+                                <option value="Lahore">Lahore</option>
+                                <option value="Islamabad">Islamabad</option>
+                                <option value="Rawalpindi">Rawalpindi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Area / Locality *</label>
+                            <select x-model="profileEditForm.area" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                <template x-for="area in (cityAreasMap[profileEditForm.city] || [])" :key="area">
+                                    <option :value="area" x-text="area"></option>
+                                </template>
+                            </select>
                         </div>
                     </div>
-                </template>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1" x-text="isLawyer ? 'Office / Chamber Address' : 'Residential Address'"></label>
+                        <input type="text" x-model="profileEditForm.address" placeholder="e.g. Flat # 102, Clifton / Chamber # 402, High Court" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                </div>
 
                 <button type="submit" class="w-full py-2.5 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl hover:bg-amber-400 transition shadow-md shadow-amber-500/10">
                     Save Profile Changes
@@ -865,7 +867,7 @@
         </div>
     </div>
 
-    <!-- UNIFIED REGISTRATION MODAL WITH MULTI-SPECIALTY SELECTION -->
+    <!-- UNIFIED REGISTRATION MODAL WITH CLIENT LOCATION FIELDS -->
     <div x-show="showRegisterModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
         <div @click.outside="showRegisterModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
             
@@ -883,12 +885,12 @@
                 </button>
             </div>
 
-            <!-- CLIENT FORM -->
+            <!-- CLIENT FORM WITH LOCATION FIELDS -->
             <template x-if="registerType === 'client'">
                 <form @submit.prevent="handleRegister" class="space-y-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
-                        <input type="text" x-model="registerForm.name" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
+                        <input type="text" x-model="registerForm.name" placeholder="e.g. Muhammad Usama" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number * (Primary ID)</label>
@@ -898,8 +900,35 @@
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address (Optional)</label>
                         <input type="email" x-model="registerForm.email" placeholder="Optional" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     </div>
+
+                    <!-- CLIENT LOCATION FIELDS -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">City *</label>
+                            <select x-model="registerForm.city" @change="registerForm.area = cityAreasMap[registerForm.city] ? cityAreasMap[registerForm.city][0] : 'Saddar'" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                <option value="Karachi">Karachi</option>
+                                <option value="Lahore">Lahore</option>
+                                <option value="Islamabad">Islamabad</option>
+                                <option value="Rawalpindi">Rawalpindi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Area / Locality *</label>
+                            <select x-model="registerForm.area" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                <template x-for="area in (cityAreasMap[registerForm.city] || [])" :key="area">
+                                    <option :value="area" x-text="area"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Residential Address (Optional)</label>
+                        <input type="text" x-model="registerForm.address" placeholder="e.g. House # 123, Block 4, Clifton" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Password *</label>
                         <input type="password" x-model="registerForm.password" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     </div>
                     <button type="submit" :disabled="isLoading" class="w-full py-2.5 bg-amber-500 text-slate-950 text-xs font-bold rounded-xl hover:bg-amber-400 transition">
@@ -1110,6 +1139,9 @@
                     name: 'Guest',
                     role: 'client',
                     chamberName: '',
+                    city: 'Karachi',
+                    area: 'Saddar',
+                    address: '',
                     specialties: []
                 },
 
@@ -1171,7 +1203,15 @@
                 },
 
                 loginForm: { id: '', password: '' },
-                registerForm: { name: '', phone: '', email: '', password: '' },
+                registerForm: { 
+                    name: '', 
+                    phone: '', 
+                    email: '', 
+                    password: '', 
+                    city: 'Karachi', 
+                    area: 'Saddar', 
+                    address: '' 
+                },
                 lawyerRegForm: { 
                     name: '', 
                     phone: '', 
@@ -1200,7 +1240,6 @@
                     address: ''
                 },
 
-                // TOGGLE SPECIALTY FUNCTION (MAX 3 LIMIT)
                 toggleSpecialty(targetForm, item) {
                     if (!targetForm.specialties) {
                         targetForm.specialties = [];
@@ -1221,7 +1260,6 @@
                     }
                 },
 
-                // GET ADVOCATE SPECIALTIES ARRAY HELPER
                 getAdvocateSpecialties(adv) {
                     if (adv.specialties && Array.isArray(adv.specialties) && adv.specialties.length > 0) {
                         return adv.specialties;
@@ -1498,14 +1536,14 @@
                     this.user.name = this.profileEditForm.name.trim();
                     this.user.email = this.profileEditForm.email.trim();
                     this.user.avatar = this.profileEditForm.avatar;
+                    this.user.city = this.profileEditForm.city;
+                    this.user.area = this.profileEditForm.area;
+                    this.user.address = this.profileEditForm.address;
 
                     if (this.isLawyer) {
                         this.user.chamberName = this.profileEditForm.chamberName.trim();
                         this.user.specialties = [...this.profileEditForm.specialties];
                         this.user.experience = this.profileEditForm.experience;
-                        this.user.city = this.profileEditForm.city;
-                        this.user.area = this.profileEditForm.area;
-                        this.user.address = this.profileEditForm.address;
 
                         const idx = this.advocates.findIndex(a => a.id === this.user.id || a.phone === this.user.phone);
                         if (idx !== -1) {
@@ -1590,7 +1628,7 @@
                     this.removeSafeStorage('user');
                     this.token = '';
                     this.isLoggedIn = false;
-                    this.user = { id: 0, name: 'Guest', role: 'client', chamberName: '', specialties: [] };
+                    this.user = { id: 0, name: 'Guest', role: 'client', chamberName: '', city: 'Karachi', area: 'Saddar', address: '', specialties: [] };
                 },
 
                 logout() {
@@ -1647,6 +1685,9 @@
                                 name: data.name || (data.user && data.user.name), 
                                 role: detectedRole, 
                                 chamberName: data.chamberName || (data.name ? data.name + ' Law Chambers' : 'Law Chambers'),
+                                city: data.city || 'Karachi',
+                                area: data.area || 'Saddar',
+                                address: data.address || '',
                                 specialties: data.specialties || ['Criminal Law', 'Civil Law'],
                                 ...(data.user || {}) 
                             };
@@ -1669,6 +1710,9 @@
                         phone: this.loginForm.id, 
                         role: selectedRole,
                         chamberName: selectedRole === 'lawyer' ? (this.loginForm.id.split('@')[0] + ' Law Chambers') : '',
+                        city: 'Karachi',
+                        area: 'Saddar',
+                        address: '',
                         specialties: ['Criminal Law', 'Civil Law']
                     };
                     this.token = 'demo_active_token_' + Date.now();
@@ -1682,6 +1726,7 @@
                     this.isLoading = false;
                 },
 
+                // CLIENT REGISTER WITH LOCATION FIELDS
                 async handleRegister() {
                     if (!this.registerForm.name || !this.registerForm.phone || !this.registerForm.password) {
                         this.showToast('Name, Phone Number aur Password mandatory hain!', 'error');
@@ -1689,15 +1734,26 @@
                     }
                     this.isLoading = true;
 
-                    this.user = { id: Date.now(), name: this.registerForm.name, phone: this.registerForm.phone, role: 'client', chamberName: '', specialties: [] };
+                    this.user = { 
+                        id: Date.now(), 
+                        name: this.registerForm.name, 
+                        phone: this.registerForm.phone, 
+                        email: this.registerForm.email,
+                        role: 'client', 
+                        chamberName: '', 
+                        city: this.registerForm.city || 'Karachi',
+                        area: this.registerForm.area || 'Saddar',
+                        address: this.registerForm.address || '',
+                        specialties: [] 
+                    };
                     this.token = 'client_token_' + Date.now();
                     this.setSafeStorage('token', this.token);
                     this.setSafeStorage('user', this.user);
                     this.isLoggedIn = true;
                     this.showRegisterModal = false;
-                    this.registerForm = { name: '', phone: '', email: '', password: '' };
+                    this.registerForm = { name: '', phone: '', email: '', password: '', city: 'Karachi', area: 'Saddar', address: '' };
                     this.activeTab = 'advocates';
-                    this.showToast('Client Account Created!', 'success');
+                    this.showToast('Client Account Created with Location Details!', 'success');
                     this.isLoading = false;
                 },
 
@@ -1763,7 +1819,6 @@
                     } catch (e) {}
                 },
 
-                // SMART MULTI-SPECIALTY FILTERING LOGIC
                 get filteredAdvocates() {
                     return this.advocates.filter(a => {
                         const specs = this.getAdvocateSpecialties(a);
