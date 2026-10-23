@@ -234,8 +234,9 @@
                 </div>
             </div>
 
+            <!-- CATEGORY FILTER BUTTONS -->
             <div class="flex items-center space-x-2 overflow-x-auto pb-2 custom-scrollbar">
-                <template x-for="cat in ['All', 'Criminal Law', 'Family Law', 'Property Law', 'Corporate Law', 'Taxation']" :key="cat">
+                <template x-for="cat in ['All', 'Criminal Law', 'Civil Law', 'Family Law', 'Property Law', 'Corporate Law', 'Taxation']" :key="cat">
                     <button @click="selectedCategory = cat" 
                         :class="selectedCategory === cat ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/10' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'"
                         class="px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition">
@@ -244,6 +245,7 @@
                 </template>
             </div>
 
+            <!-- ADVOCATE CARDS GRID WITH MULTI-SPECIALTY BADGES -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <template x-for="adv in filteredAdvocates" :key="adv.id">
                     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4">
@@ -256,13 +258,23 @@
                                     </div>
                                     <div>
                                         <h3 class="font-bold text-slate-900 text-base" x-text="adv.name"></h3>
-                                        <p class="text-xs text-amber-600 font-medium" x-text="adv.chamberName || adv.specialty"></p>
+                                        <p class="text-xs text-slate-500 font-semibold" x-text="adv.chamberName || 'Law Chambers'"></p>
                                     </div>
                                 </div>
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Verified</span>
                             </div>
 
-                            <div class="mt-4 space-y-2 text-xs text-slate-600">
+                            <!-- MULTI-SPECIALTY BADGES DISPLAY -->
+                            <div class="mt-3 flex flex-wrap gap-1.5">
+                                <template x-for="spec in getAdvocateSpecialties(adv)" :key="spec">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-500/10 text-amber-800 border border-amber-400/40">
+                                        <i class="fa-solid fa-gavel text-[9px] mr-1 text-amber-600"></i>
+                                        <span x-text="spec"></span>
+                                    </span>
+                                </template>
+                            </div>
+
+                            <div class="mt-3 space-y-2 text-xs text-slate-600">
                                 <div class="flex items-center space-x-2">
                                     <i class="fa-solid fa-location-dot text-slate-400 w-4"></i>
                                     <span><span x-text="adv.area"></span>, <span x-text="adv.city"></span></span>
@@ -695,7 +707,7 @@
 
     <!-- MODALS SECTION -->
 
-    <!-- EDIT PROFILE MODAL -->
+    <!-- EDIT PROFILE MODAL WITH MULTI-SPECIALTY CARDS -->
     <div x-show="showProfileModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
         <div @click.outside="showProfileModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -760,21 +772,30 @@
 
                 <template x-if="isLawyer">
                     <div class="space-y-3 pt-2 border-t border-slate-100">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Specialty</label>
-                                <select x-model="profileEditForm.specialty" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                                    <option value="Criminal Law">Criminal Law</option>
-                                    <option value="Family Law">Family Law</option>
-                                    <option value="Property Law">Property Law</option>
-                                    <option value="Corporate Law">Corporate Law</option>
-                                    <option value="Taxation">Taxation</option>
-                                </select>
+                        <!-- MULTI-SPECIALTY PILL CARDS SELECTOR -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="block text-xs font-bold text-slate-800">Specialties / Practice Fields</label>
+                                <span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200" x-text="`${(profileEditForm.specialties || []).length}/3 Selected`"></span>
                             </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Experience (Years)</label>
-                                <input type="number" x-model="profileEditForm.experience" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <div class="grid grid-cols-2 gap-2">
+                                <template x-for="spec in allSpecialties" :key="spec.name">
+                                    <button type="button" @click="toggleSpecialty(profileEditForm, spec.name)"
+                                        :class="(profileEditForm.specialties || []).includes(spec.name) ? 'bg-amber-500/10 border-amber-500 text-slate-900 font-bold shadow-xs' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'"
+                                        class="p-2 border rounded-xl text-xs flex items-center justify-between transition-all">
+                                        <span class="flex items-center space-x-1.5">
+                                            <i :class="spec.icon" class="text-xs text-amber-600"></i>
+                                            <span x-text="spec.name"></span>
+                                        </span>
+                                        <i class="fa-solid text-[10px]" :class="(profileEditForm.specialties || []).includes(spec.name) ? 'fa-circle-check text-amber-600' : 'fa-circle text-slate-300'"></i>
+                                    </button>
+                                </template>
                             </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Experience (Years)</label>
+                            <input type="number" x-model="profileEditForm.experience" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
@@ -844,7 +865,7 @@
         </div>
     </div>
 
-    <!-- UNIFIED REGISTRATION MODAL -->
+    <!-- UNIFIED REGISTRATION MODAL WITH MULTI-SPECIALTY SELECTION -->
     <div x-show="showRegisterModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
         <div @click.outside="showRegisterModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
             
@@ -922,20 +943,30 @@
                         <input type="email" x-model="lawyerRegForm.email" placeholder="Optional" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Specialty</label>
-                            <select x-model="lawyerRegForm.specialty" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                                <option value="Criminal Law">Criminal Law</option>
-                                <option value="Family Law">Family Law</option>
-                                <option value="Property Law">Property Law</option>
-                                <option value="Corporate Law">Corporate Law</option>
-                            </select>
+                    <!-- MULTI-SPECIALTY PILL CARDS SELECTOR FOR REGISTRATION -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-bold text-slate-800">Select Practice Specialties (Choose 1 to 3)</label>
+                            <span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200" x-text="`${lawyerRegForm.specialties.length}/3 Selected`"></span>
                         </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Experience (Years)</label>
-                            <input type="number" x-model="lawyerRegForm.exp" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <div class="grid grid-cols-2 gap-2">
+                            <template x-for="spec in allSpecialties" :key="spec.name">
+                                <button type="button" @click="toggleSpecialty(lawyerRegForm, spec.name)"
+                                    :class="lawyerRegForm.specialties.includes(spec.name) ? 'bg-amber-500/10 border-amber-500 text-slate-900 font-bold shadow-xs' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'"
+                                    class="p-2 border rounded-xl text-xs flex items-center justify-between transition-all">
+                                    <span class="flex items-center space-x-1.5">
+                                        <i :class="spec.icon" class="text-xs text-amber-600"></i>
+                                        <span x-text="spec.name"></span>
+                                    </span>
+                                    <i class="fa-solid text-[10px]" :class="lawyerRegForm.specialties.includes(spec.name) ? 'fa-circle-check text-amber-600' : 'fa-circle text-slate-300'"></i>
+                                </button>
+                            </template>
                         </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Experience (Years)</label>
+                        <input type="number" x-model="lawyerRegForm.exp" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
@@ -1078,7 +1109,8 @@
                     id: 0,
                     name: 'Guest',
                     role: 'client',
-                    chamberName: ''
+                    chamberName: '',
+                    specialties: []
                 },
 
                 get isLawyer() {
@@ -1102,6 +1134,16 @@
                     }
                     return docs.filter(d => !d.lawyerOnly);
                 },
+
+                // LIST OF ALL AVAILABLE LEGAL SPECIALTIES WITH ICONS
+                allSpecialties: [
+                    { name: 'Criminal Law', icon: 'fa-solid fa-handcuffs' },
+                    { name: 'Civil Law', icon: 'fa-solid fa-building-columns' },
+                    { name: 'Family Law', icon: 'fa-solid fa-users-between-lines' },
+                    { name: 'Property Law', icon: 'fa-solid fa-house-chimney-crack' },
+                    { name: 'Corporate Law', icon: 'fa-solid fa-briefcase' },
+                    { name: 'Taxation', icon: 'fa-solid fa-file-invoice-dollar' }
+                ],
 
                 advocates: [],
                 posts: [],
@@ -1130,7 +1172,19 @@
 
                 loginForm: { id: '', password: '' },
                 registerForm: { name: '', phone: '', email: '', password: '' },
-                lawyerRegForm: { name: '', phone: '', email: '', password: '', barLicense: '', chamberName: '', specialty: 'Criminal Law', city: 'Karachi', area: 'Saddar', address: '', exp: 5 },
+                lawyerRegForm: { 
+                    name: '', 
+                    phone: '', 
+                    email: '', 
+                    password: '', 
+                    barLicense: '', 
+                    chamberName: '', 
+                    specialties: ['Criminal Law'], 
+                    city: 'Karachi', 
+                    area: 'Saddar', 
+                    address: '', 
+                    exp: 5 
+                },
                 newPostForm: { text: '' },
 
                 showProfileModal: false,
@@ -1139,11 +1193,43 @@
                     chamberName: '',
                     email: '',
                     avatar: '',
-                    specialty: 'Criminal Law',
+                    specialties: ['Criminal Law'],
                     experience: 5,
                     city: 'Karachi',
                     area: 'Saddar',
                     address: ''
+                },
+
+                // TOGGLE SPECIALTY FUNCTION (MAX 3 LIMIT)
+                toggleSpecialty(targetForm, item) {
+                    if (!targetForm.specialties) {
+                        targetForm.specialties = [];
+                    }
+                    const index = targetForm.specialties.indexOf(item);
+                    if (index > -1) {
+                        if (targetForm.specialties.length > 1) {
+                            targetForm.specialties.splice(index, 1);
+                        } else {
+                            this.showToast('At least 1 specialty select karna lazmi hai!', 'error');
+                        }
+                    } else {
+                        if (targetForm.specialties.length < 3) {
+                            targetForm.specialties.push(item);
+                        } else {
+                            this.showToast('Aap maximum 3 specialties hi select kar sakte hain!', 'error');
+                        }
+                    }
+                },
+
+                // GET ADVOCATE SPECIALTIES ARRAY HELPER
+                getAdvocateSpecialties(adv) {
+                    if (adv.specialties && Array.isArray(adv.specialties) && adv.specialties.length > 0) {
+                        return adv.specialties;
+                    }
+                    if (adv.specialty) {
+                        return [adv.specialty];
+                    }
+                    return ['General Practice'];
                 },
 
                 docForm: { 
@@ -1158,7 +1244,6 @@
                 },
                 generatedDocText: '',
 
-                // MULTI-LINGUAL BAIL FORM STATE WITH IMAGE UPLOAD
                 bailForm: { 
                     firNumber: '', 
                     sections: '', 
@@ -1205,7 +1290,6 @@
                     this.showToast('FIR Photo removed.', 'info');
                 },
 
-                // MULTI-LINGUAL AI BAIL ANALYZER LOGIC
                 async runAiAnalysis() { 
                     if (!this.isLoggedIn) {
                         this.showToast('AI FIR Analyzer use karne ke liye pehle Sign In karein!', 'info');
@@ -1302,7 +1386,6 @@
                     }, 800);
                 },
 
-                // PDF PRINT ENGINE WITH GUARANTEED OVERLAP-FREE LAYOUT
                 downloadFormattedDoc() {
                     if (!this.generatedDocText) {
                         this.showToast('Pehle document draft generate karein!', 'error');
@@ -1329,15 +1412,11 @@
                             <style>
                                 @page { size: A4; margin: 15mm 20mm 20mm 20mm; }
                                 body { font-family: 'Times New Roman', Times, serif; font-size: 13pt; line-height: 1.8; color: #000; margin: 0; padding: 15px; }
-                                
-                                /* TOP BADGE LINE (STRICT BLOCK LEVEL TO PREVENT OVERLAPPING) */
                                 .top-badge-line { width: 100%; text-align: right; margin-bottom: 12px; clear: both; display: block; }
                                 .lawnexa-badge { font-size: 7.5pt; font-weight: bold; color: #b45309; text-transform: uppercase; border: 1px solid #f59e0b; padding: 2px 8px; border-radius: 4px; background: #fffbeb; font-family: sans-serif; display: inline-block; }
-                                
                                 .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; clear: both; display: block; width: 100%; }
                                 .chamber-brand { font-size: 18pt; font-weight: bold; letter-spacing: 1px; color: #0f172a; text-transform: uppercase; font-family: 'Times New Roman', serif; margin-top: 4px; line-height: 1.2; }
                                 .sub-logo { font-size: 9pt; font-weight: bold; color: #334155; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 4px; }
-                                
                                 .stamp-box { border: 2px dashed #94a3b8; height: 120px; margin: 15px 0 25px 0; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; font-size: 10pt; border-radius: 8px; background: #f8fafc; }
                                 .content { white-space: pre-line; text-align: justify; font-size: 12pt; line-height: 1.9; font-family: 'Times New Roman', Times, serif; }
                                 .signature-grid { margin-top: 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; page-break-inside: avoid; }
@@ -1353,24 +1432,19 @@
                             <div class="top-badge-line">
                                 <span class="lawnexa-badge">Powered by LawNexa</span>
                             </div>
-
                             <div class="header">
                                 <div class="chamber-brand">${chamberTitle}</div>
                                 <div class="sub-logo">${chamberAddressLine}</div>
                             </div>
-
                             <div class="stamp-box">
                                 <strong>[ SPACE RESERVED FOR OFFICIAL STAMP PAPER / E-STAMP ISSUED BY GOVT OF PAKISTAN ]</strong>
                                 <span style="font-size: 8pt; margin-top: 4px;">Attestation & Legal Registration Space</span>
                             </div>
-
                             <div class="content">${docText}</div>
-
                             <div class="signature-grid">
                                 <div class="sig-box">First Party / Executant Signature<br><span style="font-size: 9pt; font-weight: normal;">CNIC Verified</span></div>
                                 <div class="sig-box">Second Party / Recipient Signature<br><span style="font-size: 9pt; font-weight: normal;">CNIC Verified</span></div>
                             </div>
-
                             <div class="footer">
                                 Document Processed via LawNexa Legal Tech Platform • Marketing Partner
                             </div>
@@ -1391,7 +1465,7 @@
                         chamberName: this.user.chamberName || '',
                         email: this.user.email || '',
                         avatar: this.user.avatar || '',
-                        specialty: this.user.specialty || 'Criminal Law',
+                        specialties: this.user.specialties && this.user.specialties.length ? [...this.user.specialties] : ['Criminal Law'],
                         experience: this.user.experience || 5,
                         city: this.user.city || 'Karachi',
                         area: this.user.area || 'Saddar',
@@ -1427,7 +1501,7 @@
 
                     if (this.isLawyer) {
                         this.user.chamberName = this.profileEditForm.chamberName.trim();
-                        this.user.specialty = this.profileEditForm.specialty;
+                        this.user.specialties = [...this.profileEditForm.specialties];
                         this.user.experience = this.profileEditForm.experience;
                         this.user.city = this.profileEditForm.city;
                         this.user.area = this.profileEditForm.area;
@@ -1516,7 +1590,7 @@
                     this.removeSafeStorage('user');
                     this.token = '';
                     this.isLoggedIn = false;
-                    this.user = { id: 0, name: 'Guest', role: 'client', chamberName: '' };
+                    this.user = { id: 0, name: 'Guest', role: 'client', chamberName: '', specialties: [] };
                 },
 
                 logout() {
@@ -1573,6 +1647,7 @@
                                 name: data.name || (data.user && data.user.name), 
                                 role: detectedRole, 
                                 chamberName: data.chamberName || (data.name ? data.name + ' Law Chambers' : 'Law Chambers'),
+                                specialties: data.specialties || ['Criminal Law', 'Civil Law'],
                                 ...(data.user || {}) 
                             };
                             this.setSafeStorage('token', this.token);
@@ -1593,7 +1668,8 @@
                         name: this.loginForm.id.split('@')[0], 
                         phone: this.loginForm.id, 
                         role: selectedRole,
-                        chamberName: selectedRole === 'lawyer' ? (this.loginForm.id.split('@')[0] + ' Law Chambers') : ''
+                        chamberName: selectedRole === 'lawyer' ? (this.loginForm.id.split('@')[0] + ' Law Chambers') : '',
+                        specialties: ['Criminal Law', 'Civil Law']
                     };
                     this.token = 'demo_active_token_' + Date.now();
                     this.setSafeStorage('token', this.token);
@@ -1613,7 +1689,7 @@
                     }
                     this.isLoading = true;
 
-                    this.user = { id: Date.now(), name: this.registerForm.name, phone: this.registerForm.phone, role: 'client', chamberName: '' };
+                    this.user = { id: Date.now(), name: this.registerForm.name, phone: this.registerForm.phone, role: 'client', chamberName: '', specialties: [] };
                     this.token = 'client_token_' + Date.now();
                     this.setSafeStorage('token', this.token);
                     this.setSafeStorage('user', this.user);
@@ -1639,7 +1715,7 @@
                         email: this.lawyerRegForm.email,
                         role: 'lawyer', 
                         barLicense: this.lawyerRegForm.barLicense,
-                        specialty: this.lawyerRegForm.specialty, 
+                        specialties: [...this.lawyerRegForm.specialties], 
                         city: this.lawyerRegForm.city,
                         area: this.lawyerRegForm.area,
                         address: this.lawyerRegForm.address,
@@ -1677,19 +1753,25 @@
                     try {
                         const res = await fetch(`${API_BASE}/api/v1/lawyers/nearby`);
                         if (res.ok) {
-                            this.advocates = await res.json();
+                            const data = await res.json();
+                            this.advocates = data.map(a => ({
+                                ...a,
+                                specialties: a.specialties || (a.specialty ? [a.specialty] : ['Criminal Law', 'Civil Law'])
+                            }));
                             return;
                         }
                     } catch (e) {}
                 },
 
+                // SMART MULTI-SPECIALTY FILTERING LOGIC
                 get filteredAdvocates() {
                     return this.advocates.filter(a => {
-                        const matchCat = this.selectedCategory === 'All' || a.specialty === this.selectedCategory;
+                        const specs = this.getAdvocateSpecialties(a);
+                        const matchCat = this.selectedCategory === 'All' || specs.includes(this.selectedCategory);
                         const matchCity = this.selectedCity === 'All' || a.city === this.selectedCity;
                         const matchArea = this.selectedArea === 'All' || a.area === this.selectedArea;
                         const q = this.searchQuery.toLowerCase().trim();
-                        const matchSearch = !q || a.name.toLowerCase().includes(q) || (a.chamberName && a.chamberName.toLowerCase().includes(q)) || (a.city && a.city.toLowerCase().includes(q)) || (a.area && a.area.toLowerCase().includes(q)) || (a.specialty && a.specialty.toLowerCase().includes(q));
+                        const matchSearch = !q || a.name.toLowerCase().includes(q) || (a.chamberName && a.chamberName.toLowerCase().includes(q)) || (a.city && a.city.toLowerCase().includes(q)) || (a.area && a.area.toLowerCase().includes(q)) || specs.some(s => s.toLowerCase().includes(q));
                         return matchCat && matchCity && matchArea && matchSearch;
                     });
                 },
