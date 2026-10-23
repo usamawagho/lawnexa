@@ -8,13 +8,16 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    phone = Column(String, unique=True, index=True, nullable=False)
+    phone = Column(String, unique=True, index=True, nullable=True)
     email = Column(String, unique=True, index=True, nullable=True)
     hashed_password = Column(String, nullable=False)
-    role = Column(String, default="client") # "client", "lawyer", "admin"
+    role = Column(String, default="client")  # "client", "lawyer", "admin"
     is_active = Column(Boolean, default=True)
+    is_approved = Column(Boolean, default=True)  # Admin approval flag
+    avatar = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-    lawyer_profile = relationship("Lawyer", back_populates="user", uselist=False)
+    lawyer_profile = relationship("Lawyer", back_populates="user", uselist=False, cascade="all, delete-orphan")
     client_appointments = relationship("Appointment", back_populates="client")
     sent_messages = relationship("ChatMessage", foreign_keys="ChatMessage.sender_id", back_populates="sender")
     received_messages = relationship("ChatMessage", foreign_keys="ChatMessage.receiver_id", back_populates="receiver")
@@ -30,11 +33,13 @@ class Lawyer(Base):
     name = Column(String, nullable=False)
     specialty = Column(String, index=True, nullable=False)
     address = Column(String, nullable=True)
+    city = Column(String, nullable=True, default="Karachi")
+    area = Column(String, nullable=True, default="Saddar")
     phone = Column(String, nullable=True)
     law_card_url = Column(String, nullable=True)
     is_verified = Column(Boolean, default=False)
-    lat = Column(Float, nullable=False)
-    lng = Column(Float, nullable=False)
+    lat = Column(Float, nullable=False, default=31.5204)
+    lng = Column(Float, nullable=False, default=74.3587)
 
     license_number = Column(String, nullable=True)
     bar_association = Column(String, index=True, nullable=True)
@@ -83,10 +88,8 @@ class Post(Base):
     lawyer_id = Column(Integer, ForeignKey("lawyers.id"), nullable=False)
     bar_association = Column(String, index=True, nullable=False)
     content = Column(Text, nullable=False)
-    
-    # Media handling for Poster Images and Videos
     media_url = Column(String, nullable=True)
-    media_type = Column(String, nullable=True) # 'image' or 'video'
+    media_type = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     lawyer = relationship("Lawyer", back_populates="posts")
