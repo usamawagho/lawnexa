@@ -83,12 +83,10 @@
                                 <i class="fa-solid fa-comments text-xs"></i>
                                 <span>Legal Forum & Campaigns</span>
                             </button>
-                            <template x-if="isLoggedIn">
-                                <button @click="navigateToTab('bookings')" :class="activeTab === 'bookings' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
-                                    <i class="fa-solid fa-calendar-check text-xs"></i>
-                                    <span>My Bookings with Wakeels</span>
-                                </button>
-                            </template>
+                            <button @click="navigateToTab('bookings')" :class="activeTab === 'bookings' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
+                                <i class="fa-solid fa-calendar-check text-xs"></i>
+                                <span>My Bookings with Wakeels</span>
+                            </button>
                             <button @click="navigateToTab('ai-bail')" :class="activeTab === 'ai-bail' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
                                 <i class="fa-solid fa-robot text-xs text-amber-400"></i>
                                 <span>AI FIR Analyzer</span>
@@ -175,11 +173,9 @@
                 <button @click="navigateToTab('feed')" :class="activeTab === 'feed' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
                     Legal Forum
                 </button>
-                <template x-if="isLoggedIn">
-                    <button @click="navigateToTab('bookings')" :class="activeTab === 'bookings' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
-                        My Bookings
-                    </button>
-                </template>
+                <button @click="navigateToTab('bookings')" :class="activeTab === 'bookings' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
+                    My Bookings
+                </button>
                 <button @click="navigateToTab('ai-bail')" :class="activeTab === 'ai-bail' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
                     AI FIR Analyzer
                 </button>
@@ -193,7 +189,7 @@
     <!-- MAIN BODY CONTENT -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        <!-- TAB: ADVOCATES DIRECTORY -->
+        <!-- TAB: ADVOCATES DIRECTORY (PUBLIC VIEW ALLOWED) -->
         <div x-show="activeTab === 'advocates'" x-cloak class="space-y-6">
             <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-5 sm:p-8 text-white shadow-xl border border-slate-700/60 relative overflow-hidden">
                 <div class="relative z-10 max-w-3xl">
@@ -281,6 +277,7 @@
                             </div>
                         </div>
 
+                        <!-- PROTECTED CONNECT BUTTONS -->
                         <div class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
                             <button @click="openBookingModal(adv)" class="w-full py-2 px-3 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition flex items-center justify-center space-x-1.5">
                                 <i class="fa-solid fa-calendar-plus text-[10px]"></i><span>Book Consult</span>
@@ -301,7 +298,7 @@
             </template>
         </div>
 
-        <!-- TAB: COMMUNITY LEGAL FORUM & ELECTION CAMPAIGNS -->
+        <!-- TAB: COMMUNITY LEGAL FORUM & ELECTION CAMPAIGNS (PUBLIC VIEW ALLOWED) -->
         <div x-show="activeTab === 'feed'" x-cloak class="max-w-3xl mx-auto space-y-6">
             <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
                 <div class="flex items-center space-x-3">
@@ -348,7 +345,7 @@
             </div>
         </div>
 
-        <!-- TAB: AI BAIL PREDICTOR -->
+        <!-- TAB: AI BAIL PREDICTOR (PROTECTED) -->
         <div x-show="activeTab === 'ai-bail'" x-cloak class="max-w-4xl mx-auto space-y-6">
             <div class="bg-slate-900 text-white rounded-2xl p-6 shadow-xl border border-slate-800">
                 <div class="flex items-center space-x-3 mb-2">
@@ -402,7 +399,7 @@
             </div>
         </div>
 
-        <!-- TAB: AUTOMATED DYNAMIC LEGAL DOCUMENT DRAFTER -->
+        <!-- TAB: AUTOMATED DYNAMIC LEGAL DOCUMENT DRAFTER (PROTECTED) -->
         <div x-show="activeTab === 'ai-doc'" x-cloak class="max-w-4xl mx-auto space-y-6">
             <div class="bg-slate-900 text-white rounded-2xl p-6 shadow-xl border border-slate-800">
                 <div class="flex items-center space-x-3 mb-2">
@@ -525,7 +522,7 @@
             </div>
         </div>
 
-        <!-- TAB: CONSULTATIONS & BOOKINGS -->
+        <!-- TAB: CONSULTATIONS & BOOKINGS (PROTECTED) -->
         <div x-show="activeTab === 'bookings'" x-cloak class="max-w-4xl mx-auto space-y-6">
             <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <h2 class="text-lg font-bold text-slate-900 mb-4" x-text="isLawyer ? 'Client Consultation Requests' : 'My Scheduled Consultations with Advocates'"></h2>
@@ -1320,7 +1317,7 @@ Witness 2: _________________`;
 
                 openBookingModal(adv) { 
                     if (!this.isLoggedIn) {
-                        this.showToast('Consultation book karne ke liye pehle Sign In karein!', 'info');
+                        this.showToast('Consultation book karne ke liye pehle Sign In ya Register karein!', 'info');
                         this.showLoginModal = true;
                         return;
                     }
@@ -1329,7 +1326,7 @@ Witness 2: _________________`;
                 confirmBooking() { this.showBookingModal = false; this.showToast('Consultation Requested!', 'success'); },
                 openChatModal(adv) { 
                     if (!this.isLoggedIn) {
-                        this.showToast('Advocate se direct chat ke liye pehle Sign In karein!', 'info');
+                        this.showToast('Advocate se direct chat karne ke liye pehle Sign In ya Register karein!', 'info');
                         this.showLoginModal = true;
                         return;
                     }
