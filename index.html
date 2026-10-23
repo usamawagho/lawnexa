@@ -1248,7 +1248,7 @@
                                 strategy = `FIR #${firNo} (Dafa 489-F / 420 Cheque Bounce & Fraud):\n` +
                                            `1. Ye diwani (Civil) qism ka tanaza hai jise karobari dushmani ke liye police arrest mein badla gaya hai.\n` +
                                            `2. Surety bond jama kara kar Section 498 CrPC ke tehat aasan zamanat hasil karein.`;
-                                           } else {
+                            } else {
                                 bailType = 'Zamanat-e-Qabl-az-Giraftari (Section 498 CrPC)';
                                 strategy = `FIR #${firNo} Legal Analysis (${lang}):\n` +
                                            `1. Police ke paas koi direct physical saboot ya recovery mojud nahi hai.\n` +
@@ -1302,6 +1302,7 @@
                     }, 800);
                 },
 
+                // PDF PRINT ENGINE WITH GUARANTEED OVERLAP-FREE LAYOUT
                 downloadFormattedDoc() {
                     if (!this.generatedDocText) {
                         this.showToast('Pehle document draft generate karein!', 'error');
@@ -1329,12 +1330,13 @@
                                 @page { size: A4; margin: 15mm 20mm 20mm 20mm; }
                                 body { font-family: 'Times New Roman', Times, serif; font-size: 13pt; line-height: 1.8; color: #000; margin: 0; padding: 15px; }
                                 
-                                .top-bar { width: 100%; display: flex; justify-content: flex-end; align-items: center; margin-bottom: 6px; }
+                                /* TOP BADGE LINE (STRICT BLOCK LEVEL TO PREVENT OVERLAPPING) */
+                                .top-badge-line { width: 100%; text-align: right; margin-bottom: 12px; clear: both; display: block; }
                                 .lawnexa-badge { font-size: 7.5pt; font-weight: bold; color: #b45309; text-transform: uppercase; border: 1px solid #f59e0b; padding: 2px 8px; border-radius: 4px; background: #fffbeb; font-family: sans-serif; display: inline-block; }
                                 
-                                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; clear: both; }
-                                .chamber-brand { font-size: 20pt; font-weight: bold; letter-spacing: 1.5px; color: #0f172a; text-transform: uppercase; font-family: 'Times New Roman', serif; margin-top: 2px; }
-                                .sub-logo { font-size: 9.5pt; font-weight: bold; color: #334155; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+                                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; clear: both; display: block; width: 100%; }
+                                .chamber-brand { font-size: 18pt; font-weight: bold; letter-spacing: 1px; color: #0f172a; text-transform: uppercase; font-family: 'Times New Roman', serif; margin-top: 4px; line-height: 1.2; }
+                                .sub-logo { font-size: 9pt; font-weight: bold; color: #334155; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 4px; }
                                 
                                 .stamp-box { border: 2px dashed #94a3b8; height: 120px; margin: 15px 0 25px 0; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; font-size: 10pt; border-radius: 8px; background: #f8fafc; }
                                 .content { white-space: pre-line; text-align: justify; font-size: 12pt; line-height: 1.9; font-family: 'Times New Roman', Times, serif; }
@@ -1348,8 +1350,8 @@
                             </style>
                         </head>
                         <body>
-                            <div class="top-bar">
-                                <div class="lawnexa-badge">Powered by LawNexa</div>
+                            <div class="top-badge-line">
+                                <span class="lawnexa-badge">Powered by LawNexa</span>
                             </div>
 
                             <div class="header">
