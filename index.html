@@ -144,7 +144,7 @@
         </div>
     </header>
 
-    <!-- MOBILE TABS BAR -->
+    <!-- MOBILE TABS BAR (MOBILE ADVOCATE BUTTON INCLUDED) -->
     <div class="md:hidden bg-slate-900 border-b border-slate-800 px-2 py-2 flex items-center overflow-x-auto space-x-2 custom-scrollbar">
         <button @click="activeTab = 'advocates'" :class="activeTab === 'advocates' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
             Find Lawyers
@@ -158,6 +158,12 @@
         <button @click="activeTab = 'ai-doc'" :class="activeTab === 'ai-doc' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
             AI Drafter
         </button>
+        
+        <!-- ADVOCATE JOIN BUTTON FOR MOBILE -->
+        <button @click="showLawyerRegistrationModal = true" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
+            + Join as Lawyer
+        </button>
+
         <template x-if="isLoggedIn && (user.role === 'lawyer' || user.role === 'advocate')">
             <button @click="activeTab = 'bookings'" :class="activeTab === 'bookings' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
                 Consultations
@@ -203,7 +209,6 @@
                                 <option value="F-7">F-7</option>
                             </select>
                         </div>
-                        <!-- Geolocation Button -->
                         <div class="sm:col-span-2">
                             <button @click="fetchNearbyLawyers" class="w-full h-full py-2.5 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition flex items-center justify-center space-x-1.5 shadow-md shadow-amber-500/10">
                                 <i class="fa-solid fa-location-crosshairs"></i>
@@ -531,7 +536,7 @@
 
     <!-- MODALS SECTION -->
 
-    <!-- LOGIN MODAL (Phone Primary) -->
+    <!-- LOGIN MODAL -->
     <div x-show="showLoginModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
         <div @click.outside="showLoginModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4">
             <div class="flex items-center justify-between">
@@ -555,7 +560,7 @@
         </div>
     </div>
 
-    <!-- REGISTER MODAL (Phone Mandatory, Email Optional) -->
+    <!-- REGISTER MODAL (WITH ADVOCATE SWITCH LINK) -->
     <div x-show="showRegisterModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
         <div @click.outside="showRegisterModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4">
             <div class="flex items-center justify-between">
@@ -584,6 +589,13 @@
                     Create Account
                 </button>
             </form>
+
+            <!-- ADVOCATE SWITCH LINK -->
+            <div class="text-center pt-2 border-t border-slate-100">
+                <button @click="showRegisterModal = false; showLawyerRegistrationModal = true" class="text-xs text-emerald-600 font-semibold hover:underline">
+                    Are you an Advocate? Register as Lawyer here
+                </button>
+            </div>
         </div>
     </div>
 
@@ -643,7 +655,7 @@
         </div>
     </div>
 
-    <!-- CHAT MODAL (Real-time Media & Audio Note Enabled) -->
+    <!-- CHAT MODAL -->
     <div x-show="showChatModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
         <div @click.outside="showChatModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full h-[520px] flex flex-col">
             <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white rounded-t-2xl">
@@ -684,13 +696,11 @@
             </div>
             
             <div class="p-3 border-t border-slate-200 flex items-center space-x-2 bg-white rounded-b-2xl">
-                <!-- Media Attachment File Input -->
                 <input type="file" id="chatMediaInput" class="hidden" @change="handleChatMediaUpload">
                 <button @click="triggerChatFileUpload" class="p-2 text-slate-500 hover:text-amber-600 transition" title="Attach Document/Media">
                     <i class="fa-solid fa-paperclip text-sm"></i>
                 </button>
                 
-                <!-- Voice Recording Toggle Button -->
                 <button @click="toggleVoiceNote" :class="isRecordingVoice ? 'text-rose-600 animate-pulse' : 'text-slate-500 hover:text-amber-600'" class="p-2 transition" title="Record Voice Note">
                     <i class="fa-solid fa-microphone text-sm"></i>
                 </button>
@@ -736,25 +746,30 @@
 
     <!-- ALPINE JS LOGIC CORE -->
     <script>
-        const API_BASE = 'http://localhost:8000'; // Replace with active backend endpoint
+        const API_BASE = 'http://localhost:8000'; // Set active backend API endpoint
 
         function lawApp() {
             return {
-                // Application Navigation State
+                // Navigation State
                 activeTab: 'advocates',
                 isLoggedIn: false,
                 token: '',
                 isLoading: false,
 
-                // User Account Payload
+                // Logged In User
                 user: {
                     id: 0,
                     name: 'Guest',
                     role: 'client'
                 },
 
-                // Advocates Directory State
+                // Real Data States
                 advocates: [],
+                posts: [],
+                bookings: [],
+                chatMessages: [],
+
+                // Filters
                 selectedCategory: 'All',
                 selectedCity: 'All',
                 selectedArea: 'All',
@@ -772,20 +787,12 @@
                 isAnalyzing: false,
                 aiResult: null,
 
-                // Feed & Chat States
-                posts: [
-                    { id: 1, author: 'Adv. Tariq Chaudhry', role: 'High Court Advocate', time: '2 hours ago', text: 'Pre-arrest bail applications require establishing clear mala fide intent on part of the complainant under section 498 CrPC.', likes: 14, liked: false, comments: [] }
-                ],
-                newPostForm: { text: '', fileName: '' },
-                bookings: [
-                    { id: 101, clientName: 'Kamran Akmal', date: '2026-10-28', time: '14:00', service: 'Bail Strategy Consult', status: 'Pending' }
-                ],
-                chatMessages: [],
+                // Chat State
                 chatInputText: '',
                 activeChatAdvocate: null,
                 isRecordingVoice: false,
 
-                // Modal Toggle Controls
+                // Modals
                 showLoginModal: false,
                 showRegisterModal: false,
                 showForgotModal: false,
@@ -795,12 +802,11 @@
                 showChatModal: false,
                 showNewPostModal: false,
                 uploadedFirFileName: '',
-                otpSent: false,
 
-                // Global Toast Notification State
+                // Toast State
                 toast: { show: false, message: '', type: 'info' },
 
-                // Session Retention & Storage Safeguards
+                // Local Storage Handlers
                 getSafeStorage(key) {
                     try {
                         const item = localStorage.getItem(key);
@@ -815,9 +821,7 @@
                     try {
                         const str = typeof val === 'object' ? JSON.stringify(val) : val;
                         localStorage.setItem(key, str);
-                    } catch (e) {
-                        console.warn('LocalStorage error:', e);
-                    }
+                    } catch (e) {}
                 },
 
                 removeSafeStorage(key) {
@@ -826,56 +830,39 @@
                     } catch(e) {}
                 },
 
-                // Initialization Phase with Session Persistence
+                // App Init
                 async init() {
                     const savedToken = this.getSafeStorage('token');
-                    const savedUser = this.getSafeStorage('user');
-
                     if (savedToken) {
                         this.token = savedToken;
-                        if (savedUser) {
-                            this.user = typeof savedUser === 'string' ? JSON.parse(savedUser) : savedUser;
-                        }
-                        this.isLoggedIn = true;
-                        if (this.user && (this.user.role === 'lawyer' || this.user.role === 'advocate')) {
-                            this.activeTab = 'bookings';
-                        }
-                        // Validate Session against Backend Endpoint
                         await this.verifySession();
+                    } else {
+                        this.logoutSilently();
                     }
-
                     await this.fetchLawyers();
                 },
 
-                // Safe Clipboard Operations
-                copyToClipboard(text) {
-                    if (!text) return;
-                    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(text)
-                            .then(() => this.showToast('Draft Copied Successfully!', 'success'))
-                            .catch(err => this.fallbackCopyText(text));
-                    } else {
-                        this.fallbackCopyText(text);
-                    }
+                logoutSilently() {
+                    this.removeSafeStorage('token');
+                    this.removeSafeStorage('user');
+                    this.token = '';
+                    this.isLoggedIn = false;
+                    this.user = { id: 0, name: 'Guest', role: 'client' };
                 },
 
-                fallbackCopyText(text) {
-                    const textArea = document.createElement("textarea");
-                    textArea.value = text;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    try {
-                        document.execCommand('copy');
-                        this.showToast('Draft Copied Successfully!', 'success');
-                    } catch (err) {
-                        this.showToast('Failed to copy text', 'error');
-                    }
-                    document.body.removeChild(textArea);
+                logout() {
+                    this.logoutSilently();
+                    localStorage.clear();
+                    this.activeTab = 'advocates';
+                    this.showToast('Logged out successfully.', 'info');
                 },
 
-                // Authentication Functions
+                // Session Verification
                 async verifySession() {
-                    if (!this.token) return;
+                    if (!this.token) {
+                        this.logoutSilently();
+                        return;
+                    }
                     try {
                         const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
                             headers: { 'Authorization': `Bearer ${this.token}` }
@@ -888,14 +875,15 @@
                             if (this.user.role === 'lawyer' || this.user.role === 'advocate') {
                                 if (this.activeTab === 'advocates') this.activeTab = 'bookings';
                             }
-                        } else if (res.status === 401 || res.status === 403) {
-                            this.logout();
+                        } else {
+                            this.logoutSilently();
                         }
                     } catch (e) {
-                        console.warn("Backend server connection warming up or offline, retaining local session.");
+                        this.logoutSilently();
                     }
                 },
 
+                // Real Login Handler
                 async handleLogin() {
                     if (!this.loginForm.id.trim() || !this.loginForm.password.trim()) {
                         this.showToast('Please Phone/Email aur Password enter karein!', 'error');
@@ -913,8 +901,8 @@
                             this.token = data.access_token;
                             const detectedRole = data.role || (data.user && data.user.role) || 'client';
                             this.user = { 
-                                id: data.user_id || (data.user && data.user.id) || Date.now(), 
-                                name: data.name || (data.user && data.user.name) || 'User', 
+                                id: data.user_id || (data.user && data.user.id), 
+                                name: data.name || (data.user && data.user.name), 
                                 role: detectedRole, 
                                 ...(data.user || {}) 
                             };
@@ -922,22 +910,26 @@
                             this.setSafeStorage('user', this.user);
                             this.isLoggedIn = true;
                             this.showLoginModal = false;
+                            this.loginForm = { id: '', password: '' };
                             this.activeTab = (detectedRole === 'lawyer' || detectedRole === 'advocate') ? 'bookings' : 'advocates';
-                            this.showToast('Welcome back! Login successful.', 'success');
+                            this.showToast('Login successful!', 'success');
                             await this.fetchLawyers();
                         } else {
-                            this.showToast(data.detail || 'Ghalat details entered!', 'error');
+                            this.isLoggedIn = false;
+                            this.showToast(data.detail || 'Ghalat Phone/Email ya Password!', 'error');
                         }
                     } catch (e) {
-                        this.showToast('Backend connection error!', 'error');
+                        this.isLoggedIn = false;
+                        this.showToast('Backend Server connection error.', 'error');
                     } finally {
                         this.isLoading = false;
                     }
                 },
 
+                // Client Register Handler
                 async handleRegister() {
                     if (!this.registerForm.name || !this.registerForm.phone || !this.registerForm.password) {
-                        this.showToast('Name, Phone Number aur Password zaroori hain!', 'error');
+                        this.showToast('Name, Phone Number aur Password mandatory hain!', 'error');
                         return;
                     }
                     this.isLoading = true;
@@ -955,31 +947,32 @@
                         });
                         const data = await res.json();
                         if (res.ok) {
-                            this.user = data.user || { id: Date.now(), name: this.registerForm.name, phone: this.registerForm.phone, role: 'client' };
-                            this.token = data.access_token || 'session_token';
-                            this.setSafeStorage('token', this.token);
+                            if (data.access_token) {
+                                this.token = data.access_token;
+                                this.setSafeStorage('token', this.token);
+                            }
+                            this.user = data.user || data;
                             this.setSafeStorage('user', this.user);
                             this.isLoggedIn = true;
                             this.showRegisterModal = false;
-                            this.activeTab = 'advocates';
-                            this.showToast('Client Account Created successfully!', 'success');
+                            this.registerForm = { name: '', phone: '', email: '', password: '' };
+                            this.showToast('Account created successfully!', 'success');
                         } else {
                             this.showToast(data.detail || 'Registration failed!', 'error');
                         }
                     } catch (e) {
-                        // Fallback local registration
-                        this.user = { id: Date.now(), name: this.registerForm.name, phone: this.registerForm.phone, role: 'client' };
-                        this.setSafeStorage('user', this.user);
-                        this.isLoggedIn = true;
-                        this.showRegisterModal = false;
-                        this.activeTab = 'advocates';
-                        this.showToast('Account Created!', 'success');
+                        this.showToast('Backend error during registration.', 'error');
                     } finally {
                         this.isLoading = false;
                     }
                 },
 
+                // Lawyer Submit Handler
                 handleLawyerSubmit() {
+                    if (!this.lawyerRegForm.name || !this.lawyerRegForm.barLicense) {
+                        this.showToast('Name and Bar License are required!', 'error');
+                        return;
+                    }
                     this.user = { 
                         id: Date.now(), 
                         name: this.lawyerRegForm.name, 
@@ -991,24 +984,13 @@
                     this.isLoggedIn = true;
                     this.activeTab = 'bookings';
                     this.showLawyerRegistrationModal = false;
-                    this.showToast('Lawyer Account Registered successfully!', 'success');
+                    this.showToast('Advocate account registered!', 'success');
                 },
 
-                logout() {
-                    this.removeSafeStorage('token');
-                    this.removeSafeStorage('user');
-                    localStorage.clear();
-                    this.token = '';
-                    this.isLoggedIn = false;
-                    this.activeTab = 'advocates';
-                    this.user = { id: 0, name: 'Guest', role: 'client' };
-                    this.showToast('Logged out successfully.', 'info');
-                },
-
-                // Geolocation Helper
+                // Geolocation
                 fetchNearbyLawyers() {
                     if (navigator.geolocation) {
-                        this.showToast('Fetching your current location...', 'info');
+                        this.showToast('Fetching location...', 'info');
                         navigator.geolocation.getCurrentPosition(async (pos) => {
                             this.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                             try {
@@ -1016,11 +998,9 @@
                                 if (res.ok) {
                                     this.advocates = await res.json();
                                     this.showToast('Nearby Advocates fetched!', 'success');
-                                } else {
-                                    this.showToast('Found Advocates near your area.', 'success');
                                 }
                             } catch(e) {
-                                this.showToast('Located nearest lawyers.', 'info');
+                                this.showToast('Unable to connect to live API.', 'error');
                             }
                         }, () => {
                             this.showToast('Geolocation permission denied.', 'error');
@@ -1030,58 +1010,17 @@
                     }
                 },
 
-                // Profile Helpers
-                handleAvatarUpload(event) {
-                    const file = event.target.files[0];
-                    if (!file) return;
-                    if (file.size > 12 * 1024 * 1024) {
-                        this.showToast('Image bohot badi hai.', 'error');
-                        return;
-                    }
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const img = new Image();
-                        img.src = e.target.result;
-                        img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            const MAX_WIDTH = 300; 
-                            const scaleFactor = MAX_WIDTH / img.width;
-                            canvas.width = MAX_WIDTH;
-                            canvas.height = img.height * scaleFactor;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                            this.profileForm.avatar = canvas.toDataURL('image/jpeg', 0.65);
-                            this.showToast('Photo optimized!', 'success');
-                        };
-                    };
-                    reader.readAsDataURL(file);
-                },
-
-                async updateProfile() {
-                    this.user = { ...this.user, ...this.profileForm };
-                    this.setSafeStorage('user', this.user);
-                    this.showProfileModal = false;
-                    this.showToast('Profile updated!', 'success');
-                },
-
+                // Fetch Advocates
                 async fetchLawyers() {
                     try {
                         const res = await fetch(`${API_BASE}/api/v1/lawyers/nearby`);
                         if (res.ok) {
                             this.advocates = await res.json();
                         } else {
-                            this.advocates = [
-                                { id: 1, name: 'Adv. Ahmed Ali', city: 'Karachi', area: 'Saddar', specialty: 'Criminal Law', experience: 10, aiScore: 98, avatar: '' },
-                                { id: 2, name: 'Adv. Fatima Hassan', city: 'Lahore', area: 'Gulberg', specialty: 'Family Law', experience: 8, aiScore: 94, avatar: '' },
-                                { id: 3, name: 'Adv. Bilal Shah', city: 'Islamabad', area: 'F-7', specialty: 'Corporate Law', experience: 12, aiScore: 96, avatar: '' }
-                            ];
+                            this.advocates = [];
                         }
                     } catch (e) {
-                        this.advocates = [
-                            { id: 1, name: 'Adv. Ahmed Ali', city: 'Karachi', area: 'Saddar', specialty: 'Criminal Law', experience: 10, aiScore: 98, avatar: '' },
-                            { id: 2, name: 'Adv. Fatima Hassan', city: 'Lahore', area: 'Gulberg', specialty: 'Family Law', experience: 8, aiScore: 94, avatar: '' },
-                            { id: 3, name: 'Adv. Bilal Shah', city: 'Islamabad', area: 'F-7', specialty: 'Corporate Law', experience: 12, aiScore: 96, avatar: '' }
-                        ];
+                        this.advocates = [];
                     }
                 },
 
@@ -1101,28 +1040,7 @@
                     setTimeout(() => { this.toast.show = false; }, 3500);
                 },
 
-                // Business Action Helpers
-                sendOtp() { this.otpSent = true; this.showToast('OTP Sent!', 'success'); },
-                submitResetPassword() { this.showForgotModal = false; this.otpSent = false; this.showToast('Password Reset!', 'success'); },
-                createPost() { 
-                    if(!this.newPostForm.text) return;
-                    this.posts.unshift({
-                        id: Date.now(),
-                        author: this.user.name || 'Anonymous User',
-                        role: this.user.role || 'client',
-                        time: 'Just now',
-                        text: this.newPostForm.text,
-                        likes: 0,
-                        liked: false,
-                        comments: []
-                    });
-                    this.newPostForm.text = '';
-                    this.showNewPostModal = false; 
-                    this.showToast('Post Published!', 'success'); 
-                },
-                handlePostMediaUpload(e) { this.newPostForm.fileName = e.target.files[0]?.name; },
-                
-                // Gemini API AI Integration
+                // AI FIR Engine Call
                 async runAiAnalysis() { 
                     if (!this.bailForm.sections && !this.bailForm.background) {
                         this.showToast('FIR Sections ya Case Details enter karein!', 'error');
@@ -1138,30 +1056,22 @@
                         if (res.ok) {
                             this.aiResult = await res.json();
                         } else {
-                            // Fallback Response
-                            this.aiResult = { 
-                                bailType: 'Pre-Arrest Bail (Under Section 498 CrPC)', 
-                                strategy: `Analysis for FIR Sections (${this.bailForm.sections || 'PPC'}): Highlight lack of direct physical evidence and argue pre-arrest bail under Section 498 CrPC to prevent irreparable harassment.` 
-                            };
+                            this.showToast('AI service response error.', 'error');
                         }
                     } catch (e) {
-                        this.aiResult = { 
-                            bailType: 'Pre-Arrest Bail (Under Section 498 CrPC)', 
-                            strategy: `Analysis for FIR Sections (${this.bailForm.sections || 'PPC'}): Highlight lack of direct physical evidence and argue pre-arrest bail under Section 498 CrPC to prevent irreparable harassment.` 
-                        };
+                        this.showToast('Backend offline for AI engine.', 'error');
                     } finally {
                         this.isAnalyzing = false;
                     }
                 },
+
+                // UI Methods
                 handleFirFileUpload(e) { this.uploadedFirFileName = e.target.files[0]?.name; },
-                
                 generateDocument() { 
-                    this.generatedDocText = `LEGAL DRAFT: ${this.docForm.type.toUpperCase()}\n\n1. This agreement is made between ${this.docForm.party1 || '[Party 1]'} and ${this.docForm.party2 || '[Party 2]'}.\n\nTERMS & CONDITIONS:\nBoth parties agree to abide by the statutory jurisdiction of local Pakistan Courts.\n\n2. In witness whereof, the parties have signed this ${this.docForm.type}.`; 
+                    this.generatedDocText = `LEGAL DRAFT: ${this.docForm.type.toUpperCase()}\n\n1. Agreement between ${this.docForm.party1 || '[Party 1]'} and ${this.docForm.party2 || '[Party 2]'}.\n\nTERMS & CONDITIONS:\nBound by statutory jurisdiction of Pakistan Courts.\n\n2. Executed on today's date.`; 
                 },
                 openBookingModal(adv) { this.showBookingModal = true; },
-                confirmBooking() { this.showBookingModal = false; this.showToast('Consultation Requested Successfully!', 'success'); },
-                
-                // Real-time Chat Helpers
+                confirmBooking() { this.showBookingModal = false; this.showToast('Consultation Requested!', 'success'); },
                 openChatModal(adv) { this.activeChatAdvocate = adv; this.showChatModal = true; this.chatMessages = []; },
                 sendChatMessage() { 
                     if(this.chatInputText.trim()) { 
@@ -1169,9 +1079,7 @@
                         this.chatInputText = ''; 
                     } 
                 },
-                triggerChatFileUpload() {
-                    document.getElementById('chatMediaInput').click();
-                },
+                triggerChatFileUpload() { document.getElementById('chatMediaInput').click(); },
                 handleChatMediaUpload(e) {
                     const file = e.target.files[0];
                     if (file) {
@@ -1188,8 +1096,28 @@
                         this.showToast('Voice note attached!', 'success');
                     }
                 },
+                createPost() { 
+                    if(!this.newPostForm.text) return;
+                    this.posts.unshift({
+                        id: Date.now(),
+                        author: this.user.name || 'Anonymous User',
+                        role: this.user.role || 'client',
+                        time: 'Just now',
+                        text: this.newPostForm.text,
+                        likes: 0,
+                        liked: false,
+                        comments: []
+                    });
+                    this.newPostForm.text = '';
+                    this.showNewPostModal = false; 
+                    this.showToast('Post Published!', 'success'); 
+                },
                 toggleLike(post) { post.liked = !post.liked; post.likes += post.liked ? 1 : -1; },
-                respondBooking(booking, status) { booking.status = status; this.showToast(`Booking status updated to ${status}!`, 'success'); }
+                respondBooking(booking, status) { booking.status = status; this.showToast(`Booking ${status}!`, 'success'); },
+                copyToClipboard(text) {
+                    if (!text) return;
+                    navigator.clipboard.writeText(text).then(() => this.showToast('Copied!', 'success'));
+                }
             };
         }
     </script>
