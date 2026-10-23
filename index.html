@@ -512,7 +512,7 @@
                     </button>
                 </div>
 
-                <!-- Preview Column -->
+                <!-- Preview Column & Download Button -->
                 <div class="md:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
@@ -520,6 +520,18 @@
                             <button @click="copyToClipboard(generatedDocText)" :disabled="!generatedDocText" class="text-xs text-amber-600 font-semibold hover:underline"><i class="fa-solid fa-copy"></i> Copy Draft</button>
                         </div>
                         <div class="bg-slate-50 p-4 rounded-xl text-xs text-slate-800 whitespace-pre-line min-h-[260px] border border-slate-200 font-mono leading-relaxed" x-text="generatedDocText || 'Select a document type and click Generate Custom Draft to preview text here...'"></div>
+                    </div>
+
+                    <!-- DOWNLOAD OFFICIAL DOCUMENT SECTION -->
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div class="text-[11px] text-slate-500 flex items-center space-x-1">
+                            <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+                            <span>Standard Pakistani Legal Layout</span>
+                        </div>
+                        <button @click="downloadFormattedDoc()" :disabled="!generatedDocText" class="w-full sm:w-auto px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition shadow-md shadow-amber-500/10 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-file-pdf text-sm"></i>
+                            <span>Download Official Legal Doc (PDF)</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1022,6 +1034,70 @@
                 showNewPostModal: false,
 
                 toast: { show: false, message: '', type: 'info' },
+
+                // OFFICIAL LEGAL DOCUMENT DOWNLOAD / PRINT ENGINE
+                downloadFormattedDoc() {
+                    if (!this.generatedDocText) {
+                        this.showToast('Pehle document draft generate karein!', 'error');
+                        return;
+                    }
+
+                    const docTitle = this.docForm.type || 'Legal Document';
+                    const docText = this.generatedDocText;
+                    
+                    const printWindow = window.open('', '_blank');
+                    printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>${docTitle} - LawNexa Standard Legal Draft</title>
+                            <style>
+                                @page { size: A4; margin: 15mm 20mm 20mm 20mm; }
+                                body { font-family: 'Times New Roman', Times, serif; font-size: 13pt; line-height: 1.8; color: #000; margin: 0; padding: 15px; }
+                                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+                                .logo-brand { font-size: 22pt; font-weight: bold; letter-spacing: 2px; color: #0f172a; text-transform: uppercase; }
+                                .sub-logo { font-size: 9pt; font-weight: bold; color: #b45309; text-transform: uppercase; letter-spacing: 1.5px; }
+                                .stamp-box { border: 2px dashed #94a3b8; height: 130px; margin: 15px 0 25px 0; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; font-size: 10pt; border-radius: 8px; background: #f8fafc; }
+                                .content { white-space: pre-line; text-align: justify; font-size: 12pt; line-height: 1.9; font-family: 'Times New Roman', Times, serif; }
+                                .signature-grid { margin-top: 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; page-break-inside: avoid; }
+                                .sig-box { border-top: 1px solid #000; padding-top: 6px; text-align: center; font-size: 11pt; font-weight: bold; }
+                                .footer { margin-top: 40px; border-top: 1px solid #cbd5e1; padding-top: 12px; font-size: 8pt; text-align: center; color: #64748b; font-family: sans-serif; }
+                                @media print {
+                                    body { padding: 0; }
+                                    .stamp-box { border: 1px dashed #cbd5e1; background: none; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="header">
+                                <div class="logo-brand">⚖ LAWNEXA</div>
+                                <div class="sub-logo">Pakistan Legal Tech Platform • Official Standard Legal Draft</div>
+                            </div>
+
+                            <div class="stamp-box">
+                                <strong>[ SPACE RESERVED FOR OFFICIAL STAMP PAPER / E-STAMP ISSUED BY GOVT OF PAKISTAN ]</strong>
+                                <span style="font-size: 8pt; margin-top: 4px;">Attestation & Legal Registration Space</span>
+                            </div>
+
+                            <div class="content">${docText}</div>
+
+                            <div class="signature-grid">
+                                <div class="sig-box">First Party / Executant Signature<br><span style="font-size: 9pt; font-weight: normal;">CNIC Verified</span></div>
+                                <div class="sig-box">Second Party / Recipient Signature<br><span style="font-size: 9pt; font-weight: normal;">CNIC Verified</span></div>
+                            </div>
+
+                            <div class="footer">
+                                Document Generated via LawNexa Legal Tech Engine (Pakistan) • Compliant with Legal Drafting Standards
+                            </div>
+                        </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                    setTimeout(() => {
+                        printWindow.focus();
+                        printWindow.print();
+                    }, 400);
+                },
 
                 // OPEN PROFILE EDIT MODAL
                 openProfileModal() {
