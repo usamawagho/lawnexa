@@ -2,8 +2,7 @@ import math
 
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
-    Haversine Formula: Earth ke curvature ke mutabiq 2 GPS Coordinates 
-    ke darmiyan Distance in KM calculate karta hai.
+    Haversine Formula: Calculates Earth surface distance between 2 GPS coordinates in KM.
     """
     R = 6371.0  # Earth radius in KM
 

@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, DateTime, Text
+from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, DateTime, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -13,7 +13,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(String, default="client")  # "client", "lawyer", "admin"
     is_active = Column(Boolean, default=True)
-    is_approved = Column(Boolean, default=True)  # Admin approval flag
+    is_approved = Column(Boolean, default=True)
     avatar = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -21,8 +21,8 @@ class User(Base):
     client_appointments = relationship("Appointment", back_populates="client")
     sent_messages = relationship("ChatMessage", foreign_keys="ChatMessage.sender_id", back_populates="sender")
     received_messages = relationship("ChatMessage", foreign_keys="ChatMessage.receiver_id", back_populates="receiver")
-    likes = relationship("Like", back_populates="user")
-    comments = relationship("Comment", back_populates="user")
+    likes = relationship("Like", back_populates="user", cascade="all, delete-orphan")
+    comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
 
 
 class Lawyer(Base):
@@ -48,7 +48,7 @@ class Lawyer(Base):
 
     user = relationship("User", back_populates="lawyer_profile")
     appointments = relationship("Appointment", back_populates="lawyer")
-    posts = relationship("Post", back_populates="lawyer")
+    posts = relationship("Post", back_populates="lawyer", cascade="all, delete-orphan")
 
 
 class Appointment(Base):
@@ -74,7 +74,7 @@ class ChatMessage(Base):
     receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     message = Column(Text, nullable=False)
     quote_amount = Column(Float, nullable=True)
-    quote_status = Column(String, default="none")
+    quote_status = Column(String, default="none")  # "none", "pending", "accepted", "rejected"
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_messages")
@@ -87,6 +87,7 @@ class Post(Base):
     id = Column(Integer, primary_key=True, index=True)
     lawyer_id = Column(Integer, ForeignKey("lawyers.id"), nullable=False)
     bar_association = Column(String, index=True, nullable=False)
+    title = Column(String, nullable=True)
     content = Column(Text, nullable=False)
     media_url = Column(String, nullable=True)
     media_type = Column(String, nullable=True)
@@ -99,6 +100,7 @@ class Post(Base):
 
 class Like(Base):
     __tablename__ = "likes"
+    __table_args__ = (UniqueConstraint('post_id', 'user_id', name='_post_user_uc'),)
 
     id = Column(Integer, primary_key=True, index=True)
     post_id = Column(Integer, ForeignKey("posts.id"), nullable=False)

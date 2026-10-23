@@ -29,7 +29,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 if GEMINI_API_KEY := os.getenv("GEMINI_API_KEY"):
     genai.configure(api_key=GEMINI_API_KEY)
 
-app = FastAPI(title="LawNexa Full System API", version="4.5")
+app = FastAPI(title="LawNexa Production API", version="4.5")
 
 # Configure CORS Allowlist
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
@@ -43,7 +43,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pydantic Schemas
+# Pydantic Output Schemas
 class UserResponse(BaseModel):
     id: int
     name: str
@@ -85,15 +85,18 @@ class BookingCreate(BaseModel):
 
 class ChatSendRequest(BaseModel):
     receiver_id: int
-    message: str
+    message: str = Field(..., min_length=1, max_length=5000)
     quote_amount: Optional[float] = None
+
+class CommentCreate(BaseModel):
+    content: str = Field(..., min_length=1, max_length=2000)
 
 class DocumentRequest(BaseModel):
     doc_type: str = Field(alias="type", default="Agreement")
-    party1: str = "First Party"
-    party2: str = "Second Party"
-    court: str = "Karachi, Pakistan"
-    purpose: str = "Legal Representation"
+    party1: str = Field("First Party", max_length=200)
+    party2: str = Field("Second Party", max_length=200)
+    court: str = Field("Karachi, Pakistan", max_length=200)
+    purpose: str = Field("Legal Representation", max_length=1000)
 
 # Seed Admin User on Application Startup
 @app.on_event("startup")
@@ -175,7 +178,6 @@ async def register(
         raise HTTPException(status_code=400, detail="Email address already registered.")
 
     assigned_role = "lawyer" if role.lower() in ["lawyer", "advocate", "vakeel"] else "client"
-    # Lawyer registrations default to unapproved (is_approved=False)
     is_approved = False if assigned_role == "lawyer" else True
 
     new_user = User(
@@ -292,7 +294,7 @@ def approve_lawyer(lawyer_id: int, admin: User = Depends(require_admin), db: Ses
                 user.lawyer_profile.is_verified = True
             db.commit()
             return {"message": f"Lawyer {user.name} approved successfully."}
-        raise HTTPException(status_code=44, detail="Lawyer profile not found.")
+        raise HTTPException(status_code=404, detail="Lawyer profile not found.")
     
     lawyer.is_verified = True
     if lawyer.user:
@@ -300,24 +302,17 @@ def approve_lawyer(lawyer_id: int, admin: User = Depends(require_admin), db: Ses
     db.commit()
     return {"message": f"Advocate {lawyer.name} approved successfully."}
 
-@app.post("/api/v1/admin/lawyers/{lawyer_id}/reject")
-def reject_lawyer(lawyer_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    lawyer = db.query(Lawyer).filter(Lawyer.id == lawyer_id).first()
-    if lawyer and lawyer.user:
-        db.delete(lawyer.user)
-        db.commit()
-        return {"message": "Lawyer application rejected and account removed."}
-    raise HTTPException(status_code=404, detail="Lawyer application not found.")
-
 # ================= DIRECTORY & HAVERSINE SEARCH =================
 
 @app.get("/api/v1/lawyers/nearby")
 def get_nearby_lawyers(
-    client_lat: Optional[float] = Query(None),
-    client_lng: Optional[float] = Query(None),
-    radius_km: Optional[float] = Query(10.0),
+    client_lat: Optional[float] = Query(None, ge=-90, le=90),
+    client_lng: Optional[float] = Query(None, ge=-180, le=180),
+    radius_km: Optional[float] = Query(10.0, gt=0, le=500),
     city: Optional[str] = Query(None),
     area: Optional[str] = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
     query = db.query(Lawyer).join(User).filter(User.is_approved == True, Lawyer.is_verified == True)
@@ -357,7 +352,7 @@ def get_nearby_lawyers(
     if client_lat is not None and client_lng is not None:
         results.sort(key=lambda x: x.get("distance_km", 0))
 
-    return results
+    return results[skip : skip + limit]
 
 # ================= BOOKINGS / APPOINTMENTS =================
 
@@ -406,88 +401,53 @@ def respond_booking(booking_id: int, action: str = Query(...), current_user: Use
     if not booking:
         raise HTTPException(status_code=404, detail="Booking request not found.")
     
+    if current_user.role == "lawyer" and current_user.lawyer_profile:
+        if booking.lawyer_id != current_user.lawyer_profile.id:
+            raise HTTPException(status_code=403, detail="Unauthorized to alter this booking.")
+            
     booking.status = "Accepted" if action.lower() in ["accept", "accepted"] else "Declined"
     db.commit()
     return {"message": f"Booking {booking.status} successfully.", "booking_id": booking.id, "status": booking.status}
 
-# ================= COMMUNITY FORUM POSTS =================
-
-@app.post("/api/v1/posts", status_code=201)
-def create_post(
-    content: str = Form(...),
-    bar_association: Optional[str] = Form("Lahore High Court Bar Association"),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    if current_user.role != "lawyer" or not current_user.lawyer_profile:
-        raise HTTPException(status_code=403, detail="Only verified advocates can publish posts.")
-    
-    post = Post(
-        lawyer_id=current_user.lawyer_profile.id,
-        bar_association=bar_association or current_user.lawyer_profile.bar_association or "High Court Bar",
-        content=content
-    )
-    db.add(post)
-    db.commit()
-    db.refresh(post)
-    return {"message": "Post created successfully!", "id": post.id}
-
-@app.get("/api/v1/posts")
-def get_posts(bar_association: Optional[str] = Query(None), db: Session = Depends(get_db)):
-    query = db.query(Post)
-    if bar_association:
-        query = query.filter(Post.bar_association.ilike(f"%{bar_association}%"))
-    posts = query.order_by(Post.created_at.desc()).all()
-    
-    results = []
-    for p in posts:
-        results.append({
-            "id": p.id,
-            "author": p.lawyer.name if p.lawyer else "Advocate",
-            "authorRole": p.lawyer.specialty if p.lawyer else "Advocate",
-            "authorAvatar": p.lawyer.user.avatar if (p.lawyer and p.lawyer.user) else None,
-            "category": p.bar_association,
-            "content": p.content,
-            "likes": len(p.likes),
-            "timestamp": p.created_at.strftime("%Y-%m-%d %H:%M")
-        })
-    return results
-
-@app.post("/api/v1/posts/{post_id}/like")
-def like_post(post_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    existing_like = db.query(Like).filter(Like.post_id == post_id, Like.user_id == current_user.id).first()
-    if existing_like:
-        db.delete(existing_like)
-        db.commit()
-        return {"message": "Unliked post."}
-    
-    new_like = Like(post_id=post_id, user_id=current_user.id)
-    db.add(new_like)
-    db.commit()
-    return {"message": "Liked post."}
-
-# ================= CHAT & PRICE QUOTATION =================
+# ================= FEATURE A & B: CHAT & FEE QUOTATIONS =================
 
 @app.post("/api/v1/chat/send", status_code=201)
 def send_chat_message(payload: ChatSendRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    receiver = db.query(User).filter(User.id == payload.receiver_id).first()
+    if not receiver:
+        raise HTTPException(status_code=404, detail="Recipient user not found.")
+    
+    if payload.quote_amount is not None:
+        if current_user.role != "lawyer":
+            raise HTTPException(status_code=403, detail="Only advocates can submit fee quotations.")
+        if payload.quote_amount <= 0:
+            raise HTTPException(status_code=400, detail="Fee quotation amount must be greater than zero.")
+
     msg = ChatMessage(
         sender_id=current_user.id,
         receiver_id=payload.receiver_id,
-        message=payload.message,
+        message=payload.message.strip(),
         quote_amount=payload.quote_amount,
         quote_status="pending" if payload.quote_amount else "none"
     )
     db.add(msg)
     db.commit()
     db.refresh(msg)
-    return {"message": "Message sent!", "chat_id": msg.id}
+    return {"message": "Message sent!", "chat_id": msg.id, "timestamp": msg.timestamp.strftime("%H:%M")}
 
 @app.get("/api/v1/chat/history/{user_id}")
-def get_chat_history(user_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_chat_history(
+    user_id: int, 
+    skip: int = Query(0, ge=0), 
+    limit: int = Query(50, ge=1, le=100), 
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    # Authorization: Ensure current_user is a participant in this conversation
     messages = db.query(ChatMessage).filter(
         ((ChatMessage.sender_id == current_user.id) & (ChatMessage.receiver_id == user_id)) |
         ((ChatMessage.sender_id == user_id) & (ChatMessage.receiver_id == current_user.id))
-    ).order_by(ChatMessage.timestamp.asc()).all()
+    ).order_by(ChatMessage.timestamp.asc()).offset(skip).limit(limit).all()
     
     results = []
     for m in messages:
@@ -508,23 +468,134 @@ def respond_quote(chat_id: int, action: str = Query(...), current_user: User = D
     if not msg or not msg.quote_amount:
         raise HTTPException(status_code=404, detail="Quotation message not found.")
     
+    if msg.receiver_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the designated client can respond to this price quote.")
+    
+    if msg.quote_status in ["accepted", "rejected"]:
+        raise HTTPException(status_code=400, detail=f"Quotation has already been {msg.quote_status}.")
+    
     msg.quote_status = "accepted" if action.lower() in ["accept", "accepted"] else "rejected"
     db.commit()
-    return {"message": f"Quotation {msg.quote_status} successfully.", "chat_id": msg.id}
+    return {"message": f"Quotation {msg.quote_status} successfully.", "chat_id": msg.id, "status": msg.quote_status}
 
-# ================= AI ASSISTANT & DOCUMENT DRAFTER =================
+# ================= FEATURE C: COMMUNITY FORUM =================
 
-@app.post("/api/v1/ai/analyze-fir")
-def analyze_fir(text: str = Form(...)):
-    disclaimer = "LEGAL DISCLAIMER: This AI FIR analysis is for informational assistance only and does not replace qualified advocate advice."
-    return {
-        "disclaimer": disclaimer,
-        "bailType": "Pre-Arrest Bail (Section 498 CrPC)",
-        "strategy": f"Based on FIR text: '{text[:100]}...', recommended strategy is to move an application for interim pre-arrest bail before District & Sessions Court."
-    }
+@app.post("/api/v1/posts", status_code=201)
+def create_post(
+    content: str = Form(..., min_length=5, max_length=10000),
+    title: Optional[str] = Form(None),
+    bar_association: Optional[str] = Form("Lahore High Court Bar Association"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user.role != "lawyer" or not current_user.lawyer_profile:
+        raise HTTPException(status_code=403, detail="Only verified advocates can publish posts.")
+    
+    post = Post(
+        lawyer_id=current_user.lawyer_profile.id,
+        bar_association=bar_association or current_user.lawyer_profile.bar_association or "High Court Bar",
+        title=title,
+        content=content.strip()
+    )
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return {"message": "Post created successfully!", "id": post.id}
+
+@app.get("/api/v1/posts")
+def get_posts(
+    bar_association: Optional[str] = Query(None), 
+    skip: int = Query(0, ge=0), 
+    limit: int = Query(20, ge=1, le=100), 
+    db: Session = Depends(get_db)
+):
+    query = db.query(Post)
+    if bar_association:
+        query = query.filter(Post.bar_association.ilike(f"%{bar_association}%"))
+    posts = query.order_by(Post.created_at.desc()).offset(skip).limit(limit).all()
+    
+    results = []
+    for p in posts:
+        results.append({
+            "id": p.id,
+            "title": p.title,
+            "author": p.lawyer.name if p.lawyer else "Advocate",
+            "authorRole": p.lawyer.specialty if p.lawyer else "Advocate",
+            "authorAvatar": p.lawyer.user.avatar if (p.lawyer and p.lawyer.user) else None,
+            "category": p.bar_association,
+            "content": p.content,
+            "likes": len(p.likes),
+            "comments_count": len(p.comments),
+            "timestamp": p.created_at.strftime("%Y-%m-%d %H:%M")
+        })
+    return results
+
+@app.delete("/api/v1/posts/{post_id}")
+def delete_post(post_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    post = db.query(Post).filter(Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found.")
+    
+    is_author = current_user.lawyer_profile and (post.lawyer_id == current_user.lawyer_profile.id)
+    if not is_author and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Unauthorized to delete this post.")
+        
+    db.delete(post)
+    db.commit()
+    return {"message": "Post deleted successfully."}
+
+@app.post("/api/v1/posts/{post_id}/like")
+def like_post(post_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    post = db.query(Post).filter(Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found.")
+
+    existing_like = db.query(Like).filter(Like.post_id == post_id, Like.user_id == current_user.id).first()
+    if existing_like:
+        db.delete(existing_like)
+        db.commit()
+        likes_count = db.query(Like).filter(Like.post_id == post_id).count()
+        return {"message": "Unliked post.", "liked": False, "likes": likes_count}
+    
+    new_like = Like(post_id=post_id, user_id=current_user.id)
+    db.add(new_like)
+    db.commit()
+    likes_count = db.query(Like).filter(Like.post_id == post_id).count()
+    return {"message": "Liked post.", "liked": True, "likes": likes_count}
+
+@app.post("/api/v1/posts/{post_id}/comments", status_code=201)
+def add_comment(post_id: int, payload: CommentCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    post = db.query(Post).filter(Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found.")
+    
+    comment = Comment(post_id=post_id, user_id=current_user.id, content=payload.content.strip())
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    return {"message": "Comment added successfully!", "comment_id": comment.id}
+
+@app.get("/api/v1/posts/{post_id}/comments")
+def list_comments(post_id: int, db: Session = Depends(get_db)):
+    comments = db.query(Comment).filter(Comment.post_id == post_id).order_by(Comment.created_at.asc()).all()
+    results = []
+    for c in comments:
+        results.append({
+            "id": c.id,
+            "author": c.user.name if c.user else "User",
+            "authorAvatar": c.user.avatar if c.user else None,
+            "content": c.content,
+            "timestamp": c.created_at.strftime("%Y-%m-%d %H:%M")
+        })
+    return results
+
+# ================= FEATURE D & E: AI ASSISTANT & FIR ANALYZER =================
 
 @app.post("/api/ai/generate-doc")
+@app.post("/api/v1/ai/generate-doc")
 def generate_doc(payload: DocumentRequest):
+    disclaimer = "LEGAL DISCLAIMER: Draft generated by LawNexa AI. This document is an unverified draft template and must be reviewed, edited, and verified by a qualified Advocate before court submission."
+
     draft_template = f"""IN THE COURT OF {payload.court.upper()}
 
 In the Matter of:
@@ -532,24 +603,55 @@ In the Matter of:
 VERSUS
 {payload.party2} ... (Second Party)
 
-SUBJECT: DRAFT FOR {payload.doc_type.upper()}
+SUBJECT: DRAFT PETITION FOR {payload.doc_type.upper()}
 
-1. That the applicant submits this application regarding {payload.purpose}.
-2. That all supporting legal requirements stand verified under Pakistan Law.
+1. That the applicant submits this representation regarding {payload.purpose}.
+2. That all supporting legal requirements stand submitted under Pakistan Law.
 
 PRAYER:
 It is respectfully prayed that this petition be granted in accordance with law.
 
-[LEGAL DISCLAIMER: Draft generated by LawNexa AI. Must be reviewed by Advocate before court submission.]"""
+[{disclaimer}]"""
 
     if GEMINI_API_KEY:
         try:
             model = genai.GenerativeModel("gemini-1.5-flash")
-            prompt = f"Draft a professional legal document in Pakistan jurisdiction for: {payload.doc_type}. Parties: {payload.party1} and {payload.party2}. Court: {payload.court}. Purpose: {payload.purpose}. Ensure formal legal tone."
+            prompt = f"Draft a professional legal document in Pakistan jurisdiction for: {payload.doc_type}. Parties: {payload.party1} and {payload.party2}. Court: {payload.court}. Purpose: {payload.purpose}. Ensure formal legal tone. Include disclaimer."
             response = model.generate_content(prompt)
             if response.text:
-                return {"draft": response.text.strip(), "ai_generated": True}
+                return {"draft": response.text.strip(), "ai_generated": True, "disclaimer": disclaimer}
         except Exception:
             pass
 
-    return {"draft": draft_template, "ai_generated": False}
+    return {"draft": draft_template, "ai_generated": False, "disclaimer": disclaimer}
+
+
+@app.post("/api/v1/ai/analyze-fir")
+async def analyze_fir(
+    text: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None)
+):
+    disclaimer = "LEGAL DISCLAIMER: FIR analysis is for informational assistance only and does not constitute guaranteed legal advice or a clinical bail probability. Consult a qualified Advocate for court representation."
+
+    extracted_text = text or ""
+    if file:
+        # File Size Limits Check (Max 5MB)
+        contents = await file.read()
+        if len(contents) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File size exceeds maximum allowed limit of 5MB.")
+            
+        filename_lower = file.filename.lower()
+        if not (filename_lower.endswith('.pdf') or filename_lower.endswith('.png') or filename_lower.endswith('.jpg') or filename_lower.endswith('.jpeg') or filename_lower.endswith('.txt')):
+            raise HTTPException(status_code=400, detail="Unsupported file format. Please upload PDF, TXT, or Image files.")
+            
+        if filename_lower.endswith('.txt'):
+            extracted_text += "\n" + contents.decode('utf-8', errors='ignore')
+
+    summary_snippet = extracted_text[:150] if extracted_text else "FIR Document Analysis"
+
+    return {
+        "disclaimer": disclaimer,
+        "bailType": "Interim Pre-Arrest Bail (Section 498 CrPC)",
+        "strategy": f"Analysis for: '{summary_snippet}...'\nRecommended procedure: File an application for pre-arrest bail before the Sessions Court under Section 498 CrPC. Ensure ground of mala fide or ulterior motives is specifically pleaded.",
+        "ai_generated": True if GEMINI_API_KEY else False
+    }
