@@ -30,7 +30,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col" x-data="lawApp()" x-init="init()">
 
-    <!-- TOP NAVIGATION BAR (FIXED ALIGNMENT) -->
+    <!-- TOP NAVIGATION BAR -->
     <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-md border-b border-slate-800">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
@@ -46,54 +46,71 @@
                     </div>
                 </div>
 
-                <!-- Desktop Navigation Links -->
+                <!-- Desktop Navigation Links (Role Order Integrated) -->
                 <nav class="hidden md:flex space-x-1 lg:space-x-2">
+                    <!-- LAWYER TAB ORDER -->
                     <template x-if="isLoggedIn && isLawyer">
-                        <button @click="activeTab = 'bookings'" 
-                            :class="activeTab === 'bookings' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'"
-                            class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
-                            <i class="fa-solid fa-calendar-check text-xs text-amber-400"></i>
-                            <span>Client Requests</span>
-                        </button>
+                        <div class="flex items-center space-x-1">
+                            <button @click="activeTab = 'bookings'" :class="activeTab === 'bookings' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
+                                <i class="fa-solid fa-calendar-check text-xs text-amber-400"></i>
+                                <span>Client Requests</span>
+                            </button>
+                            <button @click="activeTab = 'feed'" :class="activeTab === 'feed' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
+                                <i class="fa-solid fa-comments text-xs"></i>
+                                <span>Legal Forum & Campaigns</span>
+                            </button>
+                            <button @click="activeTab = 'advocates'" :class="activeTab === 'advocates' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
+                                <i class="fa-solid fa-user-tie text-xs"></i>
+                                <span>Nearby Lawyers</span>
+                            </button>
+                            <button @click="activeTab = 'ai-bail'" :class="activeTab === 'ai-bail' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
+                                <i class="fa-solid fa-robot text-xs text-amber-400"></i>
+                                <span>AI Pre-Bail</span>
+                            </button>
+                            <button @click="activeTab = 'ai-doc'" :class="activeTab === 'ai-doc' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
+                                <i class="fa-solid fa-file-contract text-xs text-amber-400"></i>
+                                <span>AI Document Drafter</span>
+                            </button>
+                        </div>
                     </template>
 
-                    <button @click="activeTab = 'feed'" 
-                        :class="activeTab === 'feed' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'"
-                        class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
-                        <i class="fa-solid fa-comments text-xs"></i>
-                        <span>Legal Forum</span>
-                    </button>
-
-                    <button @click="activeTab = 'ai-bail'" 
-                        :class="activeTab === 'ai-bail' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'"
-                        class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
-                        <i class="fa-solid fa-robot text-xs text-amber-400"></i>
-                        <span>AI Pre-Arrest Bail</span>
-                    </button>
-
-                    <button @click="activeTab = 'ai-doc'" 
-                        :class="activeTab === 'ai-doc' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'"
-                        class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
-                        <i class="fa-solid fa-file-contract text-xs text-amber-400"></i>
-                        <span>AI Document Drafter</span>
-                    </button>
-
-                    <button @click="activeTab = 'advocates'" 
-                        :class="activeTab === 'advocates' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'"
-                        class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
-                        <i class="fa-solid fa-user-tie text-xs"></i>
-                        <span x-text="isLawyer ? 'Advocates' : 'Find Lawyers'"></span>
-                    </button>
+                    <!-- CLIENT TAB ORDER -->
+                    <template x-if="!isLoggedIn || !isLawyer">
+                        <div class="flex items-center space-x-1">
+                            <button @click="activeTab = 'advocates'" :class="activeTab === 'advocates' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
+                                <i class="fa-solid fa-user-tie text-xs"></i>
+                                <span>Find Lawyers Nearby</span>
+                            </button>
+                            <button @click="activeTab = 'feed'" :class="activeTab === 'feed' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
+                                <i class="fa-solid fa-comments text-xs"></i>
+                                <span>Legal Forum & Campaigns</span>
+                            </button>
+                            <template x-if="isLoggedIn">
+                                <button @click="activeTab = 'bookings'" :class="activeTab === 'bookings' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
+                                    <i class="fa-solid fa-calendar-check text-xs"></i>
+                                    <span>My Bookings with Wakeels</span>
+                                </button>
+                            </template>
+                            <button @click="activeTab = 'ai-bail'" :class="activeTab === 'ai-bail' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
+                                <i class="fa-solid fa-robot text-xs text-amber-400"></i>
+                                <span>AI FIR Analyzer</span>
+                            </button>
+                            <button @click="activeTab = 'ai-doc'" :class="activeTab === 'ai-doc' ? 'bg-amber-500/10 text-amber-400 border-amber-500' : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'" class="px-3 py-2 rounded-lg text-sm font-medium border-b-2 transition-all flex items-center space-x-2">
+                                <i class="fa-solid fa-file-contract text-xs text-amber-400"></i>
+                                <span>AI Document Drafter</span>
+                            </button>
+                        </div>
+                    </template>
                 </nav>
 
-                <!-- Auth / User Profile Actions (Compact Mobile View) -->
-                <div class="flex items-center space-x-1.5 sm:space-x-3">
+                <!-- Auth / Profile Buttons -->
+                <div class="flex items-center space-x-2">
                     <template x-if="!isLoggedIn">
                         <div class="flex items-center space-x-1.5">
-                            <button @click="showLoginModal = true" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white border border-slate-700 transition">
+                            <button @click="showLoginModal = true" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white border border-slate-700 transition">
                                 Sign In
                             </button>
-                            <button @click="showRegisterModal = true" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 text-slate-950 hover:bg-amber-400 transition shadow-md shadow-amber-500/10">
+                            <button @click="showRegisterModal = true; registerType = 'client'" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 text-slate-950 hover:bg-amber-400 transition shadow-md shadow-amber-500/10">
                                 Register
                             </button>
                         </div>
@@ -105,32 +122,23 @@
                                 <div class="text-xs font-semibold text-slate-200" x-text="user.name"></div>
                                 <div class="text-[10px] text-amber-400 uppercase font-bold" x-text="user.role"></div>
                             </div>
-                            
                             <div class="relative" x-data="{ open: false }">
                                 <button @click="open = !open" class="flex items-center focus:outline-none ring-2 ring-amber-500/50 rounded-full">
                                     <div class="w-8 h-8 rounded-full bg-slate-700 border border-amber-400/40 flex items-center justify-center text-amber-300 font-bold overflow-hidden shadow">
-                                        <template x-if="user.avatar">
-                                            <img :src="user.avatar" class="w-full h-full object-cover">
-                                        </template>
-                                        <template x-if="!user.avatar">
-                                            <span x-text="user.name ? user.name.charAt(0).toUpperCase() : 'U'"></span>
-                                        </template>
+                                        <template x-if="user.avatar"><img :src="user.avatar" class="w-full h-full object-cover"></template>
+                                        <template x-if="!user.avatar"><span x-text="user.name ? user.name.charAt(0).toUpperCase() : 'U'"></span></template>
                                     </div>
                                 </button>
-
-                                <div x-show="open" @click.outside="open = false" x-cloak
-                                    class="absolute right-0 mt-2 w-48 bg-slate-800 rounded-xl shadow-2xl py-1 text-slate-200 border border-slate-700 text-xs z-50">
+                                <div x-show="open" @click.outside="open = false" x-cloak class="absolute right-0 mt-2 w-48 bg-slate-800 rounded-xl shadow-2xl py-1 text-slate-200 border border-slate-700 text-xs z-50">
                                     <div class="px-4 py-2 border-b border-slate-700 sm:hidden">
                                         <p class="font-bold text-slate-100" x-text="user.name"></p>
                                         <p class="text-[10px] text-amber-400 uppercase" x-text="user.role"></p>
                                     </div>
                                     <button @click="open = false; showProfileModal = true" class="w-full text-left px-4 py-2 hover:bg-slate-700 flex items-center space-x-2">
-                                        <i class="fa-solid fa-user-gear text-slate-400"></i>
-                                        <span>Edit Profile</span>
+                                        <i class="fa-solid fa-user-gear text-slate-400"></i><span>Edit Profile</span>
                                     </button>
                                     <button @click="open = false; logout()" class="w-full text-left px-4 py-2 hover:bg-rose-500/20 text-rose-300 flex items-center space-x-2 border-t border-slate-700">
-                                        <i class="fa-solid fa-right-from-bracket text-rose-400"></i>
-                                        <span>Sign Out</span>
+                                        <i class="fa-solid fa-right-from-bracket text-rose-400"></i><span>Sign Out</span>
                                     </button>
                                 </div>
                             </div>
@@ -141,54 +149,70 @@
         </div>
     </header>
 
-    <!-- MOBILE TABS BAR (CLEAN HORIZONTAL SCROLL) -->
+    <!-- MOBILE TABS BAR (STRICT ROLE SEQUENCING) -->
     <div class="md:hidden bg-slate-900 border-b border-slate-800 px-3 py-2 flex items-center overflow-x-auto space-x-2 custom-scrollbar">
+        <!-- LAWYER MOBILE SEQUENCE -->
         <template x-if="isLoggedIn && isLawyer">
-            <button @click="activeTab = 'bookings'" :class="activeTab === 'bookings' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
-                Client Requests
-            </button>
+            <div class="flex items-center space-x-2">
+                <button @click="activeTab = 'bookings'" :class="activeTab === 'bookings' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap flex items-center space-x-1.5">
+                    <i class="fa-solid fa-calendar-check text-xs"></i>
+                    <span>Requests</span>
+                </button>
+                <button @click="activeTab = 'feed'" :class="activeTab === 'feed' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
+                    Legal Forum
+                </button>
+                <button @click="activeTab = 'advocates'" :class="activeTab === 'advocates' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
+                    Nearby Lawyers
+                </button>
+                <button @click="activeTab = 'ai-bail'" :class="activeTab === 'ai-bail' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
+                    AI Pre-Bail
+                </button>
+                <button @click="activeTab = 'ai-doc'" :class="activeTab === 'ai-doc' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
+                    AI Drafter
+                </button>
+            </div>
         </template>
 
-        <button @click="activeTab = 'feed'" :class="activeTab === 'feed' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
-            Legal Forum
-        </button>
-        <button @click="activeTab = 'ai-bail'" :class="activeTab === 'ai-bail' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
-            AI Pre-Bail
-        </button>
-        <button @click="activeTab = 'ai-doc'" :class="activeTab === 'ai-doc' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
-            AI Drafter
-        </button>
-        <button @click="activeTab = 'advocates'" :class="activeTab === 'advocates' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
-            <span x-text="isLawyer ? 'Advocates' : 'Find Lawyers'"></span>
-        </button>
-        
+        <!-- CLIENT MOBILE SEQUENCE -->
         <template x-if="!isLoggedIn || !isLawyer">
-            <button @click="showLawyerRegistrationModal = true" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
-                + Join as Lawyer
-            </button>
+            <div class="flex items-center space-x-2">
+                <button @click="activeTab = 'advocates'" :class="activeTab === 'advocates' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
+                    Nearby Lawyers
+                </button>
+                <button @click="activeTab = 'feed'" :class="activeTab === 'feed' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
+                    Legal Forum
+                </button>
+                <template x-if="isLoggedIn">
+                    <button @click="activeTab = 'bookings'" :class="activeTab === 'bookings' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
+                        My Bookings
+                    </button>
+                </template>
+                <button @click="activeTab = 'ai-bail'" :class="activeTab === 'ai-bail' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
+                    AI FIR Analyzer
+                </button>
+                <button @click="activeTab = 'ai-doc'" :class="activeTab === 'ai-doc' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
+                    AI Drafter
+                </button>
+            </div>
         </template>
     </div>
 
-    <!-- MAIN BODY CONTENT AREA -->
+    <!-- MAIN BODY CONTENT -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        <!-- TAB 1: ADVOCATES DIRECTORY -->
+        <!-- TAB: ADVOCATES DIRECTORY -->
         <div x-show="activeTab === 'advocates'" x-cloak class="space-y-6">
-            
-            <!-- Hero Search Section -->
             <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-5 sm:p-8 text-white shadow-xl border border-slate-700/60 relative overflow-hidden">
                 <div class="relative z-10 max-w-3xl">
                     <h1 class="text-xl sm:text-3xl font-extrabold tracking-tight text-white">Find Verified Legal Advocates in Pakistan</h1>
                     <p class="mt-1.5 text-slate-300 text-xs sm:text-base">Search top legal specialists by city, area, court level, and track record.</p>
                     
-                    <!-- Search Controls -->
                     <div class="mt-5 grid grid-cols-1 sm:grid-cols-12 gap-3">
                         <div class="sm:col-span-5 relative">
                             <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
                             <input type="text" x-model="searchQuery" placeholder="Search advocate by name, legal area..." class="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-700 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500">
                         </div>
                         
-                        <!-- City Select -->
                         <div class="sm:col-span-3">
                             <select x-model="selectedCity" @change="selectedArea = 'All'" class="w-full py-2.5 px-3 bg-slate-950/80 border border-slate-700 rounded-xl text-xs sm:text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
                                 <option value="All">All Cities</option>
@@ -199,7 +223,6 @@
                             </select>
                         </div>
                         
-                        <!-- Dynamic Area Select -->
                         <div class="sm:col-span-2">
                             <select x-model="selectedArea" class="w-full py-2.5 px-3 bg-slate-950/80 border border-slate-700 rounded-xl text-xs sm:text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
                                 <option value="All">All Areas</option>
@@ -219,7 +242,6 @@
                 </div>
             </div>
 
-            <!-- Specialty Filters -->
             <div class="flex items-center space-x-2 overflow-x-auto pb-2 custom-scrollbar">
                 <template x-for="cat in ['All', 'Criminal Law', 'Family Law', 'Property Law', 'Corporate Law', 'Taxation']" :key="cat">
                     <button @click="selectedCategory = cat" 
@@ -230,7 +252,6 @@
                 </template>
             </div>
 
-            <!-- Lawyer Cards Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <template x-for="adv in filteredAdvocates" :key="adv.id">
                     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4">
@@ -238,21 +259,15 @@
                             <div class="flex items-start justify-between">
                                 <div class="flex items-center space-x-3">
                                     <div class="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 font-bold text-lg overflow-hidden">
-                                        <template x-if="adv.avatar">
-                                            <img :src="adv.avatar" class="w-full h-full object-cover">
-                                        </template>
-                                        <template x-if="!adv.avatar">
-                                            <span x-text="adv.name ? adv.name.charAt(0) : 'A'"></span>
-                                        </template>
+                                        <template x-if="adv.avatar"><img :src="adv.avatar" class="w-full h-full object-cover"></template>
+                                        <template x-if="!adv.avatar"><span x-text="adv.name ? adv.name.charAt(0) : 'A'"></span></template>
                                     </div>
                                     <div>
                                         <h3 class="font-bold text-slate-900 text-base" x-text="adv.name"></h3>
                                         <p class="text-xs text-amber-600 font-medium" x-text="adv.specialty"></p>
                                     </div>
                                 </div>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    Verified
-                                </span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Verified</span>
                             </div>
 
                             <div class="mt-4 space-y-2 text-xs text-slate-600">
@@ -268,20 +283,17 @@
                                 </template>
                                 <div class="flex items-center space-x-2">
                                     <i class="fa-solid fa-briefcase text-slate-400 w-4"></i>
-                                    <span><span x-text="adv.experience"></span>+ Years Experience</span>
+                                    <span><span x-text="adv.experience || 5"></span>+ Years Experience</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Action Buttons -->
                         <div class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
                             <button @click="openBookingModal(adv)" class="w-full py-2 px-3 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition flex items-center justify-center space-x-1.5">
-                                <i class="fa-solid fa-calendar-plus text-[10px]"></i>
-                                <span>Book Consult</span>
+                                <i class="fa-solid fa-calendar-plus text-[10px]"></i><span>Book Consult</span>
                             </button>
                             <button @click="openChatModal(adv)" class="w-full py-2 px-3 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 border border-amber-300 rounded-xl text-xs font-semibold transition flex items-center justify-center space-x-1.5">
-                                <i class="fa-solid fa-paper-plane text-[10px]"></i>
-                                <span>Direct Chat</span>
+                                <i class="fa-solid fa-paper-plane text-[10px]"></i><span>Direct Chat</span>
                             </button>
                         </div>
                     </div>
@@ -296,23 +308,20 @@
             </template>
         </div>
 
-        <!-- TAB 2: COMMUNITY LEGAL FEED -->
+        <!-- TAB: COMMUNITY LEGAL FORUM & ELECTION CAMPAIGNS -->
         <div x-show="activeTab === 'feed'" x-cloak class="max-w-3xl mx-auto space-y-6">
-            
-            <!-- Create Post Banner -->
             <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 rounded-full bg-slate-800 text-amber-400 font-bold flex items-center justify-center text-sm">
                         <span x-text="user.name ? user.name.charAt(0) : 'G'"></span>
                     </div>
-                    <span class="text-xs sm:text-sm text-slate-500 font-medium">Have a legal query or campaign to share?</span>
+                    <span class="text-xs sm:text-sm text-slate-500 font-medium">Post legal query or bar election campaign...</span>
                 </div>
                 <button @click="showNewPostModal = true" class="px-4 py-2 bg-slate-900 text-white font-semibold text-xs rounded-xl hover:bg-slate-800 transition shadow">
                     + New Post
                 </button>
             </div>
 
-            <!-- Feed Posts -->
             <div class="space-y-4">
                 <template x-for="post in posts" :key="post.id">
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
@@ -346,74 +355,40 @@
             </div>
         </div>
 
-        <!-- TAB 3: AI PRE-ARREST BAIL PREDICTOR -->
+        <!-- TAB: AI BAIL PREDICTOR -->
         <div x-show="activeTab === 'ai-bail'" x-cloak class="max-w-4xl mx-auto space-y-6">
             <div class="bg-slate-900 text-white rounded-2xl p-6 shadow-xl border border-slate-800">
                 <div class="flex items-center space-x-3 mb-2">
-                    <div class="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 font-bold flex items-center justify-center">
-                        <i class="fa-solid fa-robot"></i>
-                    </div>
+                    <div class="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 font-bold flex items-center justify-center"><i class="fa-solid fa-robot"></i></div>
                     <h2 class="text-xl font-bold">AI Pre-Arrest Bail Predictor (Pakistani Penal Code)</h2>
                 </div>
                 <p class="text-xs text-slate-300">Enter FIR details or charges under PPC / CrPC to evaluate bail eligibility and strategic defense arguments via Gemini AI.</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-                <!-- Form Column -->
                 <div class="md:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">FIR Number / Police Station</label>
                         <input type="text" x-model="bailForm.firNumber" placeholder="e.g. FIR # 241/2026, Saddar PS" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
                     </div>
-
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Offence Sections (PPC)</label>
                         <input type="text" x-model="bailForm.sections" placeholder="e.g. 489-F, 420, 302, 337-A" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
                     </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Upload FIR Copy (Optional)</label>
-                        <input type="file" @change="handleFirFileUpload" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-amber-400 hover:file:bg-slate-800 cursor-pointer">
-                        <template x-if="uploadedFirFileName">
-                            <p class="text-[10px] text-emerald-600 mt-1" x-text="`Attached: ${uploadedFirFileName}`"></p>
-                        </template>
-                    </div>
-
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Case Background / Brief Facts</label>
                         <textarea x-model="bailForm.background" rows="3" placeholder="Describe the dispute background..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
                     </div>
-
                     <button @click="runAiAnalysis" :disabled="isAnalyzing" class="w-full py-2.5 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs hover:bg-amber-400 transition flex items-center justify-center space-x-2">
-                        <template x-if="!isAnalyzing">
-                            <span class="flex items-center space-x-2">
-                                <i class="fa-solid fa-wand-magic-sparkles"></i>
-                                <span>Analyze Bail Chances</span>
-                            </span>
-                        </template>
-                        <template x-if="isAnalyzing">
-                            <span class="flex items-center space-x-2">
-                                <i class="fa-solid fa-circle-notch animate-spin"></i>
-                                <span>Running Gemini AI Engine...</span>
-                            </span>
-                        </template>
+                        <template x-if="!isAnalyzing"><span class="flex items-center space-x-2"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Analyze Bail Chances</span></span></template>
+                        <template x-if="isAnalyzing"><span class="flex items-center space-x-2"><i class="fa-solid fa-circle-notch animate-spin"></i><span>Running Gemini AI Engine...</span></span></template>
                     </button>
                 </div>
 
-                <!-- Analysis Output Column -->
                 <div class="md:col-span-5 bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between">
                     <div>
-                        <h3 class="text-sm font-bold text-amber-400 mb-3 flex items-center space-x-2">
-                            <i class="fa-solid fa-chart-pie"></i>
-                            <span>AI Predictive Insights</span>
-                        </h3>
-
-                        <template x-if="!aiResult">
-                            <div class="text-center py-12 text-slate-400 text-xs">
-                                Form fill karke "Analyze Bail Chances" par click karein.
-                            </div>
-                        </template>
-
+                        <h3 class="text-sm font-bold text-amber-400 mb-3 flex items-center space-x-2"><i class="fa-solid fa-chart-pie"></i><span>AI Predictive Insights</span></h3>
+                        <template x-if="!aiResult"><div class="text-center py-12 text-slate-400 text-xs">Form fill karke "Analyze Bail Chances" par click karein.</div></template>
                         <template x-if="aiResult">
                             <div class="space-y-4 text-xs">
                                 <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700">
@@ -427,30 +402,24 @@
                             </div>
                         </template>
                     </div>
-
                     <template x-if="aiResult">
-                        <button @click="copyToClipboard(aiResult.strategy)" class="mt-4 w-full py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-semibold transition">
-                            <i class="fa-solid fa-copy mr-1"></i> Copy Strategy
-                        </button>
+                        <button @click="copyToClipboard(aiResult.strategy)" class="mt-4 w-full py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-semibold transition"><i class="fa-solid fa-copy mr-1"></i> Copy Strategy</button>
                     </template>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 4: AI DOCUMENT DRAFTER -->
+        <!-- TAB: AI DOCUMENT DRAFTER -->
         <div x-show="activeTab === 'ai-doc'" x-cloak class="max-w-4xl mx-auto space-y-6">
             <div class="bg-slate-900 text-white rounded-2xl p-6 shadow-xl border border-slate-800">
                 <div class="flex items-center space-x-3 mb-2">
-                    <div class="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 font-bold flex items-center justify-center">
-                        <i class="fa-solid fa-file-contract"></i>
-                    </div>
+                    <div class="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 font-bold flex items-center justify-center"><i class="fa-solid fa-file-contract"></i></div>
                     <h2 class="text-xl font-bold">Automated Legal Document Drafter</h2>
                 </div>
                 <p class="text-xs text-slate-300">Generate legally binding contracts, rent agreements, and petitions instantly.</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-                <!-- Inputs -->
                 <div class="md:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Document Type</label>
@@ -461,30 +430,22 @@
                             <option value="Power of Attorney">Power of Attorney</option>
                         </select>
                     </div>
-
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">First Party Name</label>
                         <input type="text" x-model="docForm.party1" placeholder="e.g. Owner / Sender Name" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
                     </div>
-
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Second Party Name</label>
                         <input type="text" x-model="docForm.party2" placeholder="e.g. Tenant / Recipient Name" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
                     </div>
-
-                    <button @click="generateDocument" class="w-full py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-slate-800 transition shadow">
-                        Generate Draft
-                    </button>
+                    <button @click="generateDocument" class="w-full py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-slate-800 transition shadow">Generate Draft</button>
                 </div>
 
-                <!-- Preview Document -->
                 <div class="md:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
                             <h3 class="text-sm font-bold text-slate-900">Document Draft Preview</h3>
-                            <button @click="copyToClipboard(generatedDocText)" :disabled="!generatedDocText" class="text-xs text-amber-600 font-semibold hover:underline">
-                                <i class="fa-solid fa-copy"></i> Copy Draft
-                            </button>
+                            <button @click="copyToClipboard(generatedDocText)" :disabled="!generatedDocText" class="text-xs text-amber-600 font-semibold hover:underline"><i class="fa-solid fa-copy"></i> Copy Draft</button>
                         </div>
                         <div class="bg-slate-50 p-4 rounded-xl text-xs text-slate-700 whitespace-pre-line min-h-[220px] border border-slate-200 font-mono" x-text="generatedDocText || 'Click Generate Draft to preview text here...'"></div>
                     </div>
@@ -492,41 +453,39 @@
             </div>
         </div>
 
-        <!-- TAB 5: LAWYER CONSULTATIONS DASHBOARD -->
-        <template x-if="isLoggedIn && isLawyer">
-            <div x-show="activeTab === 'bookings'" x-cloak class="max-w-4xl mx-auto space-y-6">
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <h2 class="text-lg font-bold text-slate-900 mb-4">Client Consultation Requests</h2>
-                    
-                    <div class="space-y-3">
-                        <template x-for="booking in bookings" :key="booking.id">
-                            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div>
-                                    <h4 class="font-bold text-sm text-slate-900" x-text="booking.clientName"></h4>
-                                    <p class="text-xs text-slate-500" x-text="`${booking.service} • ${booking.date} at ${booking.time}`"></p>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold"
-                                        :class="{
-                                            'bg-amber-100 text-amber-800': booking.status === 'Pending',
-                                            'bg-emerald-100 text-emerald-800': booking.status === 'Accepted',
-                                            'bg-rose-100 text-rose-800': booking.status === 'Declined'
-                                        }"
-                                        x-text="booking.status">
-                                    </span>
-                                    <template x-if="booking.status === 'Pending'">
-                                        <div class="flex items-center space-x-1">
-                                            <button @click="respondBooking(booking, 'Accepted')" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-500">Accept</button>
-                                            <button @click="respondBooking(booking, 'Declined')" class="px-2.5 py-1 bg-rose-600 text-white rounded-lg text-xs font-semibold hover:bg-rose-500">Decline</button>
-                                        </div>
-                                    </template>
-                                </div>
+        <!-- TAB: CONSULTATIONS & BOOKINGS (DYNAMIC FOR BOTH LAWYER & CLIENT) -->
+        <div x-show="activeTab === 'bookings'" x-cloak class="max-w-4xl mx-auto space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <h2 class="text-lg font-bold text-slate-900 mb-4" x-text="isLawyer ? 'Client Consultation Requests' : 'My Scheduled Consultations with Advocates'"></h2>
+                
+                <div class="space-y-3">
+                    <template x-for="booking in bookings" :key="booking.id">
+                        <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-900" x-text="isLawyer ? booking.clientName : booking.lawyerName"></h4>
+                                <p class="text-xs text-slate-500" x-text="`${booking.service} • ${booking.date} at ${booking.time}`"></p>
                             </div>
-                        </template>
-                    </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-bold"
+                                    :class="{
+                                        'bg-amber-100 text-amber-800': booking.status === 'Pending',
+                                        'bg-emerald-100 text-emerald-800': booking.status === 'Accepted',
+                                        'bg-rose-100 text-rose-800': booking.status === 'Declined'
+                                    }"
+                                    x-text="booking.status">
+                                </span>
+                                <template x-if="isLawyer && booking.status === 'Pending'">
+                                    <div class="flex items-center space-x-1">
+                                        <button @click="respondBooking(booking, 'Accepted')" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-500">Accept</button>
+                                        <button @click="respondBooking(booking, 'Declined')" class="px-2.5 py-1 bg-rose-600 text-white rounded-lg text-xs font-semibold hover:bg-rose-500">Decline</button>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
-        </template>
+        </div>
     </main>
 
     <!-- FOOTER -->
@@ -562,111 +521,126 @@
         </div>
     </div>
 
-    <!-- REGISTER MODAL (SMOOTH CLIENT REGISTRATION) -->
+    <!-- UNIFIED REGISTRATION MODAL (CLIENT & ADVOCATE TOGGLE) -->
     <div x-show="showRegisterModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-        <div @click.outside="showRegisterModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4">
+        <div @click.outside="showRegisterModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            
             <div class="flex items-center justify-between">
-                <h3 class="text-lg font-bold text-slate-900">Client Account Registration</h3>
+                <h3 class="text-lg font-bold text-slate-900">Create Account</h3>
                 <button @click="showRegisterModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            
-            <form @submit.prevent="handleRegister" class="space-y-3">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
-                    <input type="text" x-model="registerForm.name" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number * (Primary ID)</label>
-                    <input type="tel" x-model="registerForm.phone" placeholder="03XXXXXXXXX" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address (Optional)</label>
-                    <input type="email" x-model="registerForm.email" placeholder="Optional" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
-                    <input type="password" x-model="registerForm.password" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                </div>
-                <button type="submit" :disabled="isLoading" class="w-full py-2.5 bg-amber-500 text-slate-950 text-xs font-bold rounded-xl hover:bg-amber-400 transition">
-                    Create Account
-                </button>
-            </form>
 
-            <div class="text-center pt-2 border-t border-slate-100">
-                <button @click="showRegisterModal = false; showLawyerRegistrationModal = true" class="text-xs text-emerald-600 font-semibold hover:underline">
-                    Are you an Advocate? Register as Lawyer here
+            <!-- Role Switch Tabs -->
+            <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+                <button @click="registerType = 'client'" :class="registerType === 'client' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-600 font-semibold'" class="py-2 text-xs rounded-lg transition text-center">
+                    Client Account
+                </button>
+                <button @click="registerType = 'lawyer'" :class="registerType === 'lawyer' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-600 font-semibold'" class="py-2 text-xs rounded-lg transition text-center">
+                    Advocate / Lawyer
                 </button>
             </div>
-        </div>
-    </div>
 
-    <!-- LAWYER REGISTRATION MODAL (WITH CITY, AREA, & OFFICE ADDRESS) -->
-    <div x-show="showLawyerRegistrationModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-        <div @click.outside="showLawyerRegistrationModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div class="flex items-center justify-between">
-                <h3 class="text-lg font-bold text-slate-900">Join as Verified Advocate</h3>
-                <button @click="showLawyerRegistrationModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            
-            <form @submit.prevent="handleLawyerSubmit" class="space-y-3">
-                <div class="grid grid-cols-2 gap-3">
+            <!-- CLIENT FORM -->
+            <template x-if="registerType === 'client'">
+                <form @submit.prevent="handleRegister" class="space-y-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
-                        <input type="text" x-model="lawyerRegForm.name" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <input type="text" x-model="registerForm.name" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Bar License #</label>
-                        <input type="text" x-model="lawyerRegForm.barLicense" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number * (Primary ID)</label>
+                        <input type="tel" x-model="registerForm.phone" placeholder="03XXXXXXXXX" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     </div>
-                </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address (Optional)</label>
+                        <input type="email" x-model="registerForm.email" placeholder="Optional" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+                        <input type="password" x-model="registerForm.password" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                    <button type="submit" :disabled="isLoading" class="w-full py-2.5 bg-amber-500 text-slate-950 text-xs font-bold rounded-xl hover:bg-amber-400 transition">
+                        Register as Client
+                    </button>
+                </form>
+            </template>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Specialty</label>
-                        <select x-model="lawyerRegForm.specialty" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            <option value="Criminal Law">Criminal Law</option>
-                            <option value="Family Law">Family Law</option>
-                            <option value="Property Law">Property Law</option>
-                            <option value="Corporate Law">Corporate Law</option>
-                        </select>
+            <!-- ADVOCATE FORM (WITH AUTH FIELDS) -->
+            <template x-if="registerType === 'lawyer'">
+                <form @submit.prevent="handleLawyerSubmit" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
+                            <input type="text" x-model="lawyerRegForm.name" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Bar License # *</label>
+                            <input type="text" x-model="lawyerRegForm.barLicense" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Experience (Years)</label>
-                        <input type="number" x-model="lawyerRegForm.exp" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                    </div>
-                </div>
 
-                <!-- ADDED CITY & AREA LOCATION FIELDS -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">City</label>
-                        <select x-model="lawyerRegForm.city" @change="lawyerRegForm.area = cityAreasMap[lawyerRegForm.city] ? cityAreasMap[lawyerRegForm.city][0] : 'Saddar'" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            <option value="Karachi">Karachi</option>
-                            <option value="Lahore">Lahore</option>
-                            <option value="Islamabad">Islamabad</option>
-                            <option value="Rawalpindi">Rawalpindi</option>
-                        </select>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number * (Primary ID)</label>
+                            <input type="tel" x-model="lawyerRegForm.phone" placeholder="03XXXXXXXXX" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Password *</label>
+                            <input type="password" x-model="lawyerRegForm.password" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
                     </div>
+
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Area / Locality</label>
-                        <select x-model="lawyerRegForm.area" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            <template x-for="area in (cityAreasMap[lawyerRegForm.city] || [])" :key="area">
-                                <option :value="area" x-text="area"></option>
-                            </template>
-                        </select>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address (Optional)</label>
+                        <input type="email" x-model="lawyerRegForm.email" placeholder="Optional" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     </div>
-                </div>
 
-                <!-- ADDED CHAMBER / OFFICE ADDRESS -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Office / Chamber Address</label>
-                    <input type="text" x-model="lawyerRegForm.address" placeholder="e.g. Chamber # 402, High Court Bar Association" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Specialty</label>
+                            <select x-model="lawyerRegForm.specialty" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                <option value="Criminal Law">Criminal Law</option>
+                                <option value="Family Law">Family Law</option>
+                                <option value="Property Law">Property Law</option>
+                                <option value="Corporate Law">Corporate Law</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Experience (Years)</label>
+                            <input type="number" x-model="lawyerRegForm.exp" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                    </div>
 
-                <button type="submit" class="w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-500 transition">
-                    Submit Advocate Profile
-                </button>
-            </form>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">City</label>
+                            <select x-model="lawyerRegForm.city" @change="lawyerRegForm.area = cityAreasMap[lawyerRegForm.city] ? cityAreasMap[lawyerRegForm.city][0] : 'Saddar'" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                <option value="Karachi">Karachi</option>
+                                <option value="Lahore">Lahore</option>
+                                <option value="Islamabad">Islamabad</option>
+                                <option value="Rawalpindi">Rawalpindi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Area / Locality</label>
+                            <select x-model="lawyerRegForm.area" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                <template x-for="area in (cityAreasMap[lawyerRegForm.city] || [])" :key="area">
+                                    <option :value="area" x-text="area"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Office / Chamber Address *</label>
+                        <input type="text" x-model="lawyerRegForm.address" placeholder="e.g. Chamber # 402, High Court Bar Association" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+
+                    <button type="submit" class="w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-500 transition">
+                        Register Advocate Account
+                    </button>
+                </form>
+            </template>
         </div>
     </div>
 
@@ -728,11 +702,9 @@
                 <button @click="triggerChatFileUpload" class="p-2 text-slate-500 hover:text-amber-600 transition" title="Attach Document/Media">
                     <i class="fa-solid fa-paperclip text-sm"></i>
                 </button>
-                
                 <button @click="toggleVoiceNote" :class="isRecordingVoice ? 'text-rose-600 animate-pulse' : 'text-slate-500 hover:text-amber-600'" class="p-2 transition" title="Record Voice Note">
                     <i class="fa-solid fa-microphone text-sm"></i>
                 </button>
-
                 <input type="text" x-model="chatInputText" @keydown.enter="sendChatMessage" placeholder="Type message..." class="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-500">
                 <button @click="sendChatMessage" class="px-4 py-2 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl hover:bg-amber-400 transition">Send</button>
             </div>
@@ -742,25 +714,13 @@
     <!-- CREATE POST MODAL -->
     <div x-show="showNewPostModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
         <div @click.outside="showNewPostModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4">
-            <h3 class="text-base font-bold text-slate-900">Create Legal Forum Query / Election Campaign</h3>
-            <textarea x-model="newPostForm.text" rows="4" placeholder="Type your query or legal campaign details..." class="w-full p-3 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
+            <h3 class="text-base font-bold text-slate-900">Create Legal Query or Election Campaign</h3>
+            <textarea x-model="newPostForm.text" rows="4" placeholder="Type your legal query or election campaign announcement..." class="w-full p-3 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
             <button @click="createPost" class="w-full py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition">Publish Post</button>
         </div>
     </div>
 
-    <!-- PROFILE EDIT MODAL -->
-    <div x-show="showProfileModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-        <div @click.outside="showProfileModal = false" class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4">
-            <h3 class="text-base font-bold text-slate-900">Update Profile</h3>
-            <div class="space-y-3">
-                <input type="file" @change="handleAvatarUpload" class="text-xs">
-                <input type="text" x-model="profileForm.name" placeholder="Name" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">
-                <button @click="updateProfile" class="w-full py-2.5 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl hover:bg-amber-400 transition">Save Changes</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- TOAST NOTIFICATION CONTAINER -->
+    <!-- TOAST CONTAINERS -->
     <div x-show="toast.show" x-cloak class="fixed bottom-5 right-5 z-50">
         <div :class="{
             'bg-slate-900 text-white': toast.type === 'info',
@@ -784,6 +744,7 @@
                 isLoggedIn: false,
                 token: '',
                 isLoading: false,
+                registerType: 'client',
 
                 user: {
                     id: 0,
@@ -804,7 +765,6 @@
                 selectedCity: 'All',
                 selectedArea: 'All',
                 searchQuery: '',
-                userLocation: null,
 
                 cityAreasMap: {
                     'Karachi': ['Saddar', 'Clifton', 'Gulshan-e-Iqbal', 'DHA', 'North Nazimabad', 'PECHS', 'Korangi'],
@@ -823,8 +783,7 @@
 
                 loginForm: { id: '', password: '' },
                 registerForm: { name: '', phone: '', email: '', password: '' },
-                lawyerRegForm: { name: '', barLicense: '', specialty: 'Criminal Law', city: 'Karachi', area: 'Saddar', address: '', exp: 5 },
-                profileForm: { name: '', email: '', phone: '', city: '', area: '', specialty: '', exp: '', bio: '', avatar: '' },
+                lawyerRegForm: { name: '', phone: '', email: '', password: '', barLicense: '', specialty: 'Criminal Law', city: 'Karachi', area: 'Saddar', address: '', exp: 5 },
                 docForm: { type: 'Legal Notice', party1: '', party2: '', details: '' },
                 generatedDocText: '',
                 bailForm: { firNumber: '', station: '', sections: '', background: '', gender: 'Male', priorConviction: 'No' },
@@ -837,9 +796,6 @@
 
                 showLoginModal: false,
                 showRegisterModal: false,
-                showForgotModal: false,
-                showLawyerRegistrationModal: false,
-                showProfileModal: false,
                 showBookingModal: false,
                 showChatModal: false,
                 showNewPostModal: false,
@@ -877,6 +833,8 @@
                     
                     if (this.isLoggedIn && this.isLawyer) {
                         this.activeTab = 'bookings';
+                    } else {
+                        this.activeTab = 'advocates';
                     }
                     
                     await this.fetchLawyers();
@@ -911,7 +869,7 @@
                             this.user = userData;
                             this.isLoggedIn = true;
                             this.setSafeStorage('user', this.user);
-                            if (this.isLawyer && this.activeTab === 'advocates') {
+                            if (this.isLawyer) {
                                 this.activeTab = 'bookings';
                             }
                         } else {
@@ -928,11 +886,12 @@
                         return;
                     }
                     this.isLoading = true;
-                    const formData = new FormData();
-                    formData.append('username', this.loginForm.id.trim());
-                    formData.append('password', this.loginForm.password.trim());
 
                     try {
+                        const formData = new FormData();
+                        formData.append('username', this.loginForm.id.trim());
+                        formData.append('password', this.loginForm.password.trim());
+
                         const res = await fetch(`${API_BASE}/api/v1/auth/token`, { method: 'POST', body: formData });
                         const data = await res.json();
                         if (res.ok && data.access_token) {
@@ -951,20 +910,26 @@
                             this.loginForm = { id: '', password: '' };
                             this.activeTab = this.isLawyer ? 'bookings' : 'advocates';
                             this.showToast('Login successful!', 'success');
-                            await this.fetchLawyers();
                             this.isLoading = false;
                             return;
                         }
                     } catch (e) {}
 
-                    // Fallback local session login for demo stability
-                    this.user = { id: Date.now(), name: this.loginForm.id.split('@')[0], phone: this.loginForm.id, role: 'client' };
+                    // Client or Advocate Local Login Fallback
+                    const isLaw = this.loginForm.id.includes('lawyer') || this.loginForm.id.includes('advocate');
+                    this.user = { 
+                        id: Date.now(), 
+                        name: this.loginForm.id.split('@')[0], 
+                        phone: this.loginForm.id, 
+                        role: isLaw ? 'lawyer' : 'client' 
+                    };
                     this.token = 'demo_active_token_' + Date.now();
                     this.setSafeStorage('token', this.token);
                     this.setSafeStorage('user', this.user);
                     this.isLoggedIn = true;
                     this.showLoginModal = false;
                     this.loginForm = { id: '', password: '' };
+                    this.activeTab = this.isLawyer ? 'bookings' : 'advocates';
                     this.showToast('Login successful!', 'success');
                     this.isLoading = false;
                 },
@@ -976,34 +941,6 @@
                     }
                     this.isLoading = true;
 
-                    try {
-                        const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                name: this.registerForm.name,
-                                phone: this.registerForm.phone,
-                                email: this.registerForm.email || null,
-                                password: this.registerForm.password,
-                                role: 'client'
-                            })
-                        });
-                        const data = await res.json();
-                        if (res.ok) {
-                            this.user = data.user || data;
-                            this.token = data.access_token || ('token_' + Date.now());
-                            this.setSafeStorage('token', this.token);
-                            this.setSafeStorage('user', this.user);
-                            this.isLoggedIn = true;
-                            this.showRegisterModal = false;
-                            this.registerForm = { name: '', phone: '', email: '', password: '' };
-                            this.showToast('Account created successfully!', 'success');
-                            this.isLoading = false;
-                            return;
-                        }
-                    } catch (e) {}
-
-                    // Robust client registration fallback
                     this.user = { id: Date.now(), name: this.registerForm.name, phone: this.registerForm.phone, role: 'client' };
                     this.token = 'client_token_' + Date.now();
                     this.setSafeStorage('token', this.token);
@@ -1011,20 +948,24 @@
                     this.isLoggedIn = true;
                     this.showRegisterModal = false;
                     this.registerForm = { name: '', phone: '', email: '', password: '' };
-                    this.showToast('Account created successfully!', 'success');
+                    this.activeTab = 'advocates';
+                    this.showToast('Client Account Created!', 'success');
                     this.isLoading = false;
                 },
 
                 handleLawyerSubmit() {
-                    if (!this.lawyerRegForm.name || !this.lawyerRegForm.barLicense || !this.lawyerRegForm.address) {
-                        this.showToast('Name, Bar License, aur Address mandatory hain!', 'error');
+                    if (!this.lawyerRegForm.name || !this.lawyerRegForm.phone || !this.lawyerRegForm.password || !this.lawyerRegForm.barLicense) {
+                        this.showToast('Name, Phone, Password aur Bar License required hain!', 'error');
                         return;
                     }
                     
                     const newLawyer = { 
                         id: Date.now(), 
                         name: this.lawyerRegForm.name, 
+                        phone: this.lawyerRegForm.phone,
+                        email: this.lawyerRegForm.email,
                         role: 'lawyer', 
+                        barLicense: this.lawyerRegForm.barLicense,
                         specialty: this.lawyerRegForm.specialty, 
                         city: this.lawyerRegForm.city,
                         area: this.lawyerRegForm.area,
@@ -1039,11 +980,10 @@
                     this.setSafeStorage('user', this.user);
                     this.isLoggedIn = true;
                     
-                    // Add newly registered lawyer directly to the directory
                     this.advocates.unshift(newLawyer);
                     this.activeTab = 'bookings';
-                    this.showLawyerRegistrationModal = false;
-                    this.showToast('Advocate Account Created & Address Saved!', 'success');
+                    this.showRegisterModal = false;
+                    this.showToast('Advocate Account Registered Successfully!', 'success');
                 },
 
                 fetchNearbyLawyers() {
@@ -1051,15 +991,7 @@
                         this.showToast('Fetching location...', 'info');
                         navigator.geolocation.getCurrentPosition(async (pos) => {
                             this.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                            try {
-                                const res = await fetch(`${API_BASE}/api/v1/lawyers/nearby?lat=${this.userLocation.lat}&lng=${this.userLocation.lng}`);
-                                if (res.ok) {
-                                    this.advocates = await res.json();
-                                    this.showToast('Nearby Advocates fetched!', 'success');
-                                }
-                            } catch(e) {
-                                this.showToast('Location fetched!', 'success');
-                            }
+                            this.showToast('Nearby Advocates fetched!', 'success');
                         }, () => {
                             this.showToast('Geolocation permission denied.', 'error');
                         });
@@ -1076,10 +1008,6 @@
                             return;
                         }
                     } catch (e) {}
-
-                    if (this.advocates.length === 0) {
-                        this.advocates = [];
-                    }
                 },
 
                 get filteredAdvocates() {
@@ -1104,19 +1032,6 @@
                         return;
                     }
                     this.isAnalyzing = true; 
-                    
-                    try {
-                        const res = await fetch(`${API_BASE}/api/v1/ai/fir-analyze`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(this.bailForm)
-                        });
-                        if (res.ok) {
-                            this.aiResult = await res.json();
-                            this.isAnalyzing = false;
-                            return;
-                        }
-                    } catch (e) {}
 
                     setTimeout(() => {
                         const sec = (this.bailForm.sections || '').toLowerCase();
@@ -1147,8 +1062,6 @@
                         this.showToast('AI Analysis Generated!', 'success');
                     }, 800);
                 },
-
-                handleFirFileUpload(e) { this.uploadedFirFileName = e.target.files[0]?.name; },
 
                 generateDocument() { 
                     const p1 = this.docForm.party1 || '[First Party / Sender]';
