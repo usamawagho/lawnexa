@@ -256,7 +256,7 @@
                                     </div>
                                     <div>
                                         <h3 class="font-bold text-slate-900 text-base" x-text="adv.name"></h3>
-                                        <p class="text-xs text-amber-600 font-medium" x-text="adv.specialty"></p>
+                                        <p class="text-xs text-amber-600 font-medium" x-text="adv.chamberName || adv.specialty"></p>
                                     </div>
                                 </div>
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Verified</span>
@@ -418,10 +418,9 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-800 mb-1">Select Document Type</label>
                         <select x-model="docForm.type" @change="resetDocForm()" class="w-full px-3 py-2 bg-amber-500/10 border border-amber-400 font-semibold rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                            <option value="Rent Agreement">Rent Agreement (Kirayanama)</option>
-                            <option value="Affidavit">Affidavit (Bayan-e-Halafi)</option>
-                            <option value="Legal Notice">Legal Notice</option>
-                            <option value="Power of Attorney">Power of Attorney (Mokhtar-nama)</option>
+                            <template x-for="doc in filterableDocTypes" :key="doc.value">
+                                <option :value="doc.value" x-text="doc.label"></option>
+                            </template>
                         </select>
                     </div>
 
@@ -471,7 +470,43 @@
                         </div>
                     </template>
 
-                    <!-- DYNAMIC FIELDS FOR LEGAL NOTICE -->
+                    <!-- DYNAMIC FIELDS FOR POLICE APPLICATION -->
+                    <template x-if="docForm.type === 'Police Application'">
+                        <div class="space-y-3 pt-2 border-t border-slate-100">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Applicant Name</label>
+                                <input type="text" x-model="docForm.party1" placeholder="e.g. Muhammad Usama" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Police Station (Thana Name)</label>
+                                <input type="text" x-model="docForm.address" placeholder="e.g. Saddar Police Station, Karachi" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Incident / Complaint Details</label>
+                                <textarea x-model="docForm.details" rows="3" placeholder="e.g. Theft of mobile phone / harassment / illegal threat by opposite party..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- DYNAMIC FIELDS FOR GOVT APPLICATION -->
+                    <template x-if="docForm.type === 'Govt Application'">
+                        <div class="space-y-3 pt-2 border-t border-slate-100">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Applicant Name</label>
+                                <input type="text" x-model="docForm.party1" placeholder="e.g. Citizen Name" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Authority Designation / Office</label>
+                                <input type="text" x-model="docForm.party2" placeholder="e.g. Assistant Commissioner / Deputy Commissioner / K-Electric" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Application Purpose / Grievance</label>
+                                <textarea x-model="docForm.details" rows="3" placeholder="e.g. Request for issue of domicile / resolution of public Nuisance..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- DYNAMIC FIELDS FOR LEGAL NOTICE (ADVOCATE ONLY) -->
                     <template x-if="docForm.type === 'Legal Notice'">
                         <div class="space-y-3 pt-2 border-t border-slate-100">
                             <div>
@@ -489,6 +524,48 @@
                         </div>
                     </template>
 
+                    <!-- DYNAMIC FIELDS FOR BAIL PETITION (ADVOCATE ONLY) -->
+                    <template x-if="docForm.type === 'Bail Petition'">
+                        <div class="space-y-3 pt-2 border-t border-slate-100">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Accused / Applicant Name</label>
+                                <input type="text" x-model="docForm.party1" placeholder="e.g. Accused Name" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">FIR Number</label>
+                                    <input type="text" x-model="docForm.rentAmount" placeholder="e.g. 142/2026" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">PPC Sections</label>
+                                    <input type="text" x-model="docForm.deposit" placeholder="e.g. 489-F/420" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Police Station & Court Name</label>
+                                <input type="text" x-model="docForm.address" placeholder="e.g. P.S Saddar Karachi, Before Sessions Judge" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- DYNAMIC FIELDS FOR VAKALATNAMA (ADVOCATE ONLY) -->
+                    <template x-if="docForm.type === 'Vakalatnama'">
+                        <div class="space-y-3 pt-2 border-t border-slate-100">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Client / Litigant Name</label>
+                                <input type="text" x-model="docForm.party1" placeholder="e.g. Client / Petitioner Name" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Opposite Party Name</label>
+                                <input type="text" x-model="docForm.party2" placeholder="e.g. Respondent / Defendant Name" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Court Name & Case Title</label>
+                                <input type="text" x-model="docForm.details" placeholder="e.g. High Court of Sindh / District Court Karachi" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                        </div>
+                    </template>
+
                     <!-- DYNAMIC FIELDS FOR POWER OF ATTORNEY -->
                     <template x-if="docForm.type === 'Power of Attorney'">
                         <div class="space-y-3 pt-2 border-t border-slate-100">
@@ -497,7 +574,7 @@
                                 <input type="text" x-model="docForm.party1" placeholder="e.g. Principal Owner Name" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Attorney Name (Appointed Representative / Vakil)</label>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Attorney Name (Appointed Representative)</label>
                                 <input type="text" x-model="docForm.party2" placeholder="e.g. Appointed Attorney Name" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
                             </div>
                             <div>
@@ -634,6 +711,13 @@
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
                     <input type="text" x-model="profileEditForm.name" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                 </div>
+
+                <template x-if="isLawyer">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Chamber / Law Firm Name *</label>
+                        <input type="text" x-model="profileEditForm.chamberName" placeholder="e.g. M/s Legal Associates & Law Chambers" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                </template>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
@@ -784,6 +868,11 @@
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Bar License # *</label>
                             <input type="text" x-model="lawyerRegForm.barLicense" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                         </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Chamber / Law Firm Name *</label>
+                        <input type="text" x-model="lawyerRegForm.chamberName" placeholder="e.g. Usama & Co. Law Chambers" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
@@ -957,11 +1046,30 @@
                 user: {
                     id: 0,
                     name: 'Guest',
-                    role: 'client'
+                    role: 'client',
+                    chamberName: ''
                 },
 
                 get isLawyer() {
                     return this.user && (this.user.role === 'lawyer' || this.user.role === 'advocate');
+                },
+
+                get filterableDocTypes() {
+                    const docs = [
+                        { value: 'Rent Agreement', label: 'Rent Agreement (Kirayanama)', lawyerOnly: false },
+                        { value: 'Affidavit', label: 'Affidavit (Bayan-e-Halafi)', lawyerOnly: false },
+                        { value: 'Police Application', label: 'Application to Police Station / SHO', lawyerOnly: false },
+                        { value: 'Govt Application', label: 'General Application to Public Officer / DC / AC', lawyerOnly: false },
+                        { value: 'Power of Attorney', label: 'General Power of Attorney (Mokhtar-nama)', lawyerOnly: false },
+                        { value: 'Legal Notice', label: 'Legal Notice (Advocate Only)', lawyerOnly: true },
+                        { value: 'Bail Petition', label: 'Bail Application u/s 498 CrPC (Advocate Only)', lawyerOnly: true },
+                        { value: 'Vakalatnama', label: 'Court Vakalatnama (Advocate Only)', lawyerOnly: true }
+                    ];
+
+                    if (this.isLawyer) {
+                        return docs;
+                    }
+                    return docs.filter(d => !d.lawyerOnly);
                 },
 
                 advocates: [],
@@ -991,13 +1099,14 @@
 
                 loginForm: { id: '', password: '' },
                 registerForm: { name: '', phone: '', email: '', password: '' },
-                lawyerRegForm: { name: '', phone: '', email: '', password: '', barLicense: '', specialty: 'Criminal Law', city: 'Karachi', area: 'Saddar', address: '', exp: 5 },
+                lawyerRegForm: { name: '', phone: '', email: '', password: '', barLicense: '', chamberName: '', specialty: 'Criminal Law', city: 'Karachi', area: 'Saddar', address: '', exp: 5 },
                 newPostForm: { text: '' },
 
                 // PROFILE EDIT STATE
                 showProfileModal: false,
                 profileEditForm: {
                     name: '',
+                    chamberName: '',
                     email: '',
                     avatar: '',
                     specialty: 'Criminal Law',
@@ -1035,7 +1144,7 @@
 
                 toast: { show: false, message: '', type: 'info' },
 
-                // OFFICIAL LEGAL DOCUMENT DOWNLOAD / PRINT ENGINE
+                // OFFICIAL LEGAL DOCUMENT DOWNLOAD / PRINT ENGINE WITH CHAMBER HEADER
                 downloadFormattedDoc() {
                     if (!this.generatedDocText) {
                         this.showToast('Pehle document draft generate karein!', 'error');
@@ -1044,20 +1153,29 @@
 
                     const docTitle = this.docForm.type || 'Legal Document';
                     const docText = this.generatedDocText;
+
+                    let chamberTitle = 'OFFICIAL LEGAL DOCUMENT DRAFT';
+                    let chamberAddressLine = 'Compliant with Legal Practice Standards in Pakistan';
+
+                    if (this.isLawyer) {
+                        chamberTitle = (this.user.chamberName || (this.user.name + ' & ASSOCIATES')).toUpperCase();
+                        chamberAddressLine = `${this.user.address || 'High Court Bar Association'}, ${this.user.city || 'Pakistan'} • Advocate High Court`;
+                    }
                     
                     const printWindow = window.open('', '_blank');
                     printWindow.document.write(`
                         <!DOCTYPE html>
                         <html>
                         <head>
-                            <title>${docTitle} - LawNexa Standard Legal Draft</title>
+                            <title>${docTitle} - Standard Legal Draft</title>
                             <style>
                                 @page { size: A4; margin: 15mm 20mm 20mm 20mm; }
                                 body { font-family: 'Times New Roman', Times, serif; font-size: 13pt; line-height: 1.8; color: #000; margin: 0; padding: 15px; }
-                                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
-                                .logo-brand { font-size: 22pt; font-weight: bold; letter-spacing: 2px; color: #0f172a; text-transform: uppercase; }
-                                .sub-logo { font-size: 9pt; font-weight: bold; color: #b45309; text-transform: uppercase; letter-spacing: 1.5px; }
-                                .stamp-box { border: 2px dashed #94a3b8; height: 130px; margin: 15px 0 25px 0; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; font-size: 10pt; border-radius: 8px; background: #f8fafc; }
+                                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; position: relative; }
+                                .lawnexa-watermark { position: absolute; right: 0; top: 0; font-size: 8pt; font-weight: bold; color: #b45309; text-transform: uppercase; border: 1px solid #f59e0b; padding: 2px 6px; border-radius: 4px; background: #fffbeb; font-family: sans-serif; }
+                                .chamber-brand { font-size: 20pt; font-weight: bold; letter-spacing: 1.5px; color: #0f172a; text-transform: uppercase; font-family: 'Times New Roman', serif; }
+                                .sub-logo { font-size: 9.5pt; font-weight: bold; color: #334155; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+                                .stamp-box { border: 2px dashed #94a3b8; height: 120px; margin: 15px 0 25px 0; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; font-size: 10pt; border-radius: 8px; background: #f8fafc; }
                                 .content { white-space: pre-line; text-align: justify; font-size: 12pt; line-height: 1.9; font-family: 'Times New Roman', Times, serif; }
                                 .signature-grid { margin-top: 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; page-break-inside: avoid; }
                                 .sig-box { border-top: 1px solid #000; padding-top: 6px; text-align: center; font-size: 11pt; font-weight: bold; }
@@ -1070,8 +1188,9 @@
                         </head>
                         <body>
                             <div class="header">
-                                <div class="logo-brand">⚖ LAWNEXA</div>
-                                <div class="sub-logo">Pakistan Legal Tech Platform • Official Standard Legal Draft</div>
+                                <div class="lawnexa-watermark">Powered by LawNexa</div>
+                                <div class="chamber-brand">${chamberTitle}</div>
+                                <div class="sub-logo">${chamberAddressLine}</div>
                             </div>
 
                             <div class="stamp-box">
@@ -1087,7 +1206,7 @@
                             </div>
 
                             <div class="footer">
-                                Document Generated via LawNexa Legal Tech Engine (Pakistan) • Compliant with Legal Drafting Standards
+                                Document Processed via LawNexa Legal Tech Platform • Marketing Partner
                             </div>
                         </body>
                         </html>
@@ -1104,6 +1223,7 @@
                     if (!this.isLoggedIn) return;
                     this.profileEditForm = {
                         name: this.user.name || '',
+                        chamberName: this.user.chamberName || '',
                         email: this.user.email || '',
                         avatar: this.user.avatar || '',
                         specialty: this.user.specialty || 'Criminal Law',
@@ -1141,6 +1261,7 @@
                     this.user.avatar = this.profileEditForm.avatar;
 
                     if (this.isLawyer) {
+                        this.user.chamberName = this.profileEditForm.chamberName.trim();
                         this.user.specialty = this.profileEditForm.specialty;
                         this.user.experience = this.profileEditForm.experience;
                         this.user.city = this.profileEditForm.city;
@@ -1232,7 +1353,7 @@
                     this.removeSafeStorage('user');
                     this.token = '';
                     this.isLoggedIn = false;
-                    this.user = { id: 0, name: 'Guest', role: 'client' };
+                    this.user = { id: 0, name: 'Guest', role: 'client', chamberName: '' };
                 },
 
                 logout() {
@@ -1288,6 +1409,7 @@
                                 id: data.user_id || (data.user && data.user.id), 
                                 name: data.name || (data.user && data.user.name), 
                                 role: detectedRole, 
+                                chamberName: data.chamberName || (data.name ? data.name + ' Law Chambers' : 'Law Chambers'),
                                 ...(data.user || {}) 
                             };
                             this.setSafeStorage('token', this.token);
@@ -1307,7 +1429,8 @@
                         id: Date.now(), 
                         name: this.loginForm.id.split('@')[0], 
                         phone: this.loginForm.id, 
-                        role: selectedRole 
+                        role: selectedRole,
+                        chamberName: selectedRole === 'lawyer' ? (this.loginForm.id.split('@')[0] + ' Law Chambers') : ''
                     };
                     this.token = 'demo_active_token_' + Date.now();
                     this.setSafeStorage('token', this.token);
@@ -1327,7 +1450,7 @@
                     }
                     this.isLoading = true;
 
-                    this.user = { id: Date.now(), name: this.registerForm.name, phone: this.registerForm.phone, role: 'client' };
+                    this.user = { id: Date.now(), name: this.registerForm.name, phone: this.registerForm.phone, role: 'client', chamberName: '' };
                     this.token = 'client_token_' + Date.now();
                     this.setSafeStorage('token', this.token);
                     this.setSafeStorage('user', this.user);
@@ -1340,14 +1463,15 @@
                 },
 
                 handleLawyerSubmit() {
-                    if (!this.lawyerRegForm.name || !this.lawyerRegForm.phone || !this.lawyerRegForm.password || !this.lawyerRegForm.barLicense) {
-                        this.showToast('Name, Phone, Password aur Bar License required hain!', 'error');
+                    if (!this.lawyerRegForm.name || !this.lawyerRegForm.phone || !this.lawyerRegForm.password || !this.lawyerRegForm.barLicense || !this.lawyerRegForm.chamberName) {
+                        this.showToast('Name, Phone, Password, Chamber Name aur Bar License required hain!', 'error');
                         return;
                     }
                     
                     const newLawyer = { 
                         id: Date.now(), 
                         name: this.lawyerRegForm.name, 
+                        chamberName: this.lawyerRegForm.chamberName,
                         phone: this.lawyerRegForm.phone,
                         email: this.lawyerRegForm.email,
                         role: 'lawyer', 
@@ -1402,7 +1526,7 @@
                         const matchCity = this.selectedCity === 'All' || a.city === this.selectedCity;
                         const matchArea = this.selectedArea === 'All' || a.area === this.selectedArea;
                         const q = this.searchQuery.toLowerCase().trim();
-                        const matchSearch = !q || a.name.toLowerCase().includes(q) || (a.city && a.city.toLowerCase().includes(q)) || (a.area && a.area.toLowerCase().includes(q)) || (a.specialty && a.specialty.toLowerCase().includes(q));
+                        const matchSearch = !q || a.name.toLowerCase().includes(q) || (a.chamberName && a.chamberName.toLowerCase().includes(q)) || (a.city && a.city.toLowerCase().includes(q)) || (a.area && a.area.toLowerCase().includes(q)) || (a.specialty && a.specialty.toLowerCase().includes(q));
                         return matchCat && matchCity && matchArea && matchSearch;
                     });
                 },
@@ -1521,6 +1645,56 @@ CNIC: ${cnic}
 VERIFICATION:
 Verified on Oath at Pakistan on ${dateStr} that the contents of this affidavit are true and correct to the best of my knowledge and nothing is false.`;
 
+                    } else if (this.docForm.type === 'Police Application') {
+                        const applicant = this.docForm.party1 || '[Applicant Name]';
+                        const ps = this.docForm.address || '[Police Station Name]';
+                        const grievance = this.docForm.details || 'Incidence of theft / harassment / unlawful threat.';
+
+                        this.generatedDocText = 
+`TO THE INCHARGE / SHO POLICE STATION
+${ps}
+
+SUBJECT: APPLICATION FOR LEGAL ACTION AND REGISTRATION OF COMPLAINT
+
+Respected Sir,
+
+I, ${applicant}, resident of Pakistan, respectfully state as under:
+
+1. That I am a law-abiding citizen residing at the given address.
+2. FACTS OF COMPLAINT:
+   "${grievance}"
+3. PRAYER:
+   It is requested that lawful action be taken immediately and an official FIR / Inquiry be registered into the matter to secure justice and safeguard life and property.
+
+Dated: ${dateStr}
+
+APPLICANT: ${applicant}
+Contact / CNIC: _________________`;
+
+                    } else if (this.docForm.type === 'Govt Application') {
+                        const applicant = this.docForm.party1 || '[Applicant Name]';
+                        const authority = this.docForm.party2 || '[Officer / Authority Title]';
+                        const req = this.docForm.details || 'Request for public relief / license / official inquiry.';
+
+                        this.generatedDocText = 
+`BEFORE THE RESPECTED ${authority.toUpperCase()}
+
+SUBJECT: APPLICATION FOR REGISTRATION / OFFICIAL RELIEF
+
+Respected Sir/Madam,
+
+I, ${applicant}, respectfully submit as under:
+
+1. That the applicant is filing this representation regarding:
+   "${req}"
+2. That all prerequisite requirements have been fulfilled by the applicant in good faith.
+3. PRAYER:
+   It is most humbly prayed that necessary directions / approval be issued in accordance with applicable Govt rules.
+
+Dated: ${dateStr}
+
+APPLICANT: ${applicant}`;
+
                     } else if (this.docForm.type === 'Legal Notice') {
                         const sender = this.docForm.party1 || '[Client / Sender Name]';
                         const recipient = this.docForm.party2 || '[Recipient / Defaulter Name]';
@@ -1535,7 +1709,7 @@ Date: ${dateStr}
 TO:
 ${recipient}
 
-FROM (ON BEHALF OF):
+FROM (ON BEHALF OF CLIENT):
 ${sender}
 
 SUBJECT: FINAL LEGAL NOTICE FOR DEMAND OF COMPLIANCE / SETTLEMENT
@@ -1549,10 +1723,60 @@ Under instructions from and on behalf of my client, ${sender}, I do hereby serve
    "${claim}"
 3. You are hereby called upon to satisfy the legal demands of my client within 15 DAYS of the receipt of this notice.
 
-Take notice that failure to comply shall compel my client to institute Civil / Criminal Legal Proceedings against you in the competent Courts of Pakistan at your sole risk, cost, and consequences.
+Take notice that failure to comply shall compel my client to institute Civil / Criminal Legal Proceedings against you in competent Courts at your sole risk and costs.
 
-ADVOCATE HIGH COURT
-LawNexa Legal Tech Platform`;
+ADVOCATE HIGH COURT`;
+
+                    } else if (this.docForm.type === 'Bail Petition') {
+                        const accused = this.docForm.party1 || '[Accused Name]';
+                        const fir = this.docForm.rentAmount || '[FIR No/Year]';
+                        const sec = this.docForm.deposit || '[PPC Sections]';
+                        const court = this.docForm.address || '[Court Title / Police Station]';
+
+                        this.generatedDocText = 
+`BEFORE THE LEARNED SESSIONS JUDGE / HIGH COURT
+${court}
+
+Bail Application No. _____ / 2026
+
+${accused} ......... Accused / Applicant
+VERSUS
+The State ......... Respondent
+
+FIR No: ${fir} | PPC Sections: ${sec}
+
+APPLICATION FOR PRE-ARREST BAIL UNDER SECTION 498 Cr.P.C.
+
+Respectfully Sheweth:
+1. That the applicant has been falsely implicated in the above-captioned FIR with mala fide intent.
+2. That there is no overt act attributed to the applicant nor any direct recovery made.
+3. That the applicant is ready to furnish solvent surety to the satisfaction of this Honorable Court.
+
+PRAYER:
+It is prayed that interim pre-arrest bail be granted to the applicant in the interest of justice.
+
+ADVOCATE FOR APPLICANT`;
+
+                    } else if (this.docForm.type === 'Vakalatnama') {
+                        const client = this.docForm.party1 || '[Litigant / Client Name]';
+                        const opposite = this.docForm.party2 || '[Opposite Party Name]';
+                        const courtInfo = this.docForm.details || '[Court Name & Case Number]';
+
+                        this.generatedDocText = 
+`VAKALATNAMA (POWER OF ATTORNEY FOR ADVOCATE)
+IN THE COURT OF: ${courtInfo}
+
+CASE TITLE:
+${client}  ... Petitioner / Plaintiff
+VERSUS
+${opposite} ... Respondent / Defendant
+
+KNOW ALL MEN BY THESE PRESENTS that I/We do hereby appoint and constitute Advocate(s) of this Chamber to act, appear, plead, and conduct the case on my/our behalf.
+
+Dated: ${dateStr}
+
+CLIENT SIGNATURE: _________________
+ACCEPTED BY ADVOCATE`;
 
                     } else {
                         const principal = this.docForm.party1 || '[Principal / Executant Name]';
@@ -1566,8 +1790,6 @@ KNOW ALL MEN BY THESE PRESENTS that I, ${principal}, do hereby appoint, nominate
 
 POWERS GRANTED:
 "${powers}"
-
-The Attorney is empowered to represent me before Courts, Government Offices, Development Authorities, and Registrars in Pakistan.
 
 Executed on: ${dateStr}
 
