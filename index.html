@@ -144,7 +144,7 @@
         </div>
     </header>
 
-    <!-- MOBILE TABS BAR (MOBILE ADVOCATE BUTTON INCLUDED) -->
+    <!-- MOBILE TABS BAR -->
     <div class="md:hidden bg-slate-900 border-b border-slate-800 px-2 py-2 flex items-center overflow-x-auto space-x-2 custom-scrollbar">
         <button @click="activeTab = 'advocates'" :class="activeTab === 'advocates' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'" class="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">
             Find Lawyers
@@ -189,8 +189,10 @@
                             <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
                             <input type="text" x-model="searchQuery" placeholder="Search advocate by name, legal area..." class="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500">
                         </div>
+                        
+                        <!-- City Select -->
                         <div class="sm:col-span-3">
-                            <select x-model="selectedCity" class="w-full py-2.5 px-3 bg-slate-950/80 border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <select x-model="selectedCity" @change="selectedArea = 'All'" class="w-full py-2.5 px-3 bg-slate-950/80 border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
                                 <option value="All">All Cities</option>
                                 <option value="Karachi">Karachi</option>
                                 <option value="Lahore">Lahore</option>
@@ -198,17 +200,17 @@
                                 <option value="Rawalpindi">Rawalpindi</option>
                             </select>
                         </div>
+                        
+                        <!-- Dynamic Area Select -->
                         <div class="sm:col-span-2">
                             <select x-model="selectedArea" class="w-full py-2.5 px-3 bg-slate-950/80 border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
                                 <option value="All">All Areas</option>
-                                <option value="Saddar">Saddar</option>
-                                <option value="Clifton">Clifton</option>
-                                <option value="Gulshan">Gulshan</option>
-                                <option value="DHA">DHA</option>
-                                <option value="Gulberg">Gulberg</option>
-                                <option value="F-7">F-7</option>
+                                <template x-for="area in availableAreas" :key="area">
+                                    <option :value="area" x-text="area"></option>
+                                </template>
                             </select>
                         </div>
+
                         <div class="sm:col-span-2">
                             <button @click="fetchNearbyLawyers" class="w-full h-full py-2.5 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition flex items-center justify-center space-x-1.5 shadow-md shadow-amber-500/10">
                                 <i class="fa-solid fa-location-crosshairs"></i>
@@ -775,6 +777,23 @@
                 selectedArea: 'All',
                 searchQuery: '',
                 userLocation: null,
+
+                // City to Areas Dynamic Mapping
+                cityAreasMap: {
+                    'Karachi': ['Saddar', 'Clifton', 'Gulshan-e-Iqbal', 'DHA', 'North Nazimabad', 'PECHS', 'Korangi'],
+                    'Lahore': ['Gulberg', 'DHA', 'Johar Town', 'Model Town', 'Cantt', 'Ferozepur Road', 'Mall Road'],
+                    'Islamabad': ['F-6', 'F-7', 'F-8', 'G-11', 'Blue Area', 'E-11', 'I-8'],
+                    'Rawalpindi': ['Saddar', 'Satellite Town', 'Bahria Town', 'Chaklala', 'Commercial Market']
+                },
+
+                // Dynamic Available Areas Getter
+                get availableAreas() {
+                    if (this.selectedCity === 'All' || !this.cityAreasMap[this.selectedCity]) {
+                        const allAreas = Object.values(this.cityAreasMap).flat();
+                        return [...new Set(allAreas)];
+                    }
+                    return this.cityAreasMap[this.selectedCity];
+                },
 
                 // Form States
                 loginForm: { id: '', password: '' },
