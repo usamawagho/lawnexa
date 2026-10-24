@@ -34,6 +34,10 @@
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Firebase SDKs (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <!-- Alpine.js Core for Reactive UI -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
@@ -55,6 +59,11 @@
         .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(13, 19, 34, 0.5); }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 9999px; }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+        .animate-pulse-glow { animation: pulseGlow 4s ease-in-out infinite; }
         [x-cloak] { display: none !important; }
     </style>
 </head>
@@ -62,8 +71,8 @@
 <body x-data="lawNexaApp()" class="min-h-screen flex flex-col justify-between selection:bg-gold-500 selection:text-navy-950">
 
     <!-- Ambient Background Lighting -->
-    <div class="fixed top-0 left-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-sapphire-600/10 rounded-full blur-[120px] pointer-events-none"></div>
-    <div class="fixed bottom-0 right-1/4 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-gold-500/10 rounded-full blur-[140px] pointer-events-none"></div>
+    <div class="fixed top-0 left-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-sapphire-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse-glow"></div>
+    <div class="fixed bottom-0 right-1/4 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-gold-500/10 rounded-full blur-[140px] pointer-events-none animate-pulse-glow"></div>
 
    <!-- ================= 1. AUTHENTICATION SCREEN ================= -->
     <div x-show="!isLoggedIn" x-transition:enter="transition ease-out duration-300" class="min-h-screen flex items-center justify-center p-4 relative z-10 my-auto">
@@ -79,20 +88,6 @@
                     Law<span class="text-gold-400">Nexa</span>
                 </h2>
                 <p class="text-[10px] sm:text-xs text-slate-400 font-medium uppercase tracking-widest">Verified Legal Marketplace & Bar Network</p>
-            </div>
-
-            <!-- Role Selector -->
-            <div class="grid grid-cols-2 gap-2 bg-navy-950/90 p-1.5 rounded-2xl border border-slate-800">
-                <button type="button" @click="loginForm.role = 'client'; registerForm.role = 'client'" 
-                        class="py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
-                        :class="loginForm.role === 'client' ? 'bg-sapphire-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'">
-                    <i class="fa-solid fa-user"></i> Client Portal
-                </button>
-                <button type="button" @click="loginForm.role = 'lawyer'; registerForm.role = 'lawyer'" 
-                        class="py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
-                        :class="loginForm.role === 'lawyer' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-lg' : 'text-slate-400 hover:text-white'">
-                    <i class="fa-solid fa-user-shield"></i> Advocate Portal
-                </button>
             </div>
 
             <div class="flex bg-navy-950/80 p-1 rounded-2xl border border-slate-800 text-xs font-bold">
@@ -111,6 +106,22 @@
             <!-- LOGIN FORM -->
             <form x-show="authTab === 'login'" @submit.prevent="handleLogin()" class="space-y-4">
                 <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-2">Select Login Role:</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" @click="loginForm.role = 'client'" 
+                                class="py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
+                                :class="loginForm.role === 'client' ? 'bg-sapphire-600/20 text-sapphire-400 border-sapphire-500 shadow-sm' : 'bg-navy-950/80 text-slate-400 border-slate-800'">
+                            <i class="fa-solid fa-user"></i> Client
+                        </button>
+                        <button type="button" @click="loginForm.role = 'lawyer'" 
+                                class="py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
+                                :class="loginForm.role === 'lawyer' ? 'bg-gold-500/20 text-gold-400 border-gold-500 shadow-sm' : 'bg-navy-950/80 text-slate-400 border-slate-800'">
+                            <i class="fa-solid fa-user-shield"></i> Advocate
+                        </button>
+                    </div>
+                </div>
+
+                <div>
                     <label class="block text-xs font-bold text-slate-400 mb-1">Phone Number / Email</label>
                     <input type="text" x-model="loginForm.id" required placeholder="03XX-XXXXXXX or user@bar.pk" 
                            class="w-full bg-navy-950/90 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
@@ -120,40 +131,85 @@
                     <label class="block text-xs font-bold text-slate-400 mb-1">Password</label>
                     <input type="password" x-model="loginForm.password" required minlength="8" placeholder="••••••••" 
                            class="w-full bg-navy-950/90 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                    
+                    <div class="text-right mt-1.5">
+                        <button type="button" @click="showForgotModal = true" class="text-[11px] text-gold-400 hover:underline">
+                            Forgot Password?
+                        </button>
+                    </div>
                 </div>
 
-                <button type="submit" :disabled="isLoading" class="w-full py-3 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 transition uppercase tracking-wider disabled:opacity-50">
+                <button type="submit" :disabled="isLoading" class="w-full py-3 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 hover:to-amber-500 transition uppercase tracking-wider disabled:opacity-50">
                     <span x-text="isLoading ? 'Signing In...' : 'Sign In'"></span>
                 </button>
             </form>
 
             <!-- REGISTER FORM -->
-            <div x-show="authTab === 'register'" class="space-y-3.5">
-                <form x-show="registerForm.role === 'client'" @submit.prevent="handleRegister()" class="space-y-3.5">
-                    <input type="text" x-model="registerForm.name" required placeholder="Full Name *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
-                    <input type="tel" x-model="registerForm.phone" pattern="^03[0-9]{9}$" required placeholder="Phone Number (03XX-XXXXXXX) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
-                    <input type="email" x-model="registerForm.email" placeholder="Email Address (Optional)" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
-                    <input type="password" x-model="registerForm.password" required minlength="8" placeholder="Password (Min 8 chars) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
-                    
-                    <button type="submit" :disabled="isLoading" class="w-full py-3 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 transition uppercase tracking-wider disabled:opacity-50">
-                        <span x-text="isLoading ? 'Creating...' : 'Create Client Account'"></span>
-                    </button>
-                </form>
-
-                <div x-show="registerForm.role === 'lawyer'" class="text-center p-4 bg-navy-950/80 rounded-2xl border border-gold-500/30 space-y-3">
-                    <i class="fa-solid fa-user-shield text-3xl text-gold-400"></i>
-                    <h4 class="text-xs font-bold text-white">Advocate Verification Required</h4>
-                    <p class="text-[11px] text-slate-400">Bar License aur Bar Association details submit karein.</p>
-                    <button type="button" @click="showLawyerRegistrationModal = true" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 transition">
-                        Open Advocate Registration Form
-                    </button>
+            <form x-show="authTab === 'register'" @submit.prevent="handleRegister()" class="space-y-3.5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-2">I am registering as:</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" @click="registerForm.role = 'client'" 
+                                class="py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
+                                :class="registerForm.role === 'client' ? 'bg-sapphire-600/20 text-sapphire-400 border-sapphire-500' : 'bg-navy-950/80 text-slate-400 border-slate-800'">
+                            Client
+                        </button>
+                        <button type="button" @click="showLawyerRegistrationModal = true" 
+                                class="py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition bg-navy-950/80 text-slate-400 border-slate-800 hover:bg-gold-500/10 hover:text-gold-400">
+                            Advocate
+                        </button>
+                    </div>
                 </div>
+
+                <template x-if="registerForm.role === 'client'">
+                    <div class="space-y-3.5">
+                        <input type="text" x-model="registerForm.name" required placeholder="Full Name *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        <input type="tel" x-model="registerForm.phone" pattern="^03[0-9]{9}$" required placeholder="Phone Number (03XX-XXXXXXX) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        <input type="email" x-model="registerForm.email" required placeholder="Email Address *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        <input type="password" x-model="registerForm.password" required minlength="8" placeholder="Password (Min 8 chars) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        
+                        <button type="submit" :disabled="isLoading" class="w-full py-3 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 hover:to-amber-500 transition uppercase tracking-wider disabled:opacity-50">
+                            <span x-text="isLoading ? 'Creating...' : 'Create Client Account'"></span>
+                        </button>
+                    </div>
+                </template>
+            </form>
+        </div>
+    </div>
+
+    <!-- FORGOT PASSWORD OTP MODAL -->
+    <div x-show="showForgotModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak role="dialog" aria-modal="true">
+        <div @click.outside="showForgotModal = false" class="bg-navy-900 border border-gold-500/30 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+            <button @click="showForgotModal = false; otpSent = false;" class="absolute top-4 right-4 text-slate-400 hover:text-white" aria-label="Close">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 class="text-base font-extrabold text-gold-400 mb-1"><i class="fa-solid fa-key mr-2"></i>Reset Password via OTP</h3>
+            <p class="text-xs text-slate-400 mb-4">Registered Phone Number ya Email enter karein.</p>
+
+            <div x-show="!otpSent" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Phone / Email</label>
+                    <input type="text" x-model="forgotForm.id" placeholder="03XX-XXXXXXX or user@bar.pk" class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-gold-500">
+                </div>
+                <button type="button" @click="sendOtp()" class="w-full py-2.5 bg-gold-500 text-navy-950 font-bold text-xs rounded-xl hover:bg-gold-400 transition">Send Realtime OTP</button>
+            </div>
+
+            <div x-show="otpSent" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">6-Digit Realtime OTP Code</label>
+                    <input type="text" x-model="forgotForm.otp" maxlength="6" placeholder="e.g. 482910" class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white text-center font-mono tracking-widest focus:outline-none focus:border-gold-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Naya Password (Min 8 Characters)</label>
+                    <input type="password" x-model="forgotForm.newPassword" minlength="8" placeholder="••••••••" class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-gold-500">
+                </div>
+                <button type="button" @click="submitResetPassword()" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl hover:from-gold-400 hover:to-amber-500 transition">Verify OTP & Reset Password</button>
             </div>
         </div>
     </div>
 
     <!-- ================= 2. MAIN DASHBOARD ================= -->
-    <div x-show="isLoggedIn" x-cloak class="flex-1 flex flex-col justify-between">
+    <div x-show="isLoggedIn" x-cloak x-transition:enter="transition ease-out duration-300" class="flex-1 flex flex-col justify-between">
         
         <!-- HEADER -->
         <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80 px-3 sm:px-6 py-3">
@@ -177,12 +233,19 @@
                       <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
-                    <span>GPS Active: <strong class="text-white" x-text="currentLocation">Location Syncing...</strong></span>
+                    <span>GPS Active: <strong class="text-white" x-text="currentLocation">Pakistan High Court Network</strong></span>
                 </div>
 
                 <div class="flex items-center gap-2">
+                    <template x-if="user.role === 'lawyer'">
+                        <button @click="showNewPostModal = true" class="px-3 py-1.5 rounded-xl bg-sapphire-600 hover:bg-sapphire-500 text-white text-[11px] font-bold transition flex items-center gap-1.5 shadow-lg">
+                            <i class="fa-solid fa-plus text-gold-400"></i>
+                            <span class="hidden sm:inline">Create Post</span>
+                        </button>
+                    </template>
+
                     <button @click="openProfileModal()" class="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-white transition shadow-md">
-                        <img :src="user.avatar || 'https://ui-avatars.com/api/?name=' + (user.name || 'User') + '&background=f59e0b&color=fff'" class="w-6 h-6 rounded-full object-cover border border-gold-500">
+                        <img :src="user.avatar || 'https://ui-avatars.com/api/?name=' + user.name + '&background=f59e0b&color=fff'" class="w-6 h-6 rounded-full object-cover border border-gold-500">
                         <span class="hidden sm:inline" x-text="user.name"></span>
                         <i class="fa-solid fa-user-pen text-gold-400 text-[10px]"></i>
                     </button>
@@ -190,16 +253,68 @@
                     <button @click="logout()" class="p-2.5 sm:px-3 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-400 text-xs font-bold hover:bg-rose-900/50 transition flex items-center gap-1" title="Sign Out">
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
+
+                    <button @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden p-2 rounded-xl text-slate-200 bg-slate-800 border border-slate-700 hover:text-gold-400 transition">
+                        <i class="fa-solid text-base" :class="mobileMenuOpen ? 'fa-xmark' : 'fa-bars'"></i>
+                    </button>
                 </div>
             </div>
         </header>
+
+        <!-- CLEAN MOBILE SLIDE-OUT MENU DRAWER -->
+        <div x-show="mobileMenuOpen" x-transition @click.outside="mobileMenuOpen = false" class="md:hidden glass-panel border-b border-slate-800 p-4 sticky top-[61px] z-30 space-y-3" x-cloak>
+            <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">AI Legal Tools & Services</p>
+            <div class="grid grid-cols-2 gap-2 pb-2 border-b border-slate-800">
+                <button @click="showAiAnalyzerModal = true; mobileMenuOpen = false" class="py-2.5 px-3 rounded-xl bg-purple-900/50 border border-purple-500/40 text-purple-300 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md">
+                    <i class="fa-solid fa-brain text-purple-400"></i> AI FIR Analyzer
+                </button>
+                <button @click="showDocGeneratorModal = true; mobileMenuOpen = false" class="py-2.5 px-3 rounded-xl bg-indigo-900/50 border border-indigo-500/40 text-gold-400 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md">
+                    <i class="fa-solid fa-file-signature text-gold-400"></i> Doc Generator
+                </button>
+            </div>
+
+            <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider pt-1">Main Navigation</p>
+            <div class="space-y-1.5">
+                <template x-if="user.role === 'lawyer' || user.role === 'advocate'">
+                    <div class="space-y-1.5">
+                        <button @click="activeTab = 'bookings'; mobileMenuOpen = false" class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between" :class="activeTab === 'bookings' ? 'bg-gold-500 text-navy-950' : 'bg-navy-950/80 text-slate-300'">
+                            <span>📋 Client Consultation Requests</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-white" x-text="myBookings.length"></span>
+                        </button>
+                        <button @click="activeTab = 'feed'; mobileMenuOpen = false" class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between" :class="activeTab === 'feed' ? 'bg-gold-500 text-navy-950' : 'bg-navy-950/80 text-slate-300'">
+                            <span>🏛️ Legal Feed & Campaign Reels</span>
+                        </button>
+                        <button @click="activeTab = 'advocates'; mobileMenuOpen = false" class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between" :class="activeTab === 'advocates' ? 'bg-gold-500 text-navy-950' : 'bg-navy-950/80 text-slate-300'">
+                            <span>👨‍⚖️ High Court Advocates Directory</span>
+                        </button>
+                    </div>
+                </template>
+                <template x-if="user.role === 'client'">
+                    <div class="space-y-1.5">
+                        <button @click="activeTab = 'advocates'; mobileMenuOpen = false" class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between" :class="activeTab === 'advocates' ? 'bg-gold-500 text-navy-950' : 'bg-navy-950/80 text-slate-300'">
+                            <span>👨‍⚖️ Find Advocates (High Court & City)</span>
+                        </button>
+                        <button @click="activeTab = 'feed'; mobileMenuOpen = false" class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between" :class="activeTab === 'feed' ? 'bg-gold-500 text-navy-950' : 'bg-navy-950/80 text-slate-300'">
+                            <span>🏛️ Legal Insights & Election Feeds</span>
+                        </button>
+                        <button @click="activeTab = 'bookings'; mobileMenuOpen = false" class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between" :class="activeTab === 'bookings' ? 'bg-gold-500 text-navy-950' : 'bg-navy-950/80 text-slate-300'">
+                            <span>📅 My Consultation Bookings</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-white" x-text="myBookings.length"></span>
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </div>
 
         <!-- DESKTOP NAVIGATION TABS -->
         <nav class="hidden md:block bg-navy-900/90 border-b border-slate-800/80 sticky top-[61px] z-30 backdrop-blur-md">
             <div class="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4">
                 <div x-show="user.role === 'lawyer' || user.role === 'advocate'" class="flex items-center space-x-2 py-2">
                     <button @click="activeTab = 'bookings'" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition" :class="activeTab === 'bookings' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
-                        <span>📋 Client Requests</span>
+                        <span>📋 Client Requests</span><span x-text="myBookings.length" class="ml-1 px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-300"></span>
+                    </button>
+                    <button @click="activeTab = 'feed'" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition" :class="activeTab === 'feed' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
+                        <span>🏛️ Legal Feed</span>
                     </button>
                     <button @click="activeTab = 'advocates'" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition" :class="activeTab === 'advocates' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
                         <span>👨‍⚖️ Advocates Directory</span>
@@ -209,11 +324,17 @@
                     <button @click="activeTab = 'advocates'" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition" :class="activeTab === 'advocates' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
                         <span>👨‍⚖️ Find Advocates</span>
                     </button>
+                    <button @click="activeTab = 'feed'" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition" :class="activeTab === 'feed' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
+                        <span>🏛️ Legal Insights</span>
+                    </button>
                     <button @click="activeTab = 'bookings'" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition" :class="activeTab === 'bookings' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
-                        <span>📅 My Bookings</span>
+                        <span>📅 My Bookings</span><span x-text="myBookings.length" class="ml-1 px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-300"></span>
                     </button>
                 </div>
                 <div class="flex items-center gap-2">
+                    <button @click="showAiAnalyzerModal = true" class="px-3 py-1.5 rounded-xl bg-purple-900/40 border border-purple-500/40 text-purple-300 font-extrabold text-xs flex items-center gap-1.5 hover:bg-purple-900/60 transition shadow-md">
+                        <i class="fa-solid fa-brain text-purple-400"></i> AI FIR Analyzer
+                    </button>
                     <button @click="showDocGeneratorModal = true" class="px-3 py-1.5 rounded-xl bg-indigo-900/40 border border-indigo-500/40 text-gold-400 font-extrabold text-xs flex items-center gap-1.5 hover:bg-indigo-900/60 transition shadow-md">
                         <i class="fa-solid fa-file-signature text-gold-400"></i> Doc Generator
                     </button>
@@ -225,7 +346,7 @@
         <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full space-y-6">
 
             <!-- TAB 1: ADVOCATES VIEW -->
-            <section x-show="activeTab === 'advocates'" class="space-y-6">
+            <section x-show="activeTab === 'advocates'" x-transition:enter="transition ease-out duration-200" class="space-y-6" x-cloak>
                 <div class="glass-panel p-3.5 sm:p-5 rounded-2xl border border-slate-800 space-y-3.5 shadow-xl">
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
                         <div class="relative sm:col-span-2 lg:col-span-6">
@@ -233,19 +354,27 @@
                             <input type="text" x-model="searchQuery" placeholder="Search Courts, Cities, Specialties..." class="w-full bg-navy-950/90 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-gold-500 shadow-inner">
                         </div>
                         <div class="lg:col-span-3">
-                            <select x-model="selectedCity" class="w-full bg-navy-950/90 border border-slate-700 text-gold-400 font-bold rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer shadow-md">
+                            <select x-model="selectedCity" @change="selectedArea = 'All'" class="w-full bg-navy-950/90 border border-slate-700 text-gold-400 font-bold rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer shadow-md">
                                 <option value="All">🌆 All Cities</option>
-                                <option value="Karachi">Karachi</option>
-                                <option value="Lahore">Lahore</option>
-                                <option value="Islamabad">Islamabad</option>
+                                <template x-for="c in Object.keys(cityAreas)" :key="c">
+                                    <option :value="c" x-text="c"></option>
+                                </template>
                             </select>
                         </div>
                         <div class="lg:col-span-3">
-                            <button @click="fetchLawyers()" class="w-full py-2.5 bg-gold-500 text-navy-950 font-bold text-xs rounded-xl hover:bg-gold-400 transition">
-                                <i class="fa-solid fa-rotate mr-1"></i> Refresh Lawyers
-                            </button>
+                            <select x-model="selectedArea" class="w-full bg-navy-950/90 border border-slate-700 text-slate-200 font-bold rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer shadow-md">
+                                <option value="All">📍 All Courts & Areas</option>
+                                <template x-for="area in getAvailableAreas()" :key="area">
+                                    <option :value="area" x-text="area"></option>
+                                </template>
+                            </select>
                         </div>
                     </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-400">
+                    <span class="inline-flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> Live database directory · auto-refresh every 3.5 seconds</span>
+                    <span x-show="lastDirectoryUpdate" x-text="'Last updated: ' + lastDirectoryUpdate"></span>
                 </div>
 
                 <!-- ADVOCATES CARDS GRID -->
@@ -255,20 +384,25 @@
                             <div>
                                 <div class="flex items-start justify-between gap-3 mb-3">
                                     <div class="relative">
-                                        <img :src="adv.avatar || 'https://ui-avatars.com/api/?name=' + (adv.name || 'Advocate')" :alt="adv.name" class="w-14 h-14 rounded-2xl object-cover border-2 border-slate-700">
+                                        <img :src="adv.avatar || 'https://ui-avatars.com/api/?name=' + adv.name" :alt="adv.name" class="w-14 h-14 rounded-2xl object-cover border-2 border-slate-700">
+                                        <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-navy-950 rounded-full"></span>
                                     </div>
-                                    <template x-if="adv.is_verified">
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Verified</span>
-                                    </template>
+                                    <div class="text-right">
+                                        <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold border"
+                                             :class="adv.is_verified ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40' : 'bg-amber-500/15 text-amber-300 border-amber-500/40'">
+                                            <i class="fa-solid" :class="adv.is_verified ? 'fa-circle-check' : 'fa-hourglass-half'"></i>
+                                            <span x-text="adv.is_verified ? 'Verified' : 'Verification pending'"></span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <h3 class="font-cinzel text-sm sm:text-base font-bold text-white group-hover:text-gold-400 transition" x-text="adv.name"></h3>
                                 <div class="flex items-center gap-1.5 text-[10px] text-slate-300 font-semibold mb-2 mt-1">
                                     <i class="fa-solid fa-location-dot text-rose-400"></i>
-                                    <span x-text="(adv.city || 'Pakistan') + ' • ' + (adv.address || 'Chamber')"></span>
+                                    <span x-text="(adv.city || 'City not specified') + ' • ' + (adv.area || 'Area not specified')"></span>
                                 </div>
                                 <div class="flex flex-wrap gap-1.5 mb-3">
-                                    <span class="px-2 py-0.5 rounded-md bg-slate-800/80 text-gold-400 text-[10px] font-semibold border border-slate-700" x-text="adv.specialty || 'General Practice'"></span>
-                                    <span class="px-2 py-0.5 rounded-md bg-slate-800/80 text-slate-300 text-[10px] font-semibold border border-slate-700" x-text="(adv.experience_years || 0) + ' Yrs Exp'"></span>
+                                    <span class="px-2 py-0.5 rounded-md bg-slate-800/80 text-gold-400 text-[10px] font-semibold border border-slate-700" x-text="adv.specialty"></span>
+                                    <span class="px-2 py-0.5 rounded-md bg-slate-800/80 text-slate-300 text-[10px] font-semibold border border-slate-700" x-text="(adv.experience_years ?? adv.experience ?? 0) + ' Yrs Exp'"></span>
                                 </div>
                             </div>
                             <div class="space-y-2 pt-2 border-t border-slate-800/80">
@@ -276,29 +410,145 @@
                                     <button @click="openChatModal(adv)" class="w-full py-2.5 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700 shadow-md">
                                         <i class="fa-solid fa-comments text-gold-400"></i> Direct Chat
                                     </button>
-                                    <button @click="showToast('Consultation Requested', 'success')" class="w-full py-2.5 px-2.5 rounded-xl bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 text-xs font-extrabold transition flex items-center justify-center gap-1.5 shadow-md hover:from-gold-400">
-                                        <i class="fa-solid fa-calendar-plus"></i> Book Consult
+                                    <button @click="openBookingModal(adv)" :disabled="!adv.is_verified" :title="adv.is_verified ? 'Book a consultation' : 'Booking becomes available after lawyer verification'" :class="adv.is_verified ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 hover:from-gold-400' : 'bg-slate-800 text-slate-500 cursor-not-allowed'" class="w-full py-2.5 px-2.5 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 shadow-md disabled:opacity-80">
+                                        <i class="fa-solid fa-calendar-plus"></i><span x-text="adv.is_verified ? 'Book Consult' : 'Pending Verification'"></span>
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </template>
                 </div>
-
-                <!-- EMPTY STATE -->
-                <div x-show="filteredAdvocates.length === 0" class="text-center py-12 glass-panel rounded-2xl border border-slate-800">
-                    <i class="fa-solid fa-user-slash text-3xl text-slate-500 mb-2"></i>
-                    <p class="text-xs text-slate-400">Koi verified advocate nahi mila. Search filters change karke dobara try karein.</p>
+                <div x-show="filteredAdvocates.length === 0" class="glass-panel rounded-2xl p-8 text-center border border-slate-800">
+                    <i class="fa-solid fa-scale-balanced text-2xl text-slate-500 mb-3"></i>
+                    <p class="text-sm font-bold text-white" x-text="directoryError || 'No lawyer profiles match this search yet.'"></p>
+                    <p class="text-xs text-slate-400 mt-2">Directory database se update hoti hai. Naya lawyer account aam tor par kuch seconds mein yahan nazar aa jana chahiye.</p>
                 </div>
             </section>
 
-            <!-- TAB 2: BOOKINGS VIEW -->
-            <section x-show="activeTab === 'bookings'" class="space-y-6">
+            <!-- TAB 2: LEGAL FEED -->
+            <section x-show="activeTab === 'feed'" x-transition:enter="transition ease-out duration-200" class="space-y-6 max-w-4xl mx-auto" x-cloak>
+                <template x-if="user.role === 'lawyer' || user.role === 'advocate'">
+                    <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-3 shadow-lg">
+                        <div class="flex items-center gap-3">
+                            <img :src="user.avatar || 'https://ui-avatars.com/api/?name=Lawyer'" class="w-10 h-10 rounded-full border-2 border-gold-500/50">
+                            <div>
+                                <p class="text-xs font-bold text-white">Have an Election Manifesto or Court Order?</p>
+                                <p class="text-[10px] text-slate-400">Share legal updates & judgments.</p>
+                            </div>
+                        </div>
+                        <button @click="showNewPostModal = true" class="px-4 py-2 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl hover:from-gold-400 transition shrink-0 flex items-center gap-1.5 shadow-md">
+                            <i class="fa-solid fa-plus"></i> Create Post
+                        </button>
+                    </div>
+                </template>
+
+                <div class="space-y-4">
+                    <template x-for="post in posts" :key="post.id">
+                        <article class="glass-panel rounded-2xl p-4 sm:p-6 border border-slate-800/80 space-y-3 sm:space-y-4">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-2.5">
+                                    <img :src="post.authorAvatar" :alt="post.author" class="w-10 h-10 rounded-full object-cover border-2 border-gold-500/50">
+                                    <div>
+                                        <h4 class="text-xs sm:text-sm font-bold text-white" x-text="post.author"></h4>
+                                        <p class="text-[10px] sm:text-xs text-slate-400" x-text="post.authorRole + ' • ' + post.timestamp"></p>
+                                    </div>
+                                </div>
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-gold-400 border border-slate-700" x-text="post.category"></span>
+                            </div>
+                            <div>
+                                <h3 class="font-cinzel text-base font-bold text-white mb-1" x-text="post.title"></h3>
+                                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line" x-text="post.content"></p>
+                                <template x-if="post.mediaUrl && post.mediaType === 'image'">
+                                    <img :src="post.mediaUrl" class="w-full max-h-80 object-cover rounded-xl mt-3 border border-slate-800">
+                                </template>
+                            </div>
+                            <div class="flex items-center justify-between pt-3 border-t border-slate-800 text-xs font-medium text-slate-400">
+                                <button @click="toggleLike(post)" class="flex items-center gap-1.5 hover:text-rose-400" :class="post.liked ? 'text-rose-500 font-bold' : ''">
+                                    <i class="fa-solid fa-heart"></i> <span x-text="post.likes"></span>
+                                </button>
+                                <button @click="showToast('Post link copied!', 'success')" class="hover:text-white">
+                                    <i class="fa-solid fa-share-nodes mr-1"></i> Share
+                                </button>
+                            </div>
+                        </article>
+                    </template>
+                </div>
+            </section>
+
+            <!-- TAB 3: BOOKINGS VIEW -->
+            <section x-show="activeTab === 'bookings'" x-transition:enter="transition ease-out duration-200" class="space-y-6" x-cloak>
                 <div class="glass-panel p-4 sm:p-6 rounded-2xl border border-slate-800 space-y-4">
-                    <h2 class="font-cinzel text-base font-bold text-white border-b border-slate-800 pb-3">
-                        <span x-text="(user.role === 'lawyer' || user.role === 'advocate') ? '📋 Client Requests' : '📅 My Consultations'"></span>
-                    </h2>
-                    <p class="text-xs text-slate-400">Koi pending consultation request nahi hai.</p>
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <h2 class="font-cinzel text-base font-bold text-white">
+                            <span x-text="(user.role === 'lawyer' || user.role === 'advocate') ? '📋 Client Requests' : '📅 My Consultations'"></span>
+                        </h2>
+                        <span class="px-2.5 py-0.5 rounded-full bg-sapphire-500/10 text-sapphire-400 text-xs font-bold border border-sapphire-500/30" x-text="myBookings.length + ' Requests'"></span>
+                    </div>
+                    <div class="space-y-3">
+                        <template x-for="booking in myBookings" :key="booking.id">
+                            <div class="p-3.5 rounded-xl bg-navy-950/80 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-gold-400" x-text="booking.clientName"></span>
+                                        <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase" :class="{ 'bg-amber-500/20 text-amber-400': booking.status === 'Pending', 'bg-emerald-500/20 text-emerald-400': booking.status === 'Accepted', 'bg-rose-500/20 text-rose-400': booking.status === 'Rejected' }" x-text="booking.status"></span>
+                                    </div>
+                                    <p class="text-slate-300" x-text="'📝 Summary: ' + booking.summary"></p>
+                                    <div class="flex flex-wrap items-center gap-3 text-[10px] text-slate-400 pt-1">
+                                        <span><i class="fa-regular fa-calendar text-gold-400 mr-1"></i> <span x-text="booking.date"></span></span>
+                                        <span><i class="fa-regular fa-clock text-gold-400 mr-1"></i> <span x-text="booking.time"></span></span>
+                                        <span><i class="fa-solid fa-location-dot text-gold-400 mr-1"></i> <span x-text="booking.location || 'High Court Chamber'"></span></span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 pt-2 md:pt-0">
+                                    <template x-if="booking.status === 'Pending' && (user.role === 'lawyer' || user.role === 'advocate')">
+                                        <div class="flex gap-2">
+                                            <button @click="respondBooking(booking, 'Accepted')" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs">Accept</button>
+                                            <button @click="respondBooking(booking, 'Rejected')" class="px-3 py-1.5 rounded-lg bg-rose-600/30 text-rose-300 font-bold text-xs">Decline</button>
+                                        </div>
+                                    </template>
+                                    <template x-if="booking.status === 'Accepted'">
+                                        <button @click="showToast('Video-call provider configure nahi hai; is request par call start nahi hui.', 'error')" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-lg">
+                                            <i class="fa-solid fa-video"></i> Join Call
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div x-show="user.role === 'lawyer' || user.role === 'advocate'" class="space-y-2 pt-2">
+                    <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Advocate Profile Overview</p>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                        <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-envelope-open-text"></i></div>
+                            <div>
+                                <p class="text-[9px] text-slate-400 uppercase font-bold">Inquiries</p>
+                                <h3 class="text-sm sm:text-base font-black text-white" x-text="myBookings.length + ' Pending'"></h3>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-sapphire-500/10 text-sapphire-400 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-gavel"></i></div>
+                            <div>
+                                <p class="text-[9px] text-slate-400 uppercase font-bold">Specialty</p>
+                                <h3 class="text-xs font-bold text-sapphire-400" x-text="user.specialty || 'Criminal Law'"></h3>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-400 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-trophy"></i></div>
+                            <div>
+                                <p class="text-[9px] text-slate-400 uppercase font-bold">Experience</p>
+                                <h3 class="text-sm sm:text-base font-black text-white" x-text="(user.exp || 12) + ' Years Exp'"></h3>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-building-columns"></i></div>
+                            <div>
+                                <p class="text-[9px] text-slate-400 uppercase font-bold">Location</p>
+                                <h3 class="text-xs font-bold text-purple-300" x-text="(user.city || 'Karachi') + ' / ' + (user.area || 'Saddar')"></h3>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
         </main>
@@ -306,92 +556,201 @@
         <!-- FOOTER -->
         <footer class="glass-panel border-t border-slate-800/80 py-4 px-4 mt-8">
             <div class="max-w-7xl mx-auto text-center text-[11px] text-slate-500">
-                <p>© 2026 LawNexa Bar Network. Realtime API Integration Active.</p>
+                <p>© 2026 LawNexa Bar Network. Optimized Dashboard Active.</p>
             </div>
         </footer>
     </div>
 
     <!-- ================= MODALS ================= -->
 
-    <!-- ADVOCATE REGISTRATION MODAL -->
-    <div x-show="showLawyerRegistrationModal" x-cloak class="fixed inset-0 z-[999] bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-        <div @click.outside="showLawyerRegistrationModal = false" class="glass-panel max-w-md w-full rounded-2xl border border-gold-500/40 p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+    <!-- ADVOCATE REGISTRATION MODAL (Fully Tailwind & Alpine) -->
+    <div x-show="showLawyerRegistrationModal" x-cloak class="fixed inset-0 z-[999] bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
+        <div @click.outside="showLawyerRegistrationModal = false" class="glass-panel max-w-md w-full rounded-2xl border border-gold-500/40 p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h2 class="text-gold-400 text-base font-bold flex items-center gap-2"><i class="fa-solid fa-scale-balanced"></i> Wakeel Registration</h2>
-                <button @click="showLawyerRegistrationModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <h2 class="text-gold-400 text-base font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-scale-balanced"></i> Wakeel Account Registration
+                </h2>
+                <button @click="showLawyerRegistrationModal = false" class="text-slate-400 hover:text-white" aria-label="Close">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
             </div>
             
-            <form @submit.prevent="handleLawyerSubmit()" class="space-y-3 text-xs">
-                <input type="text" x-model="lawyerRegForm.name" placeholder="Pura Naam" required class="w-full bg-navy-950 border border-slate-700 rounded-lg p-2.5 text-white">
-                <input type="email" x-model="lawyerRegForm.email" placeholder="Email Address" required class="w-full bg-navy-950 border border-slate-700 rounded-lg p-2.5 text-white">
-                <input type="tel" x-model="lawyerRegForm.phone" pattern="^03[0-9]{9}$" placeholder="Mobile Number (03XXXXXXXXX)" required class="w-full bg-navy-950 border border-slate-700 rounded-lg p-2.5 text-white">
-                <input type="text" x-model="lawyerRegForm.license" placeholder="Bar License No (PBC-XXXXX)" required class="w-full bg-navy-950 border border-slate-700 rounded-lg p-2.5 text-white">
-                <input type="text" x-model="lawyerRegForm.jurisdiction" placeholder="Bar Association / High Court" required class="w-full bg-navy-950 border border-slate-700 rounded-lg p-2.5 text-white">
-                <div class="grid grid-cols-2 gap-2">
-                    <input type="text" x-model="lawyerRegForm.specialty" placeholder="Specialization" required class="w-full bg-navy-950 border border-slate-700 rounded-lg p-2.5 text-white">
-                    <input type="number" min="0" x-model="lawyerRegForm.exp" placeholder="Experience (Years)" required class="w-full bg-navy-950 border border-slate-700 rounded-lg p-2.5 text-white">
-                </div>
-                <input type="password" x-model="lawyerRegForm.password" minlength="8" placeholder="Password (Min 8 chars)" required class="w-full bg-navy-950 border border-slate-700 rounded-lg p-2.5 text-white">
+            <form @submit.prevent="handleLawyerSubmit()" class="space-y-4 text-xs">
+                <input type="text" x-model="lawyerRegForm.name" placeholder="Pura Naam (e.g. Adv. Ali Khan)" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                <input type="email" x-model="lawyerRegForm.email" placeholder="Email Address" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                <input type="tel" x-model="lawyerRegForm.phone" pattern="^03[0-9]{9}$" title="Enter valid Pakistani number e.g. 03001234567" placeholder="Mobile Number (03XXXXXXXXX)" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                <input type="text" x-model="lawyerRegForm.license" placeholder="Bar Council License No (PBC-XXXXX)" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                <input type="text" x-model="lawyerRegForm.barAssociation" placeholder="Registered Bar Association Name" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
                 
-                <button type="submit" :disabled="isLoading" class="w-full bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-bold py-2.5 rounded-lg text-xs">
-                    <span x-text="isLoading ? 'Submitting...' : 'Register as Advocate'"></span>
-                </button>
+                <select x-model="lawyerRegForm.jurisdiction" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                    <option value="" disabled selected>Select Jurisdiction</option>
+                    <option value="Sindh High Court">Sindh High Court</option>
+                    <option value="Lahore High Court">Lahore High Court</option>
+                    <option value="Islamabad High Court">Islamabad High Court</option>
+                    <option value="Supreme Court">Supreme Court of Pakistan</option>
+                </select>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" x-model="lawyerRegForm.specialty" placeholder="Specialization" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                    <input type="number" min="0" max="60" x-model="lawyerRegForm.exp" placeholder="Tajurba (Years)" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                </div>
+                <input type="password" x-model="lawyerRegForm.password" minlength="8" placeholder="Password (Min 8 chars)" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                
+                <div class="flex gap-3 pt-2">
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 text-slate-900 font-bold py-2.5 rounded-lg transition text-xs">Register Ho Jayein</button>
+                    <button type="button" @click="showLawyerRegistrationModal = false" class="px-6 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-lg transition border border-slate-700 text-xs">Cancel</button>
+                </div>
             </form>
         </div>
     </div>
 
-    <!-- SMART DOC GENERATOR MODAL -->
-    <div x-show="showDocGeneratorModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-        <div @click.outside="showDocGeneratorModal = false" class="relative w-full max-w-2xl rounded-xl border border-yellow-500/30 bg-slate-900 p-6 text-white shadow-2xl">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
-                <h3 class="text-base font-bold text-gold-400">📜 LIVE DOC GENERATOR</h3>
-                <button @click="showDocGeneratorModal = false" class="text-gray-400 hover:text-white">✕</button>
+    <!-- CREATE NEW CAMPAIGN POST MODAL -->
+    <div x-show="showNewPostModal" x-cloak class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
+        <div @click.outside="showNewPostModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-gold-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar gold-glow">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-bullhorn text-gold-400"></i> Create Post</h3>
+                <button @click="showNewPostModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="space-y-3 text-xs">
-                <select x-model="docForm.type" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-2.5 text-white">
-                    <option value="Agreement">Rent Agreement</option>
-                    <option value="Bail Petition">Bail Petition</option>
-                    <option value="Legal Notice">Legal Notice</option>
+            <form @submit.prevent="createPost()" class="space-y-3.5 text-xs">
+                <select x-model="newPostForm.category" required class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-gold-400 font-bold focus:outline-none focus:border-gold-500">
+                    <option value="Election Campaign / Manifesto">📢 Election Campaign / Manifesto</option>
+                    <option value="Legal Judgment">⚖️ High Court / Supreme Court Judgment</option>
+                    <option value="Bar Association Orders">🏛️ Bar Association Orders & Circulars</option>
+                    <option value="Legal Insight & Analysis">💡 General Legal Insight & Analysis</option>
                 </select>
-                <div class="grid grid-cols-2 gap-2">
-                    <input type="text" x-model="docForm.party1" placeholder="First Party Name" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-2.5 text-white">
-                    <input type="text" x-model="docForm.party2" placeholder="Second Party Name" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-2.5 text-white">
+                <input type="text" x-model="newPostForm.title" required placeholder="Title e.g. Important High Court Order..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                <textarea x-model="newPostForm.content" required rows="4" placeholder="Write full details..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-gold-500"></textarea>
+                <div class="flex items-center gap-2 p-3 bg-navy-950/80 rounded-xl border border-slate-800">
+                    <button type="button" @click="$refs.postMediaInput.click()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700"><i class="fa-solid fa-paperclip text-gold-400"></i> File</button>
+                    <span class="text-[10px] text-slate-400" x-text="newPostForm.fileName || 'Optional Media'"></span>
+                    <input type="file" x-ref="postMediaInput" @change="handlePostMediaUpload($event)" accept="image/*,video/*" class="hidden">
                 </div>
-                <button @click="generateDocument()" :disabled="isLoading" class="w-full rounded-lg bg-gold-500 py-2.5 font-bold text-navy-950">
-                    <span x-text="isLoading ? 'Generating Draft...' : 'Generate AI Legal Draft'"></span>
+                <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 transition uppercase tracking-wider">Publish Post</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- AI FIR ANALYZER MODAL -->
+    <div x-show="showAiAnalyzerModal" x-cloak class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4" role="dialog">
+        <div @click.outside="showAiAnalyzerModal = false" class="glass-panel max-w-xl w-full rounded-2xl border border-purple-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar purple-glow">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-brain text-purple-400"></i> AI FIR Analyzer</h3>
+                <button @click="showAiAnalyzerModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3.5 text-xs">
+                <div class="p-4 border-2 border-dashed border-slate-800 hover:border-purple-500/50 rounded-2xl bg-navy-950/80 text-center space-y-2">
+                    <i class="fa-solid fa-cloud-arrow-up text-2xl text-purple-400"></i>
+                    <p class="font-bold text-white">Upload FIR Image / Document Copy</p>
+                    <button type="button" @click="$refs.firFileInput.click()" class="px-4 py-1.5 rounded-xl bg-purple-900/50 hover:bg-purple-900 text-purple-300 border border-purple-500/40 font-bold text-xs">Browse FIR File</button>
+                    <input type="file" x-ref="firFileInput" @change="handleFirFileUpload($event)" accept="image/*,.pdf" class="hidden">
+                    <p class="text-[11px] font-bold text-emerald-400 mt-1" x-show="uploadedFirFileName" x-text="'Attached: ' + uploadedFirFileName"></p>
+                </div>
+                <textarea x-model="aiAnalyzerText" rows="3" placeholder="Paste FIR text here..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500"></textarea>
+                <button @click="runAiAnalysis()" :disabled="isAnalyzing" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs rounded-xl shadow-lg hover:from-purple-500 transition">
+                    <span x-text="isAnalyzing ? 'Scanning PPC Sections...' : 'Scan & Analyze FIR'"></span>
                 </button>
-                <div x-show="generatedDocText" class="pt-3">
-                    <textarea x-model="generatedDocText" rows="6" class="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 font-mono text-xs text-slate-200"></textarea>
+                <div x-show="aiResult" class="p-4 bg-navy-950/90 rounded-2xl border border-purple-500/30 space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <span class="font-bold text-purple-300"><i class="fa-solid fa-file-contract text-gold-400"></i> Scan Report</span>
+                        <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-extrabold rounded-full text-[10px]" x-text="aiResult?.bailType"></span>
+                    </div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Defense Strategy:</p>
+                    <p class="text-slate-300 mt-0.5 leading-relaxed whitespace-pre-line" x-text="aiResult?.strategy"></p>
+                    <p class="text-[10px] text-amber-300" x-show="aiResult?.disclaimer" x-text="aiResult?.disclaimer"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SMART DOC GENERATOR MODAL -->
+    <div x-show="showDocGeneratorModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" role="dialog">
+        <div @click.outside="showDocGeneratorModal = false" class="relative w-full max-w-2xl rounded-xl border border-yellow-500/30 bg-slate-900 p-6 text-white shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <h3 class="text-xl font-bold text-yellow-500 flex items-center gap-2">📜 DOC GENERATOR</h3>
+                <button @click="showDocGeneratorModal = false" class="text-gray-400 hover:text-white text-xl">✕</button>
+            </div>
+            <div class="space-y-4 text-xs">
+                <select x-model="docForm.type" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white focus:border-yellow-500 focus:outline-none">
+                    <option value="Rent Agreement">🏠 Rent Agreement</option>
+                    <option value="Bail Petition">⚖️ Bail Petition</option>
+                    <option value="Legal Notice">📩 Legal Notice</option>
+                    <option value="Power of Attorney">📜 Power of Attorney</option>
+                    <option value="Affidavit">✍️ Affidavit</option>
+                </select>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" x-model="docForm.party1" placeholder="First Party (Name, CNIC)" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white">
+                    <input type="text" x-model="docForm.party2" placeholder="Second Party (Name, CNIC)" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white">
+                    <input type="text" x-model="docForm.court" placeholder="Court / Location" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white">
+                    <input type="text" x-model="docForm.purpose" placeholder="Purpose / Details" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white">
+                </div>
+                <button @click="generateDocument()" class="w-full rounded-lg bg-yellow-600 py-3 font-bold text-slate-900 transition hover:bg-yellow-500">Generate Draft</button>
+                <div x-show="generatedDocText" class="mt-6 border-t border-slate-800 pt-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="font-semibold text-yellow-500">Draft:</label>
+                        <button @click="copyToClipboard(generatedDocText)" class="bg-slate-800 hover:bg-slate-700 text-yellow-500 border border-yellow-500/30 px-3 py-1 rounded">📋 Copy</button>
+                    </div>
+                    <textarea x-model="generatedDocText" rows="6" class="w-full rounded-lg border border-slate-700 bg-slate-950 p-4 font-mono text-gray-200 focus:outline-none"></textarea>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- PROFILE UPDATE MODAL -->
-    <div x-show="showProfileModal" x-cloak class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-4">
-        <div @click.outside="showProfileModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-gold-500/40 p-5 space-y-4">
+    <div x-show="showProfileModal" x-cloak class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4" role="dialog">
+        <div @click.outside="showProfileModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-gold-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar gold-glow">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 class="font-cinzel text-sm font-bold text-white"><i class="fa-solid fa-user-pen text-gold-400"></i> Update Profile</h3>
-                <button @click="showProfileModal = false" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+                <h3 class="font-cinzel text-sm sm:text-base font-bold text-white"><i class="fa-solid fa-user-pen text-gold-400"></i> Update Profile</h3>
+                <button @click="showProfileModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <form @submit.prevent="updateProfile()" class="space-y-3 text-xs">
+            <form @submit.prevent="updateProfile()" class="space-y-3.5 text-xs">
+                <div class="flex items-center gap-3 p-3 bg-navy-950/80 rounded-xl border border-slate-800">
+                    <img :src="profileForm.avatar || user.avatar || 'https://ui-avatars.com/api/?name=User'" class="w-14 h-14 rounded-2xl object-cover border-2 border-gold-500">
+                    <div class="flex-1">
+                        <button type="button" @click="$refs.profileImageInput.click()" class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold border border-slate-700"><i class="fa-solid fa-camera text-gold-400"></i> Upload Photo</button>
+                        <input type="file" x-ref="profileImageInput" @change="handleAvatarUpload($event)" accept="image/*" class="hidden">
+                    </div>
+                </div>
                 <input type="text" x-model="profileForm.name" placeholder="Full Name" required class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white">
-                <input type="text" x-model="profileForm.phone" placeholder="Phone" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white">
-                <input type="text" x-model="profileForm.city" placeholder="City" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white">
-                <button type="submit" :disabled="isLoading" class="w-full py-2.5 bg-gold-500 text-navy-950 font-extrabold rounded-xl">Save Changes</button>
+                <input type="text" x-model="profileForm.phone" placeholder="Phone" required class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white">
+                <template x-if="user.role === 'lawyer' || user.role === 'advocate'">
+                    <div class="space-y-2">
+                        <input type="text" x-model="profileForm.chamberAddress" placeholder="Chamber Address" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white">
+                        <input type="text" x-model="profileForm.specialty" placeholder="Specialty" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white">
+                    </div>
+                </template>
+                <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold rounded-xl shadow-lg hover:from-gold-400">Save</button>
             </form>
         </div>
     </div>
 
+    <!-- BOOK CONSULTATION MODAL -->
+    <div x-show="showBookingModal" x-cloak class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4" role="dialog">
+        <div @click.outside="showBookingModal = false" class="glass-panel max-w-md w-full rounded-2xl border border-slate-800 p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-base font-bold text-white"><i class="fa-solid fa-calendar-plus text-gold-400"></i> Book Consult</h3>
+                <button @click="showBookingModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <input type="text" x-model="bookingForm.location" placeholder="Preferred Location/Virtual" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="date" x-model="bookingForm.date" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white">
+                    <input type="text" x-model="bookingForm.time" placeholder="Time e.g. 10 PM" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white">
+                </div>
+                <textarea x-model="bookingForm.summary" rows="3" placeholder="Case Summary..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-3 text-white"></textarea>
+                <button @click="confirmBooking()" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold rounded-xl hover:from-gold-400">Confirm Request</button>
+            </div>
+        </div>
+    </div>
+
     <!-- DIRECT CHAT MODAL -->
-    <div x-show="showChatModal" x-cloak class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+    <div x-show="showChatModal" x-cloak class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4" role="dialog">
         <div @click.outside="showChatModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-gold-500/40 p-4 space-y-3 max-h-[85vh] flex flex-col justify-between">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div class="flex items-center gap-2.5">
-                    <img :src="activeChatAdvocate?.avatar || 'https://ui-avatars.com/api/?name=' + (activeChatAdvocate?.name || 'Advocate')" class="w-9 h-9 rounded-full object-cover border border-gold-500">
+                    <img :src="activeChatAdvocate?.avatar || 'https://ui-avatars.com/api/?name=Lawyer'" class="w-9 h-9 rounded-full object-cover border border-gold-500">
                     <div>
-                        <h4 class="text-xs font-bold text-white" x-text="activeChatAdvocate?.name || 'Advocate Chat'"></h4>
-                        <p class="text-[9px] text-slate-400 flex items-center gap-1"><span class="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span> Direct Session</p>
+                        <h4 class="text-xs font-bold text-white" x-text="activeChatAdvocate?.name || 'Advocate Direct Chat'"></h4>
+                        <p class="text-[9px] text-emerald-400 flex items-center gap-1"><span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span> Live messages · server stored</p>
                     </div>
                 </div>
                 <button @click="showChatModal = false" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
@@ -414,38 +773,74 @@
     </div>
 
     <!-- FLOATING TOAST -->
-    <div x-show="toast.show" x-transition class="fixed bottom-4 right-4 z-50 px-3.5 py-2.5 rounded-xl shadow-2xl border text-xs font-bold flex items-center gap-2" :class="toast.type === 'success' ? 'bg-emerald-950 text-emerald-300 border-emerald-500/40' : 'bg-rose-950 text-rose-300 border-rose-500/40'" x-cloak>
+    <div x-show="toast.show" x-transition class="fixed bottom-4 right-4 z-50 px-3.5 py-2.5 rounded-xl shadow-2xl border text-xs font-bold flex items-center gap-2" :class="toast.type === 'success' ? 'bg-emerald-950 text-emerald-300 border-emerald-500/40' : 'bg-sapphire-950 text-sapphire-300 border-sapphire-500/40'" x-cloak>
         <i class="fa-solid fa-circle-info"></i><span x-text="toast.message"></span>
     </div>
 
-    <!-- MERGED REALTIME JAVASCRIPT LOGIC -->
+    <!-- MERGED JAVASCRIPT LOGIC -->
     <script>
-        const API_BASE = window.location.origin.includes('localhost') ? 'http://localhost:8000' : 'https://lawnexa.onrender.com';
+        // Serve the UI from FastAPI (/), or define window.LAWNEXA_API_BASE when hosted separately.
+        const API_BASE = (window.LAWNEXA_API_BASE || window.location.origin).replace(/\/$/, '');
+
+        function readSafeStorage(key, defaultValue) {
+            try {
+                const item = window.localStorage.getItem(key);
+                return item ? JSON.parse(item) : defaultValue;
+            } catch (_) { return defaultValue; }
+        }
 
         function lawNexaApp() {
             return {
-                token: '',
-                isLoggedIn: false,
+                token: localStorage.getItem('token') || '',
+                isLoggedIn: !!localStorage.getItem('token'), // BUG FIXED HERE
                 isLoading: false, 
+                mobileMenuOpen: false,
                 authTab: 'login',
                 activeTab: 'advocates',
-                currentLocation: 'Pakistan Court Network',
-                
+                currentLocation: 'Location detect ho rahi hai...',
+                userLat: null,
+                userLng: null,
+
+                cityAreas: {
+                    'Karachi': ['Saddar / City Court', 'Sindh High Court', 'Malir District Court', 'Clifton / DHA Chambers'],
+                    'Sukkur': ['High Court Sukkur Bench', 'District & Sessions Court Sukkur'],
+                    'Lahore': ['Lahore High Court', 'Aiwan-e-Adl / Sessions Court'],
+                    'Islamabad': ['Islamabad High Court (IHC)', 'F-8 District Courts']
+                },
+
                 selectedCity: 'All',
+                selectedArea: 'All',
+                selectedCategory: 'All',
                 searchQuery: '',
 
                 loginForm: { id: '', password: '', role: 'client' },
                 registerForm: { role: 'client', name: '', phone: '', email: '', password: '' },
 
                 showLawyerRegistrationModal: false,
-                lawyerRegForm: { name: '', email: '', phone: '', license: '', jurisdiction: '', specialty: '', exp: 0, password: '' },
+                lawyerRegForm: { name: '', email: '', phone: '', license: '', jurisdiction: '', barAssociation: '', specialty: '', exp: '', password: '' },
+
+                showForgotModal: false,
+                otpSent: false,
+                forgotForm: { id: '', otp: '', newPassword: '' },
 
                 showProfileModal: false,
-                profileForm: { name: '', phone: '', email: '', city: '', area: '', specialty: '' },
+                profileForm: { name: '', phone: '', email: '', avatar: '', city: '', area: '', chamberAddress: '', specialty: '', license: '', bar: '', exp: '' },
 
                 showDocGeneratorModal: false,
-                docForm: { type: 'Agreement', party1: '', party2: '', court: '', purpose: '' },
+                docForm: { type: 'Rent Agreement', party1: '', party2: '', court: '', purpose: '' },
                 generatedDocText: '',
+
+                showNewPostModal: false,
+                newPostForm: { category: 'Legal Insight & Analysis', title: '', content: '', fileName: '' },
+
+                showAiAnalyzerModal: false,
+                isAnalyzing: false,
+                aiAnalyzerText: '',
+                uploadedFirFileName: '',
+                aiResult: null,
+
+                showBookingModal: false,
+                bookingForm: { location: '', date: '', time: '', summary: '' },
 
                 showChatModal: false,
                 activeChatAdvocate: null,
@@ -453,9 +848,19 @@
                 chatInputText: '',
 
                 toast: { show: false, message: '', type: 'info' },
-                user: { id: 0, name: 'Guest', role: 'client' },
+                user: readSafeStorage('user', { id: 0, name: 'Guest', role: 'client' }),
                 advocates: [],
+                posts: [],
+                myBookings: [],
+                directoryError: '',
+                lastDirectoryUpdate: null,
+                activeBookingAdvocate: null,
+                selectedPostFile: null,
+                selectedFirFile: null,
+                liveRefreshTimer: null,
+                chatLastMessageId: 0,
 
+                // LocalStorage Helpers
                 getSafeStorage(key, defaultValue) {
                     try {
                         const item = localStorage.getItem(key);
@@ -468,35 +873,88 @@
                     try {
                         localStorage.setItem(key, typeof value === 'object' ? JSON.stringify(value) : value);
                     } catch (e) {
-                        console.warn("Storage Quota Exceeded");
+                        console.warn("LocalStorage Quota Exceeded on Mobile");
                     }
                 },
 
+                // Initialization
                 async init() {
-                    try {
-                        this.token = localStorage.getItem('token') || '';
-                    } catch (e) {
-                        this.token = '';
-                    }
-
-                    this.user = this.getSafeStorage('user', { id: 0, name: 'Guest', role: 'client' });
-                    this.isLoggedIn = false;
-
-                    await this.fetchLawyers();
+                    window.appInstance = this;
+                    this.initGPSLocation();
+                    await this.fetchLawyers(true);
+                    await this.fetchPosts(true);
                     if (this.token) {
                         await this.verifySession();
+                        if (this.isLoggedIn) await this.fetchBookings(true);
+                    } else {
+                        this.isLoggedIn = false;
                     }
+                    // Real database-backed refresh: new lawyer profiles, posts, bookings and chat replies
+                    // become visible without a page reload. This is near-real-time polling, not sample data.
+                    this.liveRefreshTimer = window.setInterval(async () => {
+                        if (document.visibilityState !== 'visible') return;
+                        await this.fetchLawyers(true);
+                        await this.fetchPosts(true);
+                        if (this.token && this.isLoggedIn) {
+                            await this.fetchBookings(true);
+                            if (this.showChatModal && this.activeChatAdvocate) await this.loadChatHistory(true);
+                        }
+                    }, 3500);
+                },
+
+                initGPSLocation() {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                                this.userLat = position.coords.latitude;
+                                this.userLng = position.coords.longitude;
+                                this.currentLocation = `GPS Active (${this.userLat.toFixed(2)}, ${this.userLng.toFixed(2)})`;
+                            },
+                            () => { this.currentLocation = 'Location permission not available'; },
+                            { timeout: 5000 }
+                        );
+                    } else {
+                        this.currentLocation = 'Location permission not available';
+                    }
+                },
+
+                getAvailableAreas() {
+                    if (this.selectedCity === 'All') return Object.values(this.cityAreas).flat();
+                    return this.cityAreas[this.selectedCity] || [];
                 },
 
                 resetDefaultTab() {
-                    this.activeTab = (this.user.role === 'lawyer' || this.user.role === 'advocate') ? 'bookings' : 'advocates';
+                    this.activeTab = (this.user.role === 'lawyer' || this.user.role === 'advocate') ? 'dashboard' : 'advocates';
                 },
 
-                async verifySession() {
-                    if (!this.token) {
-                        this.isLoggedIn = false;
-                        return;
+                // Safe Clipboard Fallback
+                copyToClipboard(text) {
+                    if (!text) return;
+                    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text)
+                            .then(() => this.showToast('Draft Copied Successfully!', 'success'))
+                            .catch(err => this.fallbackCopyText(text));
+                    } else {
+                        this.fallbackCopyText(text);
                     }
+                },
+                fallbackCopyText(text) {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        this.showToast('Draft Copied Successfully!', 'success');
+                    } catch (err) {
+                        this.showToast('Failed to copy text', 'error');
+                    }
+                    document.body.removeChild(textArea);
+                },
+
+                // Auth Functions
+                async verifySession() {
+                    if (!this.token) return;
                     try {
                         const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
                             headers: { 'Authorization': `Bearer ${this.token}` }
@@ -506,271 +964,233 @@
                             this.user = userData;
                             this.isLoggedIn = true;
                             this.setSafeStorage('user', this.user);
-                            this.resetDefaultTab();
-                        } else {
+                            if (this.user.role === 'lawyer' || this.user.role === 'advocate') {
+                                this.activeTab = 'bookings'; // Set default view for lawyers
+                            }
+                        } else if (res.status === 401 || res.status === 403) {
                             this.logout();
                         }
                     } catch (e) {
-                        console.warn("Session verification error:", e);
+                        console.warn("Backend server connection warming up...");
                     }
                 },
 
+                applyAuth(data) {
+                    this.token = data.access_token;
+                    this.user = { id: data.user_id, name: data.name, role: data.role, is_approved: !!data.is_approved };
+                    this.setSafeStorage('token', this.token);
+                    this.setSafeStorage('user', this.user);
+                    this.isLoggedIn = true;
+                    this.activeTab = this.user.role === 'lawyer' || this.user.role === 'advocate' ? 'bookings' : 'advocates';
+                },
+
                 async handleLogin() {
-                    if (!this.loginForm.id.trim() || !this.loginForm.password.trim()) {
-                        this.showToast('Please Phone/Email aur Password enter karein!', 'error');
-                        return;
+                    if (!this.loginForm.id.trim() || !this.loginForm.password) {
+                        this.showToast('Email/Phone aur Password enter karein.', 'error'); return;
                     }
                     this.isLoading = true;
                     const formData = new FormData();
                     formData.append('username', this.loginForm.id.trim());
-                    formData.append('password', this.loginForm.password.trim());
-
+                    formData.append('password', this.loginForm.password);
                     try {
                         const res = await fetch(`${API_BASE}/api/v1/auth/token`, { method: 'POST', body: formData });
-                        const data = await res.json();
-                        if (res.ok && data.access_token) {
-                            this.token = data.access_token;
-                            localStorage.setItem('token', this.token);
-                            this.showToast('Login successful!', 'success');
-                            await this.verifySession();
-                        } else {
-                            this.showToast(data.detail || 'Ghalat details entered!', 'error');
-                        }
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok || !data.access_token) throw new Error(data.detail || 'Login nahi ho saka.');
+                        this.applyAuth(data);
+                        await this.verifySession();
+                        await Promise.all([this.fetchLawyers(true), this.fetchPosts(true), this.fetchBookings(true)]);
+                        this.showToast('Login successful.', 'success');
                     } catch (e) {
-                        this.showToast('Backend connection error!', 'error');
-                    } finally {
-                        this.isLoading = false;
-                    }
+                        this.showToast(e.message || 'Backend se connection nahi ho saka.', 'error');
+                    } finally { this.isLoading = false; }
                 },
 
                 async handleRegister() {
-                    if (!this.registerForm.name || !this.registerForm.phone || !this.registerForm.password) {
-                        this.showToast('Zaroori fields fill karein!', 'error');
-                        return;
-                    }
                     this.isLoading = true;
                     try {
+                        const payload = { ...this.registerForm, role: 'client' };
                         const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                name: this.registerForm.name.trim(),
-                                phone: this.registerForm.phone.trim(),
-                                email: this.registerForm.email ? this.registerForm.email.trim() : null,
-                                password: this.registerForm.password,
-                                role: 'client'
-                            })
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                         });
-                        const data = await res.json();
-                        if (res.ok) {
-                            if (data.access_token) {
-                                this.token = data.access_token;
-                                localStorage.setItem('token', this.token);
-                            }
-                            this.showToast(data.message || 'Account created successfully!', 'success');
-                            if (this.token) await this.verifySession(); else this.authTab = 'login';
-                        } else {
-                            this.showToast(data.detail || 'Registration failed!', 'error');
-                        }
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok || !data.access_token) throw new Error(data.detail || 'Registration nahi ho saki.');
+                        this.applyAuth(data);
+                        this.registerForm = { role: 'client', name: '', phone: '', email: '', password: '' };
+                        await Promise.all([this.fetchLawyers(true), this.fetchPosts(true), this.fetchBookings(true)]);
+                        this.showToast('Client account database mein create ho gaya.', 'success');
                     } catch (e) {
-                        this.showToast('Server connection error!', 'error');
-                    } finally {
-                        this.isLoading = false;
-                    }
+                        this.showToast(e.message || 'Backend se connection nahi ho saka.', 'error');
+                    } finally { this.isLoading = false; }
                 },
 
                 async handleLawyerSubmit() {
+                    if (this.isLoading) return;
                     this.isLoading = true;
+                    const jurisdiction = this.lawyerRegForm.jurisdiction;
+                    const place = jurisdiction.includes('Lahore') ? { city: 'Lahore', area: jurisdiction } :
+                                  jurisdiction.includes('Sindh') ? { city: 'Karachi', area: jurisdiction } :
+                                  { city: 'Islamabad', area: jurisdiction };
+                    const payload = {
+                        role: 'lawyer', name: this.lawyerRegForm.name.trim(), email: this.lawyerRegForm.email.trim(),
+                        phone: this.lawyerRegForm.phone.trim(), password: this.lawyerRegForm.password,
+                        license_number: this.lawyerRegForm.license.trim(), bar_association: this.lawyerRegForm.barAssociation.trim(),
+                        specialty: this.lawyerRegForm.specialty.trim(), experience_years: Number(this.lawyerRegForm.exp || 0),
+                        city: place.city, area: place.area, chamber_address: ''
+                    };
                     try {
                         const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                name: this.lawyerRegForm.name.trim(),
-                                email: this.lawyerRegForm.email.trim(),
-                                phone: this.lawyerRegForm.phone.trim(),
-                                password: this.lawyerRegForm.password,
-                                role: 'lawyer',
-                                license_number: this.lawyerRegForm.license,
-                                bar_association: this.lawyerRegForm.jurisdiction,
-                                specialty: this.lawyerRegForm.specialty,
-                                experience_years: parseInt(this.lawyerRegForm.exp) || 0
-                            })
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                         });
-                        const data = await res.json();
-                        if (res.ok) {
-                            this.showLawyerRegistrationModal = false;
-                            this.showToast(data.message || 'Advocate application submitted!', 'success');
-                            this.authTab = 'login';
-                        } else {
-                            this.showToast(data.detail || 'Registration failed!', 'error');
-                        }
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok || !data.access_token) throw new Error(data.detail || 'Lawyer registration nahi ho saki.');
+                        this.applyAuth(data);
+                        this.user.bar_association = payload.bar_association;
+                        this.user.license_number = payload.license_number;
+                        this.user.specialty = payload.specialty;
+                        this.setSafeStorage('user', this.user);
+                        this.showLawyerRegistrationModal = false;
+                        this.authTab = 'login';
+                        this.lawyerRegForm = { name: '', email: '', phone: '', license: '', jurisdiction: '', barAssociation: '', specialty: '', exp: '', password: '' };
+                        await Promise.all([this.fetchLawyers(true), this.fetchPosts(true), this.fetchBookings(true)]);
+                        this.activeTab = 'advocates';
+                        this.showToast('Lawyer profile live directory mein publish ho gaya. Verification pending hai, is liye booking verify hone ke baad khulegi.', 'success');
                     } catch (e) {
-                        this.showToast('Server connection error!', 'error');
-                    } finally {
-                        this.isLoading = false;
+                        this.showToast(e.message || 'Backend se connection nahi ho saka.', 'error');
+                    } finally { this.isLoading = false; }
+                },
+
+                // Utilities & UI Helpers
+                handleAvatarUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    if (file.size > 12 * 1024 * 1024) {
+                        this.showToast('Image bohot badi hai.', 'error');
+                        return;
                     }
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.src = e.target.result;
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 300; 
+                            const scaleFactor = MAX_WIDTH / img.width;
+                            canvas.width = MAX_WIDTH;
+                            canvas.height = img.height * scaleFactor;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            this.profileForm.avatar = canvas.toDataURL('image/jpeg', 0.65);
+                            this.showToast('Photo optimized!', 'success');
+                        };
+                    };
+                    reader.readAsDataURL(file);
                 },
 
                 openProfileModal() {
                     this.profileForm = {
-                        name: this.user.name || '',
-                        phone: this.user.phone || '',
-                        email: this.user.email || '',
-                        city: this.user.city || '',
-                        area: this.user.area || '',
-                        specialty: this.user.specialty || ''
+                        name: this.user.name || '', phone: this.user.phone || '', email: this.user.email || '',
+                        avatar: this.user.avatar || '', city: this.user.city || '', area: this.user.area || '',
+                        chamberAddress: this.user.chamber_address || '', specialty: this.user.specialty || '',
+                        license: this.user.license_number || '', bar: this.user.bar_association || '',
+                        exp: this.user.experience_years ?? this.user.experience ?? ''
                     };
                     this.showProfileModal = true;
                 },
 
                 async updateProfile() {
-                    if (!this.token) return;
-                    this.isLoading = true;
+                    if (!this.token) { this.showToast('Profile update ke liye login karein.', 'error'); return; }
+                    const payload = {
+                        name: this.profileForm.name, phone: this.profileForm.phone, email: this.profileForm.email || null,
+                        avatar: this.profileForm.avatar || null, city: this.profileForm.city || null, area: this.profileForm.area || null,
+                        chamber_address: this.profileForm.chamberAddress || null, specialty: this.profileForm.specialty || null,
+                        license_number: this.profileForm.license || null, bar_association: this.profileForm.bar || null,
+                        experience_years: this.profileForm.exp === '' ? null : Number(this.profileForm.exp)
+                    };
                     try {
                         const res = await fetch(`${API_BASE}/api/v1/users/profile`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${this.token}`
-                            },
-                            body: JSON.stringify(this.profileForm)
+                            method: 'PUT', headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
                         });
-                        const data = await res.json();
-                        if (res.ok) {
-                            this.showToast('Profile updated!', 'success');
-                            this.showProfileModal = false;
-                            await this.verifySession();
-                        } else {
-                            this.showToast(data.detail || 'Profile update failed.', 'error');
-                        }
-                    } catch (e) {
-                        this.showToast('Server error during profile update.', 'error');
-                    } finally {
-                        this.isLoading = false;
-                    }
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Profile update fail ho gaya.');
+                        this.user = { ...this.user, ...(data.user || {}) };
+                        this.setSafeStorage('user', this.user);
+                        this.showProfileModal = false;
+                        await this.fetchLawyers(true);
+                        this.showToast('Profile database mein update ho gaya.', 'success');
+                    } catch (e) { this.showToast(e.message || 'Profile update fail ho gaya.', 'error'); }
                 },
 
-                async fetchLawyers() {
+                async fetchLawyers(silent = false) {
                     try {
-                        const url = new URL(`${API_BASE}/api/v1/lawyers/nearby`);
-                        if (this.selectedCity !== 'All') url.searchParams.append('city', this.selectedCity);
-                        const res = await fetch(url);
-                        if (res.ok) {
-                            const data = await res.json();
-                            this.advocates = Array.isArray(data) ? data : [];
-                        } else {
-                            this.advocates = [];
-                        }
+                        const params = new URLSearchParams();
+                        if (this.selectedCity && this.selectedCity !== 'All') params.set('city', this.selectedCity);
+                        if (this.selectedArea && this.selectedArea !== 'All') params.set('area', this.selectedArea);
+                        const suffix = params.toString() ? `?${params.toString()}` : '';
+                        const res = await fetch(`${API_BASE}/api/v1/lawyers/nearby${suffix}`, { cache: 'no-store' });
+                        const data = await res.json().catch(() => ([]));
+                        if (!res.ok) throw new Error(data.detail || 'Lawyer directory server error.');
+                        this.advocates = Array.isArray(data) ? data : [];
+                        this.directoryError = '';
+                        this.lastDirectoryUpdate = new Date().toLocaleTimeString();
                     } catch (e) {
+                        this.directoryError = 'Live lawyer directory server se connect nahi ho raha.';
+                        if (!silent) this.showToast(this.directoryError, 'error');
+                        // Never inject fallback/demo lawyers on a failed request.
                         this.advocates = [];
                     }
                 },
 
+                async fetchPosts(silent = false) {
+                    try {
+                        const headers = this.token ? { 'Authorization': `Bearer ${this.token}` } : {};
+                        const res = await fetch(`${API_BASE}/api/v1/posts`, { headers, cache: 'no-store' });
+                        const data = await res.json().catch(() => ([]));
+                        if (!res.ok) throw new Error(data.detail || 'Legal feed load nahi ho saka.');
+                        this.posts = (Array.isArray(data) ? data : []).map(p => ({
+                            ...p, author: p.name || 'Lawyer', authorAvatar: p.avatar || '', authorRole: 'Lawyer',
+                            mediaUrl: p.media_url || '', mediaType: p.media_type || '',
+                            timestamp: p.created_at ? new Date(p.created_at).toLocaleString() : '',
+                            likes: Number(p.likes || 0), liked: !!p.liked,
+                            title: p.title || 'Legal Update', category: p.category || p.bar_association || 'Legal Update'
+                        }));
+                    } catch (e) {
+                        if (!silent) this.showToast(e.message || 'Legal feed load nahi ho saka.', 'error');
+                        this.posts = [];
+                    }
+                },
+
+                async fetchBookings(silent = false) {
+                    if (!this.token || !this.isLoggedIn) { this.myBookings = []; return; }
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/bookings/mine`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }, cache: 'no-store'
+                        });
+                        const data = await res.json().catch(() => ([]));
+                        if (!res.ok) throw new Error(data.detail || 'Bookings load nahi ho sake.');
+                        this.myBookings = (Array.isArray(data) ? data : []).map(b => ({
+                            ...b, date: b.date || b.booking_date || '', time: b.time || b.time_slot || '',
+                            summary: b.summary || b.case_summary || '', status: (b.status || 'pending').charAt(0).toUpperCase() + (b.status || 'pending').slice(1),
+                            clientName: this.user.role === 'lawyer' ? (b.clientName || 'Client') : (b.lawyerName || 'Lawyer')
+                        }));
+                    } catch (e) {
+                        if (!silent) this.showToast(e.message || 'Bookings load nahi ho sake.', 'error');
+                    }
+                },
+
                 get filteredAdvocates() {
-                    const q = (this.searchQuery || '').toLowerCase().trim();
                     return this.advocates.filter(a => {
-                        const name = (a.name || '').toLowerCase();
-                        const city = (a.city || a.address || '').toLowerCase();
-                        const specialty = (a.specialty || '').toLowerCase();
-                        const matchCity = this.selectedCity === 'All' || city.includes(this.selectedCity.toLowerCase());
-                        const matchSearch = !q || name.includes(q) || city.includes(q) || specialty.includes(q);
-                        return matchCity && matchSearch;
+                        const name = String(a.name || '').toLowerCase();
+                        const city = String(a.city || '').toLowerCase();
+                        const area = String(a.area || '').toLowerCase();
+                        const specialty = String(a.specialty || '').toLowerCase();
+                        const matchCat = this.selectedCategory === 'All' || a.specialty === this.selectedCategory;
+                        const matchCity = this.selectedCity === 'All' || a.city === this.selectedCity;
+                        const matchArea = this.selectedArea === 'All' || a.area === this.selectedArea;
+                        const q = this.searchQuery.toLowerCase().trim();
+                        const matchSearch = !q || name.includes(q) || city.includes(q) || area.includes(q) || specialty.includes(q);
+                        return matchCat && matchCity && matchArea && matchSearch;
                     });
-                },
-
-                async generateDocument() {
-                    if (!this.docForm.party1 || !this.docForm.party2) {
-                        this.showToast('Parties ki details bharein!', 'error');
-                        return;
-                    }
-                    this.isLoading = true;
-                    try {
-                        const res = await fetch(`${API_BASE}/api/ai/generate-doc`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                type: this.docForm.type,
-                                party1: this.docForm.party1,
-                                party2: this.docForm.party2,
-                                court: 'Karachi Court',
-                                purpose: 'Legal Draft'
-                            })
-                        });
-                        const data = await res.json();
-                        if (res.ok && data.draft) {
-                            this.generatedDocText = data.draft;
-                            this.showToast('Document draft generated!', 'success');
-                        } else {
-                            this.showToast('Document generation failed.', 'error');
-                        }
-                    } catch (e) {
-                        this.showToast('Server connection error.', 'error');
-                    } finally {
-                        this.isLoading = false;
-                    }
-                },
-
-                async openChatModal(adv) {
-                    this.activeChatAdvocate = adv;
-                    this.showChatModal = true;
-                    this.chatMessages = [];
-                    await this.loadChatHistory(adv.user_id || adv.id);
-                },
-
-                async loadChatHistory(receiverId) {
-                    if (!this.token || !receiverId) return;
-                    try {
-                        const res = await fetch(`${API_BASE}/api/v1/chat/history/${receiverId}`, {
-                            headers: { 'Authorization': `Bearer ${this.token}` }
-                        });
-                        if (res.ok) {
-                            const msgs = await res.json();
-                            this.chatMessages = msgs.map(m => ({
-                                sender: m.sender_id === this.user.id ? 'me' : 'them',
-                                text: m.message,
-                                time: new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-                            }));
-                        }
-                    } catch (e) {
-                        console.warn("Could not load chat history");
-                    }
-                },
-
-                async sendChatMessage() {
-                    if (!this.chatInputText.trim() || !this.activeChatAdvocate) return;
-                    const msgText = this.chatInputText.trim();
-                    this.chatInputText = '';
-                    
-                    if (!this.token) {
-                        this.showToast('Chat ke liye login zaroori hai!', 'error');
-                        return;
-                    }
-
-                    try {
-                        const res = await fetch(`${API_BASE}/api/v1/chat/send`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${this.token}`
-                            },
-                            body: JSON.stringify({
-                                receiver_id: this.activeChatAdvocate.user_id || this.activeChatAdvocate.id,
-                                message: msgText
-                            })
-                        });
-                        if (res.ok) {
-                            this.chatMessages.push({
-                                sender: 'me',
-                                text: msgText,
-                                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-                            });
-                        } else {
-                            this.showToast('Message send nahi ho saka.', 'error');
-                        }
-                    } catch (e) {
-                        this.showToast('Server error while sending message.', 'error');
-                    }
                 },
 
                 showToast(message, type = 'info') {
@@ -785,6 +1205,178 @@
                     this.isLoggedIn = false;
                     this.activeTab = 'advocates';
                     this.user = { id: 0, name: 'Guest', role: 'client' };
+                    this.myBookings = [];
+                    this.chatMessages = [];
+                    this.setSafeStorage('user', this.user);
+                },
+
+                sendOtp() {
+                    this.showToast('Password reset abhi available nahi: pehle verified SMS/email provider configure karna hoga. Koi fake OTP send nahi hua.', 'error');
+                },
+                submitResetPassword() {
+                    this.showToast('Password reset service configure nahi hai; password change nahi hua. Support/admin se rabta karein.', 'error');
+                },
+
+                async createPost() {
+                    if (!this.token) { this.showToast('Post karne ke liye login karein.', 'error'); return; }
+                    if (!this.user.bar_association) { this.showToast('Profile mein registered Bar Association add karein.', 'error'); return; }
+                    try {
+                        let mediaUrl = null;
+                        let mediaType = null;
+                        if (this.selectedPostFile) {
+                            const uploadForm = new FormData(); uploadForm.append('file', this.selectedPostFile);
+                            const up = await fetch(`${API_BASE}/api/v1/media/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` }, body: uploadForm });
+                            const upData = await up.json().catch(() => ({}));
+                            if (!up.ok) throw new Error(upData.detail || 'Media upload fail ho gaya.');
+                            mediaUrl = upData.url; mediaType = upData.media_type;
+                        }
+                        const res = await fetch(`${API_BASE}/api/v1/posts`, {
+                            method: 'POST', headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ title: this.newPostForm.title, category: this.newPostForm.category,
+                                content: this.newPostForm.content, bar_association: this.user.bar_association,
+                                media_url: mediaUrl, media_type: mediaType })
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Post publish nahi ho saka.');
+                        this.showNewPostModal = false;
+                        this.newPostForm = { category: 'Legal Insight & Analysis', title: '', content: '', fileName: '' };
+                        this.selectedPostFile = null;
+                        await this.fetchPosts(true);
+                        this.showToast('Post database mein publish ho gaya.', 'success');
+                    } catch (e) { this.showToast(e.message || 'Post publish nahi ho saka.', 'error'); }
+                },
+                handlePostMediaUpload(e) {
+                    const file = e.target.files && e.target.files[0];
+                    this.selectedPostFile = file || null;
+                    this.newPostForm.fileName = file ? file.name : '';
+                },
+
+                async runAiAnalysis() {
+                    if (!this.token) { this.showToast('AI FIR analysis ke liye login karein.', 'error'); return; }
+                    this.isAnalyzing = true; this.aiResult = null;
+                    try {
+                        const form = new FormData();
+                        form.append('text', this.aiAnalyzerText || '');
+                        if (this.selectedFirFile) form.append('file', this.selectedFirFile, this.selectedFirFile.name);
+                        const res = await fetch(`${API_BASE}/api/ai/analyze-fir`, { method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` }, body: form });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'AI FIR analysis complete nahi ho saka.');
+                        this.aiResult = { bailType: 'Preliminary AI review', strategy: data.analysis, disclaimer: data.disclaimer };
+                    } catch (e) { this.showToast(e.message || 'AI provider response nahi de saka.', 'error'); }
+                    finally { this.isAnalyzing = false; }
+                },
+                handleFirFileUpload(e) {
+                    const file = e.target.files && e.target.files[0];
+                    this.selectedFirFile = file || null;
+                    this.uploadedFirFileName = file ? file.name : '';
+                },
+
+                async generateDocument() {
+                    if (!this.token) { this.showToast('Document generate karne ke liye login karein.', 'error'); return; }
+                    try {
+                        const res = await fetch(`${API_BASE}/api/ai/generate-doc`, {
+                            method: 'POST', headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type: this.docForm.type, party1: this.docForm.party1, party2: this.docForm.party2,
+                                court: this.docForm.court || 'Pakistan', purpose: this.docForm.purpose })
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'AI document generation nahi ho saki.');
+                        this.generatedDocText = `${data.draft}
+
+${data.disclaimer || ''}`;
+                    } catch (e) { this.showToast(e.message || 'AI document provider response nahi de saka.', 'error'); }
+                },
+
+                openBookingModal(adv) {
+                    if (!this.token || this.user.role !== 'client') { this.showToast('Booking sirf logged-in client account se ho sakti hai.', 'error'); return; }
+                    if (!adv || !adv.is_verified) { this.showToast('Lawyer ki verification pending hai. Abhi aap live chat se inquiry bhej sakte hain.', 'error'); return; }
+                    this.activeBookingAdvocate = adv;
+                    this.bookingForm = { location: 'Virtual consultation', date: '', time: '', summary: '' };
+                    this.showBookingModal = true;
+                },
+                async confirmBooking() {
+                    if (!this.activeBookingAdvocate) return;
+                    if (!this.bookingForm.date || !this.bookingForm.time || !this.bookingForm.summary.trim()) {
+                        this.showToast('Date, time aur case summary complete karein.', 'error'); return;
+                    }
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/bookings`, {
+                            method: 'POST', headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ lawyer_id: this.activeBookingAdvocate.lawyer_id || this.activeBookingAdvocate.id,
+                                booking_date: this.bookingForm.date, time_slot: this.bookingForm.time,
+                                location: this.bookingForm.location, case_summary: this.bookingForm.summary })
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Booking request save nahi hui.');
+                        this.showBookingModal = false;
+                        await this.fetchBookings(true);
+                        this.showToast('Consultation request database mein save ho gayi.', 'success');
+                    } catch (e) { this.showToast(e.message || 'Booking request save nahi hui.', 'error'); }
+                },
+
+                async openChatModal(adv) {
+                    if (!this.token) { this.showToast('Chat karne ke liye login karein.', 'error'); return; }
+                    if (!adv || !(adv.user_id || adv.id)) { this.showToast('Lawyer profile ID nahi mili.', 'error'); return; }
+                    this.activeChatAdvocate = adv;
+                    this.showChatModal = true;
+                    this.chatMessages = [];
+                    await this.loadChatHistory(false);
+                },
+                async loadChatHistory(silent = true) {
+                    const otherId = this.activeChatAdvocate && (this.activeChatAdvocate.user_id || this.activeChatAdvocate.id);
+                    if (!this.token || !otherId) return;
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/chat/history/${otherId}`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }, cache: 'no-store'
+                        });
+                        const data = await res.json().catch(() => ([]));
+                        if (!res.ok) throw new Error(data.detail || 'Chat history load nahi hui.');
+                        this.chatMessages = (Array.isArray(data) ? data : []).map(m => ({
+                            id: m.id, sender: Number(m.sender_id) === Number(this.user.id) ? 'me' : 'other',
+                            text: m.message + (m.quote_amount ? `\nQuotation: PKR ${Number(m.quote_amount).toLocaleString()} (${m.quote_status})` : ''),
+                            time: m.timestamp ? new Date(m.timestamp).toLocaleTimeString() : ''
+                        }));
+                        this.chatLastMessageId = this.chatMessages.length ? this.chatMessages[this.chatMessages.length - 1].id : 0;
+                    } catch (e) { if (!silent) this.showToast(e.message || 'Chat history load nahi hui.', 'error'); }
+                },
+                async sendChatMessage() {
+                    const message = this.chatInputText.trim();
+                    const otherId = this.activeChatAdvocate && (this.activeChatAdvocate.user_id || this.activeChatAdvocate.id);
+                    if (!message || !otherId) return;
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/chat/send`, {
+                            method: 'POST', headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ receiver_id: Number(otherId), message })
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Message send nahi hua.');
+                        this.chatInputText = '';
+                        await this.loadChatHistory(true);
+                    } catch (e) { this.showToast(e.message || 'Message send nahi hua.', 'error'); }
+                },
+                async toggleLike(post) {
+                    if (!this.token) { this.showToast('Like karne ke liye login karein.', 'error'); return; }
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/posts/${post.id}/like`, {
+                            method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Like save nahi hua.');
+                        post.liked = !!data.liked;
+                        post.likes = Math.max(0, Number(post.likes || 0) + (post.liked ? 1 : -1));
+                    } catch (e) { this.showToast(e.message || 'Like save nahi hua.', 'error'); }
+                },
+                async respondBooking(booking, status) {
+                    const action = String(status || '').toLowerCase();
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/bookings/${booking.id}?action=${encodeURIComponent(action)}`, {
+                            method: 'PATCH', headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Booking response save nahi hua.');
+                        await this.fetchBookings(true);
+                        this.showToast(`Booking ${data.status || action} ho gayi.`, 'success');
+                    } catch (e) { this.showToast(e.message || 'Booking response save nahi hua.', 'error'); }
                 }
             };
         }
