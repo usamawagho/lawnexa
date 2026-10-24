@@ -62,7 +62,7 @@ def seed_admin_user():
             db.execute(text("ALTER TABLE chat_messages ADD COLUMN is_read BOOLEAN DEFAULT FALSE"))
             db.commit()
         except Exception:
-            db.rollback()  # Prevents PostgreSQL InFailedSqlTransaction aborts
+            db.rollback()
 
         admin_phone = os.getenv("ADMIN_PHONE", "03000000000")
         admin_user = db.query(User).filter(User.phone == admin_phone).first()
@@ -91,6 +91,8 @@ seed_admin_and_migrate = seed_admin_user
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Drop and recreate tables to ensure missing columns are synced on Render
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     try:
         seed_admin_user()
@@ -300,7 +302,7 @@ async def register(
         is_approved=is_approved,
         is_active=True
     )
-    
+
     final_address = address or residential_address or chamber_address
     if hasattr(new_user, "city") and city:
         setattr(new_user, "city", city)
