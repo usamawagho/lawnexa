@@ -54,7 +54,7 @@ def save_uploaded_file(file: UploadFile, prefix: str = "doc") -> str:
         return filename
 
 
-# Seed Admin and Execute Startup Auto Migrations
+# Seed Admin User
 def seed_admin_user():
     db = next(get_db())
     try:
@@ -85,7 +85,6 @@ seed_admin_and_migrate = seed_admin_user
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Cascade SQL run karke purani foreign keys ke saath tables wipe honge aur naye columns sync ho jayenge
     try:
         with engine.begin() as conn:
             conn.execute(text("DROP TABLE IF EXISTS comments, likes, posts, chat_messages, appointments, lawyers, users CASCADE;"))
@@ -275,75 +274,102 @@ async def register(
     area: Optional[str] = Form(None),
     license_number: Optional[str] = Form(None),
     bar_association: Optional[str] = Form(None),
-    experience_years: Optional[int] = Form(0),
-    lat: Optional[float] = Form(31.5204),
-    lng: Optional[float] = Form(74.3587),
+    experience_years: Optional[str] = Form(None),
+    lat: Optional[str] = Form(None),
+    lng: Optional[str] = Form(None),
     law_card: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
-    if not email and not phone:
-        raise HTTPException(status_code=400, detail="Phone number or Email is required.")
+    try:
+        clean_phone = phone.strip() if (phone and phone.strip()) else None
+        clean_email = email.strip().lower() if (email and email.strip()) else None
 
-    if phone and db.query(User).filter(User.phone == phone.strip()).first():
-        raise HTTPException(status_code=400, detail="Phone number already registered.")
+        if not clean_email and not clean_phone:
+            raise HTTPException(status_code=400, detail="Phone number or Email is required.")
 
-    if email and db.query(User).filter(User.email == email.strip().lower()).first():
-        raise HTTPException(status_code=400, detail="Email address already registered.")
+        if clean_phone and db.query(User).filter(User.phone == clean_phone).first():
+            raise HTTPException(status_code=400, detail="Phone number is already registered. Please sign in.")
 
-    assigned_role = "lawyer" if role.lower() in ["lawyer", "advocate", "vakeel"] else "client"
-    is_approved = False if assigned_role == "lawyer" else True
+        if clean_email and db.query(User).filter(User.email == clean_email).first():
+            raise HTTPException(status_code=400, detail="Email address is already registered. Please sign in.")
 
-    final_address = address or residential_address or chamber_address
+        assigned_role = "lawyer" if role.lower() in ["lawyer", "advocate", "vakeel"] else "client"
+        is_approved = False if assigned_role == "lawyer" else True
 
-    new_user = User(
-        name=name.strip(),
-        phone=phone.strip() if phone else None,
-        email=email.strip().lower() if email else None,
-        hashed_password=pwd_context.hash(password.strip()),
-        role=assigned_role,
-        is_approved=is_approved,
-        is_active=True,
-        city=city,
-        address=final_address,
-        residential_address=residential_address or final_address
-    )
+        final_address = address or residential_address or chamber_address
 
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
-    card_url = None
-    if law_card and assigned_role == "lawyer":
-        card_url = save_uploaded_file(law_card, prefix=f"lawcard_{new_user.id}")
-
-    if assigned_role == "lawyer":
-        new_lawyer = Lawyer(
-            user_id=new_user.id,
-            name=new_user.name,
-            specialty=specialty or "General Practice",
-            address=chamber_address or final_address or "Chamber",
-            chamber_address=chamber_address or final_address,
-            city=city,
-            area=area,
-            phone=new_user.phone,
-            law_card_url=card_url,
-            is_verified=False,
-            lat=lat or 31.5204,
-            lng=lng or 74.3587,
-            license_number=license_number,
-            bar_association=bar_association,
-            experience_years=experience_years or 0
+        new_user = User(
+            name=name.strip(),
+            phone=clean_phone,
+            email=clean_email,
+            hashed_password=pwd_context.hash(password.strip()),
+            role=assigned_role,
+            is_approved=is_approved,
+            is_active=True,
+            city=city.strip() if city else None,
+            address=final_address.strip() if final_address else None,
+            residential_address=residential_address.strip() if residential_address else final_address
         )
 
-        db.add(new_lawyer)
+        db.add(new_user)
         db.commit()
+        db.refresh(new_user)
 
-    token = jwt.encode(
-        {"sub": str(new_user.id), "role": new_user.role, "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)},
-        SECRET_KEY, algorithm=ALGORITHM
-    )
+        card_url = None
+        if law_card and assigned_role == "lawyer":
+            card_url = save_uploaded_file(law_card, prefix=f"lawcard_{new_user.id}")
 
-    return {"message": "Account created successfully!", "access_token": token, "role": new_user.role, "user_id": new_user.id}
+        if assigned_role == "lawyer":
+            try:
+                exp_yrs = int(experience_years) if (experience_years and str(experience_years).strip()) else 0
+            except (ValueError, TypeError):
+                exp_yrs = 0
+
+            try:
+                lat_val = float(lat) if (lat and str(lat).strip()) else 31.5204
+            except (ValueError, TypeError):
+                lat_val = 31.5204
+
+            try:
+                lng_val = float(lng) if (lng and str(lng).strip()) else 74.3587
+            except (ValueError, TypeError):
+                lng_val = 74.3587
+
+            new_lawyer = Lawyer(
+                user_id=new_user.id,
+                name=new_user.name,
+                specialty=specialty or "General Practice",
+                address=chamber_address or final_address or "Chamber",
+                chamber_address=chamber_address or final_address,
+                city=city,
+                area=area,
+                phone=new_user.phone,
+                law_card_url=card_url,
+                is_verified=False,
+                lat=lat_val,
+                lng=lng_val,
+                license_number=license_number,
+                bar_association=bar_association,
+                experience_years=exp_yrs
+            )
+
+            db.add(new_lawyer)
+            db.commit()
+
+        token = jwt.encode(
+            {"sub": str(new_user.id), "role": new_user.role, "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)},
+            SECRET_KEY, algorithm=ALGORITHM
+        )
+
+        return {"message": "Account created successfully!", "access_token": token, "role": new_user.role, "user_id": new_user.id}
+
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Registration failure: {e}")
+        raise HTTPException(status_code=500, detail=f"Registration error: {str(e)}")
 
 
 @app.post("/api/v1/auth/token", response_model=TokenResponse)
