@@ -1,8 +1,7 @@
-from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, DateTime, Text, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
+from datetime import datetime, timezone
 from database import Base
-
 
 class User(Base):
     __tablename__ = "users"
@@ -12,58 +11,59 @@ class User(Base):
     phone = Column(String, unique=True, index=True, nullable=True)
     email = Column(String, unique=True, index=True, nullable=True)
     hashed_password = Column(String, nullable=False)
-    role = Column(String, default="client")  # "client", "lawyer", "admin"
+    role = Column(String, default="client")
     is_active = Column(Boolean, default=True)
     is_approved = Column(Boolean, default=True)
-    avatar = Column(Text, nullable=True)
+    avatar = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    address = Column(String, nullable=True)
+    residential_address = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     lawyer_profile = relationship("Lawyer", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    client_appointments = relationship("Appointment", back_populates="client")
-    sent_messages = relationship("ChatMessage", foreign_keys="ChatMessage.sender_id", back_populates="sender")
-    received_messages = relationship("ChatMessage", foreign_keys="ChatMessage.receiver_id", back_populates="receiver")
-    likes = relationship("Like", back_populates="user", cascade="all, delete-orphan")
-    comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
+    bookings = relationship("Appointment", back_populates="client")
+    likes = relationship("Like", back_populates="user")
+    comments = relationship("Comment", back_populates="user")
 
 
 class Lawyer(Base):
     __tablename__ = "lawyers"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     name = Column(String, nullable=False)
-    specialty = Column(String, index=True, nullable=False)
+    specialty = Column(String, default="General Practice")
     address = Column(String, nullable=True)
-    city = Column(String, nullable=True, default="Karachi")
-    area = Column(String, nullable=True, default="Saddar")
+    chamber_address = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    area = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     law_card_url = Column(String, nullable=True)
     is_verified = Column(Boolean, default=False)
-    lat = Column(Float, nullable=False, default=31.5204)
-    lng = Column(Float, nullable=False, default=74.3587)
-
+    lat = Column(Float, default=31.5204)
+    lng = Column(Float, default=74.3587)
     license_number = Column(String, nullable=True)
-    bar_association = Column(String, index=True, nullable=True)
+    bar_association = Column(String, nullable=True)
     experience_years = Column(Integer, default=0)
-    rating = Column(Float, default=5.0)
 
     user = relationship("User", back_populates="lawyer_profile")
     appointments = relationship("Appointment", back_populates="lawyer")
-    posts = relationship("Post", back_populates="lawyer", cascade="all, delete-orphan")
+    posts = relationship("Post", back_populates="lawyer")
 
 
 class Appointment(Base):
     __tablename__ = "appointments"
 
     id = Column(Integer, primary_key=True, index=True)
-    client_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    lawyer_id = Column(Integer, ForeignKey("lawyers.id"), nullable=False)
+    client_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    lawyer_id = Column(Integer, ForeignKey("lawyers.id", ondelete="CASCADE"))
     booking_date = Column(String, nullable=False)
     time_slot = Column(String, nullable=False)
-    case_summary = Column(String, nullable=False)
+    case_summary = Column(Text, nullable=True)
     status = Column(String, default="pending")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    client = relationship("User", back_populates="client_appointments")
+    client = relationship("User", back_populates="bookings")
     lawyer = relationship("Lawyer", back_populates="appointments")
 
 
@@ -71,28 +71,23 @@ class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
     id = Column(Integer, primary_key=True, index=True)
-    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    sender_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    receiver_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     message = Column(Text, nullable=False)
     quote_amount = Column(Float, nullable=True)
     quote_status = Column(String, default="none")
     is_read = Column(Boolean, default=False)
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_messages")
-    receiver = relationship("User", foreign_keys=[receiver_id], back_populates="received_messages")
-
 
 class Post(Base):
     __tablename__ = "posts"
 
     id = Column(Integer, primary_key=True, index=True)
-    lawyer_id = Column(Integer, ForeignKey("lawyers.id"), nullable=False)
-    bar_association = Column(String, index=True, nullable=False)
+    lawyer_id = Column(Integer, ForeignKey("lawyers.id", ondelete="CASCADE"))
+    bar_association = Column(String, nullable=True)
     title = Column(String, nullable=True)
     content = Column(Text, nullable=False)
-    media_url = Column(String, nullable=True)
-    media_type = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     lawyer = relationship("Lawyer", back_populates="posts")
@@ -102,11 +97,10 @@ class Post(Base):
 
 class Like(Base):
     __tablename__ = "likes"
-    __table_args__ = (UniqueConstraint('post_id', 'user_id', name='_post_user_uc'),)
 
     id = Column(Integer, primary_key=True, index=True)
-    post_id = Column(Integer, ForeignKey("posts.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"))
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
 
     post = relationship("Post", back_populates="likes")
     user = relationship("User", back_populates="likes")
@@ -116,8 +110,8 @@ class Comment(Base):
     __tablename__ = "comments"
 
     id = Column(Integer, primary_key=True, index=True)
-    post_id = Column(Integer, ForeignKey("posts.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"))
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 

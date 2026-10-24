@@ -58,12 +58,6 @@ def save_uploaded_file(file: UploadFile, prefix: str = "doc") -> str:
 def seed_admin_user():
     db = next(get_db())
     try:
-        try:
-            db.execute(text("ALTER TABLE chat_messages ADD COLUMN is_read BOOLEAN DEFAULT FALSE"))
-            db.commit()
-        except Exception:
-            db.rollback()
-
         admin_phone = os.getenv("ADMIN_PHONE", "03000000000")
         admin_user = db.query(User).filter(User.phone == admin_phone).first()
         if not admin_user:
@@ -81,7 +75,7 @@ def seed_admin_user():
             logger.info("Admin account successfully created or verified.")
     except Exception as e:
         db.rollback()
-        logger.error(f"Database initialization step failed: {e}")
+        logger.error(f"Database admin seeding notice: {e}")
     finally:
         db.close()
 
@@ -91,8 +85,14 @@ seed_admin_and_migrate = seed_admin_user
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Drop and recreate tables to ensure missing columns are synced on Render
-    Base.metadata.drop_all(bind=engine)
+    # Cascade SQL run karke purani foreign keys ke saath tables wipe honge aur naye columns sync ho jayenge
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("DROP TABLE IF EXISTS comments, likes, posts, chat_messages, appointments, lawyers, users CASCADE;"))
+        logger.info("Database reset: Old tables dropped with CASCADE successfully.")
+    except Exception as drop_err:
+        logger.warning(f"Table drop notice: {drop_err}")
+
     Base.metadata.create_all(bind=engine)
     try:
         seed_admin_user()
@@ -293,6 +293,8 @@ async def register(
     assigned_role = "lawyer" if role.lower() in ["lawyer", "advocate", "vakeel"] else "client"
     is_approved = False if assigned_role == "lawyer" else True
 
+    final_address = address or residential_address or chamber_address
+
     new_user = User(
         name=name.strip(),
         phone=phone.strip() if phone else None,
@@ -300,14 +302,11 @@ async def register(
         hashed_password=pwd_context.hash(password.strip()),
         role=assigned_role,
         is_approved=is_approved,
-        is_active=True
+        is_active=True,
+        city=city,
+        address=final_address,
+        residential_address=residential_address or final_address
     )
-
-    final_address = address or residential_address or chamber_address
-    if hasattr(new_user, "city") and city:
-        setattr(new_user, "city", city)
-    if hasattr(new_user, "address") and final_address:
-        setattr(new_user, "address", final_address)
 
     db.add(new_user)
     db.commit()
@@ -323,6 +322,9 @@ async def register(
             name=new_user.name,
             specialty=specialty or "General Practice",
             address=chamber_address or final_address or "Chamber",
+            chamber_address=chamber_address or final_address,
+            city=city,
+            area=area,
             phone=new_user.phone,
             law_card_url=card_url,
             is_verified=False,
@@ -332,12 +334,6 @@ async def register(
             bar_association=bar_association,
             experience_years=experience_years or 0
         )
-        if hasattr(new_lawyer, "city") and city:
-            setattr(new_lawyer, "city", city)
-        if hasattr(new_lawyer, "area") and area:
-            setattr(new_lawyer, "area", area)
-        if hasattr(new_lawyer, "chamber_address") and (chamber_address or final_address):
-            setattr(new_lawyer, "chamber_address", chamber_address or final_address)
 
         db.add(new_lawyer)
         db.commit()
