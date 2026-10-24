@@ -8,7 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, UploadFile, File, Form, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, UploadFile, File, Form, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -379,8 +379,8 @@ def update_profile(payload: UserUpdate, current_user: User = Depends(get_current
 def get_nearby_lawyers(
     city: Optional[str] = None, area: Optional[str] = None,
     client_lat: Optional[float] = None, client_lng: Optional[float] = None,
-    radius_km: Optional[float] = Field(default=None, gt=0, le=1000),
-    skip: int = Field(default=0, ge=0), limit: int = Field(default=20, ge=1, le=100),
+    radius_km: Optional[float] = Query(default=None, gt=0, le=1000),
+    skip: int = Query(default=0, ge=0), limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     # New lawyer profiles appear in the live directory immediately. Their
@@ -760,3 +760,5 @@ def bootstrap_admin_from_env():
         logger.exception("Admin bootstrap failed.")
     finally:
         db.close()
+
+

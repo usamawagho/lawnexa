@@ -35,7 +35,7 @@ def test_health_endpoint():
 def test_new_lawyer_is_persisted_and_visible_without_fake_seed_data():
     lawyer = register({
         "name": "Test Lawyer Live",
-        "email": "live-lawyer@example.test",
+        "email": "live-lawyer@gmail.com",
         "phone": "03001112223",
         "password": "strong-password-123",
         "role": "lawyer",
@@ -58,11 +58,11 @@ def test_new_lawyer_is_persisted_and_visible_without_fake_seed_data():
 
 def test_real_chat_message_is_saved_and_seen_by_both_accounts():
     client_user = register({
-        "name": "Test Client Live", "email": "live-client@example.test",
+        "name": "Test Client Live", "email": "live-client@gmail.com",
         "phone": "03001112224", "password": "strong-password-456", "role": "client",
     })
     lawyer_user = register({
-        "name": "Test Lawyer Chat", "email": "chat-lawyer@example.test",
+        "name": "Test Lawyer Chat", "email": "chat-lawyer@gmail.com",
         "phone": "03001112225", "password": "strong-password-789", "role": "lawyer",
         "license_number": "TEST-LICENSE-002", "bar_association": "Test Bar Association",
     })
@@ -96,3 +96,4 @@ def test_unauthed_profile_and_chat_are_not_accessible():
     assert client.get("/api/v1/auth/me").status_code == 401
     response = client.post("/api/v1/chat/send", json={"receiver_id": 1, "message": "hello"})
     assert response.status_code == 401
+
