@@ -165,7 +165,7 @@
                     <div class="space-y-3.5">
                         <input type="text" x-model="registerForm.name" required placeholder="Full Name *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
                         <input type="tel" x-model="registerForm.phone" pattern="^03[0-9]{9}$" required placeholder="Phone Number (03XX-XXXXXXX) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
-                        <input type="email" x-model="registerForm.email" required placeholder="Email Address *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        <input type="email" x-model="registerForm.email" placeholder="Email Address *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
                         <input type="password" x-model="registerForm.password" required minlength="8" placeholder="Password (Min 8 chars) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
                         
                         <button type="submit" :disabled="isLoading" class="w-full py-3 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 hover:to-amber-500 transition uppercase tracking-wider disabled:opacity-50">
@@ -577,7 +577,7 @@
             
             <form @submit.prevent="handleLawyerSubmit()" class="space-y-4 text-xs">
                 <input type="text" x-model="lawyerRegForm.name" placeholder="Pura Naam (e.g. Adv. Ali Khan)" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
-                <input type="email" x-model="lawyerRegForm.email" placeholder="Email Address" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                <input type="email" x-model="lawyerRegForm.email" placeholder="Email Address" class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
                 <input type="tel" x-model="lawyerRegForm.phone" pattern="^03[0-9]{9}$" title="Enter valid Pakistani number e.g. 03001234567" placeholder="Mobile Number (03XXXXXXXXX)" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
                 <input type="text" x-model="lawyerRegForm.license" placeholder="Bar Council License No (PBC-XXXXX)" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
                 <input type="text" x-model="lawyerRegForm.barAssociation" placeholder="Registered Bar Association Name" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">

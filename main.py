@@ -314,8 +314,8 @@ async def register_user(request: Request, db: Session = Depends(get_db)):
         details = getattr(exc, "errors", lambda: [])()
         raise HTTPException(status_code=422, detail=details or "Registration details are invalid.")
 
-    if not payload.email and not payload.phone:
-        raise HTTPException(status_code=400, detail="Email ya Phone Number zaroori hai!")
+    if not _clean_optional(payload.phone):
+        raise HTTPException(status_code=400, detail="Mobile number zaroori hai!")
     requested_role = payload.role.strip().lower()
     if requested_role in {"lawyer", "advocate", "vakeel"}:
         role = "lawyer"
