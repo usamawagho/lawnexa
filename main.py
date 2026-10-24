@@ -1,12 +1,12 @@
 import os
 import shutil
-from datetime import datetime, timedelta
-from typing import Optional, List, Union
+from datetime import datetime, timedelta, timezone
+from typing import Optional, List
 
 from fastapi import FastAPI, Depends, HTTPException, status, Form, File, UploadFile, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import JWTError, jwt
@@ -16,7 +16,7 @@ from database import engine, Base, get_db
 from models import User, Lawyer, Appointment, ChatMessage, Post, Like, Comment
 from geo_engine import calculate_distance
 
-# Initialize DB Tables
+# Initialize ORM Schema
 Base.metadata.create_all(bind=engine)
 
 SECRET_KEY = os.getenv("SECRET_KEY", "lawnexa_secure_production_jwt_secret_key_2026")
@@ -31,7 +31,6 @@ if GEMINI_API_KEY := os.getenv("GEMINI_API_KEY"):
 
 app = FastAPI(title="LawNexa Production API", version="4.5")
 
-# Configure CORS Allowlist
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
 allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
 
@@ -43,7 +42,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pydantic Output Schemas
+# Pydantic Schemas
 class UserResponse(BaseModel):
     id: int
     name: str
@@ -54,8 +53,7 @@ class UserResponse(BaseModel):
     is_approved: bool
     avatar: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -98,7 +96,7 @@ class DocumentRequest(BaseModel):
     court: str = Field("Karachi, Pakistan", max_length=200)
     purpose: str = Field("Legal Representation", max_length=1000)
 
-# Seed Admin User Function
+# Seed Admin User
 @app.on_event("startup")
 def seed_admin_user():
     db = next(get_db())
@@ -120,7 +118,6 @@ def seed_admin_user():
     finally:
         db.close()
 
-# Explicit seed call to guarantee admin exists for pytest/TestClient
 try:
     seed_admin_user()
 except Exception:
@@ -225,7 +222,7 @@ async def register(
         db.commit()
 
     token = jwt.encode(
-        {"sub": str(new_user.id), "role": new_user.role, "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)},
+        {"sub": str(new_user.id), "role": new_user.role, "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)},
         SECRET_KEY, algorithm=ALGORITHM
     )
 
@@ -241,7 +238,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         raise HTTPException(status_code=401, detail="Invalid username or password.")
 
     token = jwt.encode(
-        {"sub": str(user.id), "role": user.role, "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)},
+        {"sub": str(user.id), "role": user.role, "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)},
         SECRET_KEY, algorithm=ALGORITHM
     )
     return {
@@ -267,7 +264,7 @@ def update_profile(payload: UserUpdate, current_user: User = Depends(get_current
     db.commit()
     return {"message": "Profile updated!", "user_id": current_user.id}
 
-# ================= ADMIN LAWYER APPROVAL =================
+# ================= ADMIN ADVOCATE VERIFICATION =================
 
 @app.get("/api/v1/admin/lawyers/pending")
 def list_pending_lawyers(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
@@ -307,6 +304,18 @@ def approve_lawyer(lawyer_id: int, admin: User = Depends(require_admin), db: Ses
         lawyer.user.is_approved = True
     db.commit()
     return {"message": f"Advocate {lawyer.name} approved successfully."}
+
+@app.post("/api/v1/admin/lawyers/{lawyer_id}/reject")
+def reject_lawyer(lawyer_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    lawyer = db.query(Lawyer).filter(Lawyer.id == lawyer_id).first()
+    if not lawyer:
+        raise HTTPException(status_code=404, detail="Lawyer profile not found.")
+    
+    lawyer.is_verified = False
+    if lawyer.user:
+        lawyer.user.is_approved = False
+    db.commit()
+    return {"message": f"Advocate {lawyer.name} verification request rejected."}
 
 # ================= DIRECTORY & HAVERSINE SEARCH =================
 
@@ -360,14 +369,17 @@ def get_nearby_lawyers(
 
     return results[skip : skip + limit]
 
-# ================= BOOKINGS / APPOINTMENTS =================
+# ================= APPOINTMENT MANAGEMENT LIFECYCLE =================
 
 @app.post("/api/v1/bookings", status_code=201)
 def create_booking(payload: BookingCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     lawyer = db.query(Lawyer).filter(Lawyer.id == payload.lawyer_id).first()
-    if not lawyer:
-        raise HTTPException(status_code=404, detail="Selected lawyer profile does not exist.")
+    if not lawyer or not lawyer.is_verified:
+        raise HTTPException(status_code=404, detail="Selected verified advocate profile does not exist.")
     
+    if current_user.id == lawyer.user_id:
+        raise HTTPException(status_code=400, detail="Advocates cannot book consultation appointments with themselves.")
+
     appointment = Appointment(
         client_id=current_user.id,
         lawyer_id=lawyer.id,
@@ -392,6 +404,8 @@ def list_bookings(current_user: User = Depends(get_current_user), db: Session = 
     for b in bookings:
         results.append({
             "id": b.id,
+            "client_id": b.client_id,
+            "lawyer_id": b.lawyer_id,
             "clientName": b.client.name if b.client else "Client",
             "lawyerName": b.lawyer.name if b.lawyer else "Advocate",
             "date": b.booking_date,
@@ -407,13 +421,34 @@ def respond_booking(booking_id: int, action: str = Query(...), current_user: Use
     if not booking:
         raise HTTPException(status_code=404, detail="Booking request not found.")
     
-    if current_user.role == "lawyer" and current_user.lawyer_profile:
-        if booking.lawyer_id != current_user.lawyer_profile.id:
-            raise HTTPException(status_code=403, detail="Unauthorized to alter this booking.")
+    if current_user.role != "lawyer" or not current_user.lawyer_profile or booking.lawyer_id != current_user.lawyer_profile.id:
+        raise HTTPException(status_code=403, detail="Unauthorized to alter this booking.")
+
+    if booking.status.lower() in ["cancelled", "declined"]:
+        raise HTTPException(status_code=400, detail=f"Cannot alter booking in '{booking.status}' status.")
             
     booking.status = "Accepted" if action.lower() in ["accept", "accepted"] else "Declined"
     db.commit()
     return {"message": f"Booking {booking.status} successfully.", "booking_id": booking.id, "status": booking.status}
+
+@app.post("/api/v1/bookings/{booking_id}/cancel")
+def cancel_booking(booking_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    booking = db.query(Appointment).filter(Appointment.id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking request not found.")
+    
+    is_client = booking.client_id == current_user.id
+    is_lawyer = current_user.lawyer_profile and booking.lawyer_id == current_user.lawyer_profile.id
+    
+    if not (is_client or is_lawyer or current_user.role == "admin"):
+        raise HTTPException(status_code=403, detail="Unauthorized to cancel this booking.")
+
+    if booking.status.lower() == "cancelled":
+        raise HTTPException(status_code=400, detail="Booking is already cancelled.")
+
+    booking.status = "Cancelled"
+    db.commit()
+    return {"message": "Booking cancelled successfully.", "booking_id": booking.id, "status": "Cancelled"}
 
 # ================= CHAT & FEE QUOTATIONS =================
 
