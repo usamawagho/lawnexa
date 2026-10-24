@@ -1,6 +1,5 @@
 import os
 import shutil
-import asyncio
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
@@ -23,11 +22,11 @@ from database import engine, Base, get_db
 from models import User, Lawyer, Appointment, ChatMessage, Post, Like, Comment
 from geo_engine import calculate_distance
 
-# Configure Logging
-logging.basicConfig(level=logging.INFO)
+# Logging Setup
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("lawnexa")
 
-SECRET_KEY = os.getenv("SECRET_KEY", "lawnexa_secure_production_jwt_secret_key_2026")
+SECRET_KEY = os.getenv("SECRET_KEY", "lawnexa_staging_jwt_secret_key_change_in_production_2026")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30
 
@@ -37,7 +36,25 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 if GEMINI_API_KEY := os.getenv("GEMINI_API_KEY"):
     genai.configure(api_key=GEMINI_API_KEY)
 
-# Seed Admin & Auto Schema Patch
+
+# File Storage Adapter (S3 or Local Fallback)
+def save_uploaded_file(file: UploadFile, prefix: str = "doc") -> str:
+    s3_bucket = os.getenv("S3_BUCKET_NAME")
+    if s3_bucket:
+        import boto3
+        s3 = boto3.client("s3")
+        filename = f"{prefix}_{datetime.now().timestamp()}_{file.filename}"
+        s3.upload_fileobj(file.file, s3_bucket, filename, ExtraArgs={"ACL": "public-read"})
+        return f"https://{s3_bucket}.s3.amazonaws.com/{filename}"
+    else:
+        os.makedirs("uploads", exist_ok=True)
+        filename = f"uploads/{prefix}_{datetime.now().timestamp()}_{file.filename}"
+        with open(filename, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        return filename
+
+
+# Seed Admin and Execute Startup Auto Migrations
 def seed_admin_user():
     db = next(get_db())
     try:
@@ -47,35 +64,39 @@ def seed_admin_user():
         except Exception:
             pass
 
-        admin_phone = "03000000000"
+        admin_phone = os.getenv("ADMIN_PHONE", "03000000000")
         admin_user = db.query(User).filter(User.phone == admin_phone).first()
         if not admin_user:
             admin = User(
                 name="System Administrator",
                 phone=admin_phone,
                 email="admin@lawnexa.pk",
-                hashed_password=pwd_context.hash("admin123"),
+                hashed_password=pwd_context.hash(os.getenv("ADMIN_PASSWORD", "admin123")),
                 role="admin",
                 is_approved=True,
                 is_active=True
             )
             db.add(admin)
             db.commit()
-            logger.info("Admin user seeded successfully.")
+            logger.info("Admin account successfully created or verified.")
     finally:
         db.close()
 
-# Modern FastAPI Lifespan Manager
+
+seed_admin_and_migrate = seed_admin_user
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     try:
         seed_admin_user()
-    except Exception as e:
-        logger.warning(f"Startup db init notice: {e}")
+    except Exception as exc:
+        logger.warning(f"Database initialization hook notice: {exc}")
     yield
 
-app = FastAPI(title="LawNexa Production API", version="5.0", lifespan=lifespan)
+
+app = FastAPI(title="LawNexa API", version="5.0-staging", lifespan=lifespan)
 
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
 allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
@@ -88,7 +109,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# WebSocket Manager
+
+# WebSocket Connection Manager
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[int, WebSocket] = {}
@@ -96,21 +118,26 @@ class ConnectionManager:
     async def connect(self, user_id: int, websocket: WebSocket):
         await websocket.accept()
         self.active_connections[user_id] = websocket
+        logger.info(f"WebSocket client connected: user_id={user_id}")
 
     def disconnect(self, user_id: int):
         if user_id in self.active_connections:
             del self.active_connections[user_id]
+            logger.info(f"WebSocket client disconnected: user_id={user_id}")
 
     async def send_personal_message(self, message: dict, user_id: int):
         if user_id in self.active_connections:
             try:
                 await self.active_connections[user_id].send_json(message)
-            except Exception:
+            except Exception as e:
+                logger.error(f"Failed to send WS message to user {user_id}: {e}")
                 self.disconnect(user_id)
+
 
 manager = ConnectionManager()
 
-# Pydantic Schemas
+
+# Schemas
 class UserResponse(BaseModel):
     id: int
     name: str
@@ -123,12 +150,14 @@ class UserResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     role: str
     user_id: int
     name: str
+
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -143,19 +172,23 @@ class UserUpdate(BaseModel):
     bar_association: Optional[str] = None
     experience_years: Optional[int] = None
 
+
 class BookingCreate(BaseModel):
     lawyer_id: int
     date: str
     time: str
     summary: str
 
+
 class ChatSendRequest(BaseModel):
     receiver_id: int
     message: str = Field(..., min_length=1, max_length=5000)
     quote_amount: Optional[float] = None
 
+
 class CommentCreate(BaseModel):
     content: str = Field(..., min_length=1, max_length=2000)
+
 
 class DocumentRequest(BaseModel):
     doc_type: str = Field(alias="type", default="Agreement")
@@ -163,6 +196,7 @@ class DocumentRequest(BaseModel):
     party2: str = Field("Second Party", max_length=200)
     court: str = Field("Karachi, Pakistan", max_length=200)
     purpose: str = Field("Legal Representation", max_length=1000)
+
 
 # Auth Dependencies
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
@@ -184,13 +218,25 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise unauthorized_exc
     return user
 
+
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required.")
     return current_user
 
-# ================= WEBSOCKET ROUTE =================
 
+# Health Check
+@app.get("/health")
+@app.get("/api/v1/health")
+def health_check(db: Session = Depends(get_db)):
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "connected", "timestamp": datetime.now(timezone.utc).isoformat()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
+
+
+# WebSockets Endpoint
 @app.websocket("/ws/chat/{user_id}")
 async def websocket_chat_endpoint(websocket: WebSocket, user_id: int):
     await manager.connect(user_id, websocket)
@@ -202,11 +248,12 @@ async def websocket_chat_endpoint(websocket: WebSocket, user_id: int):
     except WebSocketDisconnect:
         manager.disconnect(user_id)
 
-# ================= AUTH & USER ROUTES =================
 
+# Auth & Profiles
 @app.get("/api/v1/auth/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
 
 @app.post("/api/v1/auth/register", status_code=201)
 async def register(
@@ -230,7 +277,7 @@ async def register(
 
     if phone and db.query(User).filter(User.phone == phone.strip()).first():
         raise HTTPException(status_code=400, detail="Phone number already registered.")
-    
+
     if email and db.query(User).filter(User.email == email.strip().lower()).first():
         raise HTTPException(status_code=400, detail="Email address already registered.")
 
@@ -252,10 +299,7 @@ async def register(
 
     card_url = None
     if law_card and assigned_role == "lawyer":
-        os.makedirs("uploads", exist_ok=True)
-        card_url = f"uploads/law_card_{new_user.id}_{law_card.filename}"
-        with open(card_url, "wb") as buffer:
-            shutil.copyfileobj(law_card.file, buffer)
+        card_url = save_uploaded_file(law_card, prefix=f"lawcard_{new_user.id}")
 
     if assigned_role == "lawyer":
         new_lawyer = Lawyer(
@@ -282,6 +326,7 @@ async def register(
 
     return {"message": "Account created successfully!", "access_token": token, "role": new_user.role, "user_id": new_user.id}
 
+
 @app.post("/api/v1/auth/token", response_model=TokenResponse)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(
@@ -303,23 +348,24 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         "name": user.name
     }
 
+
 @app.put("/api/v1/users/profile")
 def update_profile(payload: UserUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     update_data = payload.dict(exclude_unset=True)
     for key, value in update_data.items():
         if hasattr(current_user, key):
             setattr(current_user, key, value)
-    
+
     if current_user.role == "lawyer" and current_user.lawyer_profile:
         for key in ["specialty", "license_number", "bar_association", "experience_years"]:
             if key in update_data:
                 setattr(current_user.lawyer_profile, key, update_data[key])
-                
+
     db.commit()
     return {"message": "Profile updated!", "user_id": current_user.id}
 
-# ================= ADMIN ADVOCATE VERIFICATION =================
 
+# Admin Verification Workflows
 @app.get("/api/v1/admin/lawyers/pending")
 def list_pending_lawyers(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     pending_users = db.query(User).filter(User.role == "lawyer", User.is_approved == False).all()
@@ -340,6 +386,7 @@ def list_pending_lawyers(admin: User = Depends(require_admin), db: Session = Dep
         })
     return results
 
+
 @app.post("/api/v1/admin/lawyers/{lawyer_id}/approve")
 def approve_lawyer(lawyer_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     lawyer = db.query(Lawyer).filter(Lawyer.id == lawyer_id).first()
@@ -352,27 +399,28 @@ def approve_lawyer(lawyer_id: int, admin: User = Depends(require_admin), db: Ses
             db.commit()
             return {"message": f"Lawyer {user.name} approved successfully."}
         raise HTTPException(status_code=404, detail="Lawyer profile not found.")
-    
+
     lawyer.is_verified = True
     if lawyer.user:
         lawyer.user.is_approved = True
     db.commit()
     return {"message": f"Advocate {lawyer.name} approved successfully."}
 
+
 @app.post("/api/v1/admin/lawyers/{lawyer_id}/reject")
 def reject_lawyer(lawyer_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     lawyer = db.query(Lawyer).filter(Lawyer.id == lawyer_id).first()
     if not lawyer:
         raise HTTPException(status_code=404, detail="Lawyer profile not found.")
-    
+
     lawyer.is_verified = False
     if lawyer.user:
         lawyer.user.is_approved = False
     db.commit()
     return {"message": f"Advocate {lawyer.name} verification request rejected."}
 
-# ================= DIRECTORY & HAVERSINE SEARCH =================
 
+# Directory & Proximity Search
 @app.get("/api/v1/lawyers/nearby")
 def get_nearby_lawyers(
     client_lat: Optional[float] = Query(None, ge=-90, le=90),
@@ -389,7 +437,7 @@ def get_nearby_lawyers(
         query = query.filter(Lawyer.city.ilike(f"%{city}%"))
     if area:
         query = query.filter(Lawyer.area.ilike(f"%{area}%"))
-    
+
     lawyers = query.all()
     results = []
 
@@ -423,14 +471,14 @@ def get_nearby_lawyers(
 
     return results[skip : skip + limit]
 
-# ================= APPOINTMENT MANAGEMENT LIFECYCLE =================
 
+# Bookings State Machine
 @app.post("/api/v1/bookings", status_code=201)
 async def create_booking(payload: BookingCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     lawyer = db.query(Lawyer).filter(Lawyer.id == payload.lawyer_id).first()
     if not lawyer or not lawyer.is_verified:
         raise HTTPException(status_code=404, detail="Selected verified advocate profile does not exist.")
-    
+
     if current_user.id == lawyer.user_id:
         raise HTTPException(status_code=400, detail="Advocates cannot book consultation appointments with themselves.")
 
@@ -454,6 +502,7 @@ async def create_booking(payload: BookingCreate, current_user: User = Depends(ge
 
     return {"message": "Booking request submitted successfully!", "booking_id": appointment.id, "status": "pending"}
 
+
 @app.get("/api/v1/bookings")
 def list_bookings(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if current_user.role == "lawyer" and current_user.lawyer_profile:
@@ -476,18 +525,19 @@ def list_bookings(current_user: User = Depends(get_current_user), db: Session = 
         })
     return results
 
+
 @app.post("/api/v1/bookings/{booking_id}/respond")
 async def respond_booking(booking_id: int, action: str = Query(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     booking = db.query(Appointment).filter(Appointment.id == booking_id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking request not found.")
-    
+
     if current_user.role != "lawyer" or not current_user.lawyer_profile or booking.lawyer_id != current_user.lawyer_profile.id:
         raise HTTPException(status_code=403, detail="Unauthorized to alter this booking.")
 
     if booking.status.lower() in ["cancelled", "declined"]:
         raise HTTPException(status_code=400, detail=f"Cannot alter booking in '{booking.status}' status.")
-            
+
     booking.status = "Accepted" if action.lower() in ["accept", "accepted"] else "Declined"
     db.commit()
 
@@ -499,15 +549,16 @@ async def respond_booking(booking_id: int, action: str = Query(...), current_use
 
     return {"message": f"Booking {booking.status} successfully.", "booking_id": booking.id, "status": booking.status}
 
+
 @app.post("/api/v1/bookings/{booking_id}/cancel")
 def cancel_booking(booking_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     booking = db.query(Appointment).filter(Appointment.id == booking_id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking request not found.")
-    
+
     is_client = booking.client_id == current_user.id
     is_lawyer = current_user.lawyer_profile and booking.lawyer_id == current_user.lawyer_profile.id
-    
+
     if not (is_client or is_lawyer or current_user.role == "admin"):
         raise HTTPException(status_code=403, detail="Unauthorized to cancel this booking.")
 
@@ -518,14 +569,14 @@ def cancel_booking(booking_id: int, current_user: User = Depends(get_current_use
     db.commit()
     return {"message": "Booking cancelled successfully.", "booking_id": booking.id, "status": "Cancelled"}
 
-# ================= CHAT & FEE QUOTATIONS =================
 
+# Chat & Price Quotations
 @app.post("/api/v1/chat/send", status_code=201)
 async def send_chat_message(payload: ChatSendRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     receiver = db.query(User).filter(User.id == payload.receiver_id).first()
     if not receiver:
         raise HTTPException(status_code=404, detail="Recipient user not found.")
-    
+
     if payload.quote_amount is not None:
         if current_user.role != "lawyer":
             raise HTTPException(status_code=403, detail="Only advocates can submit fee quotations.")
@@ -556,19 +607,20 @@ async def send_chat_message(payload: ChatSendRequest, current_user: User = Depen
 
     return {"message": "Message sent!", "chat_id": msg.id, "timestamp": msg.timestamp.strftime("%H:%M")}
 
+
 @app.get("/api/v1/chat/history/{user_id}")
 def get_chat_history(
-    user_id: int, 
-    skip: int = Query(0, ge=0), 
-    limit: int = Query(50, ge=1, le=100), 
-    current_user: User = Depends(get_current_user), 
+    user_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     messages = db.query(ChatMessage).filter(
         ((ChatMessage.sender_id == current_user.id) & (ChatMessage.receiver_id == user_id)) |
         ((ChatMessage.sender_id == user_id) & (ChatMessage.receiver_id == current_user.id))
     ).order_by(ChatMessage.timestamp.asc()).offset(skip).limit(limit).all()
-    
+
     results = []
     for m in messages:
         results.append({
@@ -583,12 +635,13 @@ def get_chat_history(
         })
     return results
 
+
 @app.post("/api/v1/chat/messages/{message_id}/read")
 def mark_message_read(message_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     msg = db.query(ChatMessage).filter(ChatMessage.id == message_id).first()
     if not msg:
         raise HTTPException(status_code=404, detail="Message not found.")
-    
+
     if msg.receiver_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized to alter read status.")
 
@@ -596,18 +649,19 @@ def mark_message_read(message_id: int, current_user: User = Depends(get_current_
     db.commit()
     return {"message": "Message marked as read.", "chat_id": msg.id, "is_read": True}
 
+
 @app.post("/api/v1/chat/quote/{chat_id}/respond")
 async def respond_quote(chat_id: int, action: str = Query(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     msg = db.query(ChatMessage).filter(ChatMessage.id == chat_id).first()
     if not msg or not msg.quote_amount:
         raise HTTPException(status_code=404, detail="Quotation message not found.")
-    
+
     if msg.receiver_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the designated client can respond to this price quote.")
-    
+
     if msg.quote_status in ["accepted", "rejected"]:
         raise HTTPException(status_code=400, detail=f"Quotation has already been {msg.quote_status}.")
-    
+
     msg.quote_status = "accepted" if action.lower() in ["accept", "accepted"] else "rejected"
     db.commit()
 
@@ -619,8 +673,8 @@ async def respond_quote(chat_id: int, action: str = Query(...), current_user: Us
 
     return {"message": f"Quotation {msg.quote_status} successfully.", "chat_id": msg.id, "status": msg.quote_status}
 
-# ================= COMMUNITY FORUM =================
 
+# Forum Endpoints
 @app.post("/api/v1/posts", status_code=201)
 def create_post(
     content: str = Form(..., min_length=5, max_length=10000),
@@ -631,7 +685,7 @@ def create_post(
 ):
     if current_user.role != "lawyer" or not current_user.lawyer_profile:
         raise HTTPException(status_code=403, detail="Only verified advocates can publish posts.")
-    
+
     post = Post(
         lawyer_id=current_user.lawyer_profile.id,
         bar_association=bar_association or current_user.lawyer_profile.bar_association or "High Court Bar",
@@ -643,18 +697,19 @@ def create_post(
     db.refresh(post)
     return {"message": "Post created successfully!", "id": post.id}
 
+
 @app.get("/api/v1/posts")
 def get_posts(
-    bar_association: Optional[str] = Query(None), 
-    skip: int = Query(0, ge=0), 
-    limit: int = Query(20, ge=1, le=100), 
+    bar_association: Optional[str] = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
     query = db.query(Post)
     if bar_association:
         query = query.filter(Post.bar_association.ilike(f"%{bar_association}%"))
     posts = query.order_by(Post.created_at.desc()).offset(skip).limit(limit).all()
-    
+
     results = []
     for p in posts:
         results.append({
@@ -671,19 +726,21 @@ def get_posts(
         })
     return results
 
+
 @app.delete("/api/v1/posts/{post_id}")
 def delete_post(post_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     post = db.query(Post).filter(Post.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found.")
-    
+
     is_author = current_user.lawyer_profile and (post.lawyer_id == current_user.lawyer_profile.id)
     if not is_author and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Unauthorized to delete this post.")
-        
+
     db.delete(post)
     db.commit()
     return {"message": "Post deleted successfully."}
+
 
 @app.post("/api/v1/posts/{post_id}/like")
 def like_post(post_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -697,24 +754,26 @@ def like_post(post_id: int, current_user: User = Depends(get_current_user), db: 
         db.commit()
         likes_count = db.query(Like).filter(Like.post_id == post_id).count()
         return {"message": "Unliked post.", "liked": False, "likes": likes_count}
-    
+
     new_like = Like(post_id=post_id, user_id=current_user.id)
     db.add(new_like)
     db.commit()
     likes_count = db.query(Like).filter(Like.post_id == post_id).count()
     return {"message": "Liked post.", "liked": True, "likes": likes_count}
 
+
 @app.post("/api/v1/posts/{post_id}/comments", status_code=201)
 def add_comment(post_id: int, payload: CommentCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     post = db.query(Post).filter(Post.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found.")
-    
+
     comment = Comment(post_id=post_id, user_id=current_user.id, content=payload.content.strip())
     db.add(comment)
     db.commit()
     db.refresh(comment)
     return {"message": "Comment added successfully!", "comment_id": comment.id}
+
 
 @app.get("/api/v1/posts/{post_id}/comments")
 def list_comments(post_id: int, db: Session = Depends(get_db)):
@@ -730,8 +789,8 @@ def list_comments(post_id: int, db: Session = Depends(get_db)):
         })
     return results
 
-# ================= AI ASSISTANT & FIR ANALYZER =================
 
+# AI Tools
 @app.post("/api/ai/generate-doc")
 @app.post("/api/v1/ai/generate-doc")
 def generate_doc(payload: DocumentRequest):
@@ -779,11 +838,11 @@ async def analyze_fir(
         contents = await file.read()
         if len(contents) > 5 * 1024 * 1024:
             raise HTTPException(status_code=400, detail="File size exceeds maximum allowed limit of 5MB.")
-            
+
         filename_lower = file.filename.lower()
         if not (filename_lower.endswith('.pdf') or filename_lower.endswith('.png') or filename_lower.endswith('.jpg') or filename_lower.endswith('.jpeg') or filename_lower.endswith('.txt')):
             raise HTTPException(status_code=400, detail="Unsupported file format. Please upload PDF, TXT, or Image files.")
-            
+
         if filename_lower.endswith('.txt'):
             extracted_text += "\n" + contents.decode('utf-8', errors='ignore')
 
