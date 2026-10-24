@@ -1,5 +1,13 @@
-venv/
+.env
+.env.*
+.git
+.gitignore
 __pycache__/
-*.db
+*.pyc
+*.pyo
+*.pyd
 .pytest_cache/
-.git/
+*.db
+*.sqlite
+lawnexa.zip
+node_modules/

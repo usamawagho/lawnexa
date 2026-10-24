@@ -214,9 +214,6 @@
                     </button>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button @click="showAiAnalyzerModal = true" class="px-3 py-1.5 rounded-xl bg-purple-900/40 border border-purple-500/40 text-purple-300 font-extrabold text-xs flex items-center gap-1.5 hover:bg-purple-900/60 transition shadow-md">
-                        <i class="fa-solid fa-brain text-purple-400"></i> AI FIR Analyzer
-                    </button>
                     <button @click="showDocGeneratorModal = true" class="px-3 py-1.5 rounded-xl bg-indigo-900/40 border border-indigo-500/40 text-gold-400 font-extrabold text-xs flex items-center gap-1.5 hover:bg-indigo-900/60 transition shadow-md">
                         <i class="fa-solid fa-file-signature text-gold-400"></i> Doc Generator
                     </button>
@@ -260,14 +257,14 @@
                                     <div class="relative">
                                         <img :src="adv.avatar || 'https://ui-avatars.com/api/?name=' + (adv.name || 'Advocate')" :alt="adv.name" class="w-14 h-14 rounded-2xl object-cover border-2 border-slate-700">
                                     </div>
-                                    <template x-if="adv.is_approved || adv.is_verified">
+                                    <template x-if="adv.is_verified">
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Verified</span>
                                     </template>
                                 </div>
                                 <h3 class="font-cinzel text-sm sm:text-base font-bold text-white group-hover:text-gold-400 transition" x-text="adv.name"></h3>
                                 <div class="flex items-center gap-1.5 text-[10px] text-slate-300 font-semibold mb-2 mt-1">
                                     <i class="fa-solid fa-location-dot text-rose-400"></i>
-                                    <span x-text="(adv.city || 'Pakistan') + ' • ' + (adv.area || 'Chamber')"></span>
+                                    <span x-text="(adv.city || 'Pakistan') + ' • ' + (adv.address || 'Chamber')"></span>
                                 </div>
                                 <div class="flex flex-wrap gap-1.5 mb-3">
                                     <span class="px-2 py-0.5 rounded-md bg-slate-800/80 text-gold-400 text-[10px] font-semibold border border-slate-700" x-text="adv.specialty || 'General Practice'"></span>
@@ -279,7 +276,7 @@
                                     <button @click="openChatModal(adv)" class="w-full py-2.5 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700 shadow-md">
                                         <i class="fa-solid fa-comments text-gold-400"></i> Direct Chat
                                     </button>
-                                    <button @click="openBookingModal(adv)" class="w-full py-2.5 px-2.5 rounded-xl bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 text-xs font-extrabold transition flex items-center justify-center gap-1.5 shadow-md hover:from-gold-400">
+                                    <button @click="showToast('Consultation Requested', 'success')" class="w-full py-2.5 px-2.5 rounded-xl bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 text-xs font-extrabold transition flex items-center justify-center gap-1.5 shadow-md hover:from-gold-400">
                                         <i class="fa-solid fa-calendar-plus"></i> Book Consult
                                     </button>
                                 </div>
@@ -427,8 +424,8 @@
 
         function lawNexaApp() {
             return {
-                token: localStorage.getItem('token') || '',
-                isLoggedIn: !!localStorage.getItem('token'),
+                token: '',
+                isLoggedIn: false,
                 isLoading: false, 
                 authTab: 'login',
                 activeTab: 'advocates',
@@ -449,9 +446,6 @@
                 showDocGeneratorModal: false,
                 docForm: { type: 'Agreement', party1: '', party2: '', court: '', purpose: '' },
                 generatedDocText: '',
-
-                showAiAnalyzerModal: false,
-                showBookingModal: false,
 
                 showChatModal: false,
                 activeChatAdvocate: null,
@@ -479,12 +473,18 @@
                 },
 
                 async init() {
+                    try {
+                        this.token = localStorage.getItem('token') || '';
+                    } catch (e) {
+                        this.token = '';
+                    }
+
                     this.user = this.getSafeStorage('user', { id: 0, name: 'Guest', role: 'client' });
+                    this.isLoggedIn = false;
+
                     await this.fetchLawyers();
                     if (this.token) {
                         await this.verifySession();
-                    } else {
-                        this.isLoggedIn = false;
                     }
                 },
 
@@ -493,7 +493,10 @@
                 },
 
                 async verifySession() {
-                    if (!this.token) return;
+                    if (!this.token) {
+                        this.isLoggedIn = false;
+                        return;
+                    }
                     try {
                         const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
                             headers: { 'Authorization': `Bearer ${this.token}` }
@@ -504,11 +507,11 @@
                             this.isLoggedIn = true;
                             this.setSafeStorage('user', this.user);
                             this.resetDefaultTab();
-                        } else if (res.status === 401 || res.status === 403) {
+                        } else {
                             this.logout();
                         }
                     } catch (e) {
-                        console.warn("Session verification warning:", e);
+                        console.warn("Session verification error:", e);
                     }
                 },
 
@@ -527,7 +530,7 @@
                         const data = await res.json();
                         if (res.ok && data.access_token) {
                             this.token = data.access_token;
-                            this.setSafeStorage('token', this.token);
+                            localStorage.setItem('token', this.token);
                             this.showToast('Login successful!', 'success');
                             await this.verifySession();
                         } else {
@@ -551,9 +554,9 @@
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                name: this.registerForm.name,
-                                phone: this.registerForm.phone,
-                                email: this.registerForm.email || null,
+                                name: this.registerForm.name.trim(),
+                                phone: this.registerForm.phone.trim(),
+                                email: this.registerForm.email ? this.registerForm.email.trim() : null,
                                 password: this.registerForm.password,
                                 role: 'client'
                             })
@@ -562,7 +565,7 @@
                         if (res.ok) {
                             if (data.access_token) {
                                 this.token = data.access_token;
-                                this.setSafeStorage('token', this.token);
+                                localStorage.setItem('token', this.token);
                             }
                             this.showToast(data.message || 'Account created successfully!', 'success');
                             if (this.token) await this.verifySession(); else this.authTab = 'login';
@@ -583,9 +586,9 @@
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                name: this.lawyerRegForm.name,
-                                email: this.lawyerRegForm.email,
-                                phone: this.lawyerRegForm.phone,
+                                name: this.lawyerRegForm.name.trim(),
+                                email: this.lawyerRegForm.email.trim(),
+                                phone: this.lawyerRegForm.phone.trim(),
                                 password: this.lawyerRegForm.password,
                                 role: 'lawyer',
                                 license_number: this.lawyerRegForm.license,
@@ -654,7 +657,8 @@
                         if (this.selectedCity !== 'All') url.searchParams.append('city', this.selectedCity);
                         const res = await fetch(url);
                         if (res.ok) {
-                            this.advocates = await res.json();
+                            const data = await res.json();
+                            this.advocates = Array.isArray(data) ? data : [];
                         } else {
                             this.advocates = [];
                         }
@@ -664,13 +668,13 @@
                 },
 
                 get filteredAdvocates() {
+                    const q = (this.searchQuery || '').toLowerCase().trim();
                     return this.advocates.filter(a => {
-                        const matchCity = this.selectedCity === 'All' || (a.city && a.city.toLowerCase().includes(this.selectedCity.toLowerCase()));
-                        const q = this.searchQuery.toLowerCase().trim();
-                        const matchSearch = !q || 
-                            (a.name && a.name.toLowerCase().includes(q)) || 
-                            (a.city && a.city.toLowerCase().includes(q)) || 
-                            (a.specialty && a.specialty.toLowerCase().includes(q));
+                        const name = (a.name || '').toLowerCase();
+                        const city = (a.city || a.address || '').toLowerCase();
+                        const specialty = (a.specialty || '').toLowerCase();
+                        const matchCity = this.selectedCity === 'All' || city.includes(this.selectedCity.toLowerCase());
+                        const matchSearch = !q || name.includes(q) || city.includes(q) || specialty.includes(q);
                         return matchCity && matchSearch;
                     });
                 },
@@ -689,8 +693,8 @@
                                 type: this.docForm.type,
                                 party1: this.docForm.party1,
                                 party2: this.docForm.party2,
-                                court: this.docForm.court || 'Karachi Court',
-                                purpose: this.docForm.purpose || 'Legal Draft'
+                                court: 'Karachi Court',
+                                purpose: 'Legal Draft'
                             })
                         });
                         const data = await res.json();
@@ -768,8 +772,6 @@
                         this.showToast('Server error while sending message.', 'error');
                     }
                 },
-
-                openBookingModal(adv) { this.showBookingModal = true; },
 
                 showToast(message, type = 'info') {
                     this.toast = { show: true, message, type };

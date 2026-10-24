@@ -1,34 +1,27 @@
 import os
-import shutil
-import logging
-from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
-from typing import Optional, List, Dict
+from datetime import datetime, timedelta
+from typing import Optional, List
 
-from fastapi import (
-    FastAPI, Depends, HTTPException, status, Form, File, UploadFile, Query,
-    WebSocket, WebSocketDisconnect
-)
+from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from sqlalchemy import text
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 import google.generativeai as genai
 
-from database import engine, Base, get_db
-from models import User, Lawyer, Appointment, ChatMessage, Post, Like, Comment
+from database import engine, get_db
+from models import Base, User, Lawyer, Appointment, ChatMessage, Post, Like, Comment
 from geo_engine import calculate_distance
 
-# Logging Setup
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-logger = logging.getLogger("lawnexa")
+# Relational tables create karein
+Base.metadata.create_all(bind=engine)
 
-SECRET_KEY = os.getenv("SECRET_KEY", "lawnexa_staging_jwt_secret_key_change_in_production_2026")
+SECRET_KEY = os.getenv("SECRET_KEY", "lawnexa_enterprise_production_jwt_secret_key_2026")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 Days
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
@@ -36,131 +29,63 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 if GEMINI_API_KEY := os.getenv("GEMINI_API_KEY"):
     genai.configure(api_key=GEMINI_API_KEY)
 
-
-# File Storage Adapter (S3 or Local Fallback)
-def save_uploaded_file(file: UploadFile, prefix: str = "doc") -> str:
-    s3_bucket = os.getenv("S3_BUCKET_NAME")
-    if s3_bucket:
-        import boto3
-        s3 = boto3.client("s3")
-        filename = f"{prefix}_{datetime.now().timestamp()}_{file.filename}"
-        s3.upload_fileobj(file.file, s3_bucket, filename, ExtraArgs={"ACL": "public-read"})
-        return f"https://{s3_bucket}.s3.amazonaws.com/{filename}"
-    else:
-        os.makedirs("uploads", exist_ok=True)
-        filename = f"uploads/{prefix}_{datetime.now().timestamp()}_{file.filename}"
-        with open(filename, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        return filename
-
-
-# Seed Admin User
-def seed_admin_user():
-    db = next(get_db())
-    try:
-        admin_phone = os.getenv("ADMIN_PHONE", "03000000000")
-        admin_user = db.query(User).filter(User.phone == admin_phone).first()
-        if not admin_user:
-            admin = User(
-                name="System Administrator",
-                phone=admin_phone,
-                email="admin@lawnexa.pk",
-                hashed_password=pwd_context.hash(os.getenv("ADMIN_PASSWORD", "admin123")),
-                role="admin",
-                is_approved=True,
-                is_active=True
-            )
-            db.add(admin)
-            db.commit()
-            logger.info("Admin account successfully created or verified.")
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Database admin seeding notice: {e}")
-    finally:
-        db.close()
-
-
-seed_admin_and_migrate = seed_admin_user
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    try:
-        with engine.begin() as conn:
-            conn.execute(text("DROP TABLE IF EXISTS comments, likes, posts, chat_messages, appointments, lawyers, users CASCADE;"))
-        logger.info("Database reset: Old tables dropped with CASCADE successfully.")
-    except Exception as drop_err:
-        logger.warning(f"Table drop notice: {drop_err}")
-
-    Base.metadata.create_all(bind=engine)
-    try:
-        seed_admin_user()
-    except Exception as exc:
-        logger.warning(f"Database initialization hook notice: {exc}")
-    yield
-
-
-app = FastAPI(title="LawNexa API", version="5.0-staging", lifespan=lifespan)
-
-allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
-allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+app = FastAPI(title="LawNexa Production API", version="4.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins if allowed_origins != ["*"] else ["*"],
+    allow_origins=[o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# WebSocket Connection Manager
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: Dict[int, WebSocket] = {}
-
-    async def connect(self, user_id: int, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections[user_id] = websocket
-        logger.info(f"WebSocket client connected: user_id={user_id}")
-
-    def disconnect(self, user_id: int):
-        if user_id in self.active_connections:
-            del self.active_connections[user_id]
-            logger.info(f"WebSocket client disconnected: user_id={user_id}")
-
-    async def send_personal_message(self, message: dict, user_id: int):
-        if user_id in self.active_connections:
-            try:
-                await self.active_connections[user_id].send_json(message)
-            except Exception as e:
-                logger.error(f"Failed to send WS message to user {user_id}: {e}")
-                self.disconnect(user_id)
-
-
-manager = ConnectionManager()
-
-
-# Schemas
-class UserResponse(BaseModel):
+# ================= PYDANTIC SCHEMAS =================
+class UserMe(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     name: str
-    phone: Optional[str] = None
     email: Optional[EmailStr] = None
+    phone: str
     role: str
     is_active: bool
     is_approved: bool
     avatar: Optional[str] = None
+    city: Optional[str] = None
+    area: Optional[str] = None
 
+
+class LawyerPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
-
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    role: str
+    id: int
     user_id: int
     name: str
+    specialty: str
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    is_verified: bool
+    lat: float
+    lng: float
+    license_number: Optional[str] = None
+    bar_association: Optional[str] = None
+    experience_years: int
+    rating: float
+    distance_km: Optional[float] = None
+
+
+class UserRegister(BaseModel):
+    name: str = Field(..., min_length=2)
+    phone: str
+    email: Optional[EmailStr] = None
+    password: str = Field(..., min_length=8)
+    role: str = "client"
+    specialty: Optional[str] = "General Practice"
+    license_number: Optional[str] = None
+    bar_association: Optional[str] = None
+    experience_years: Optional[int] = 0
+    city: Optional[str] = "Karachi"
+    area: Optional[str] = "Saddar"
+    lat: Optional[float] = 31.5204
+    lng: Optional[float] = 74.3587
 
 
 class UserUpdate(BaseModel):
@@ -170,677 +95,289 @@ class UserUpdate(BaseModel):
     avatar: Optional[str] = None
     city: Optional[str] = None
     area: Optional[str] = None
+    chamberAddress: Optional[str] = None
     chamber_address: Optional[str] = None
     specialty: Optional[str] = None
+    license: Optional[str] = None
     license_number: Optional[str] = None
+    bar: Optional[str] = None
     bar_association: Optional[str] = None
+    exp: Optional[int] = None
     experience_years: Optional[int] = None
 
 
-class BookingCreate(BaseModel):
-    lawyer_id: int
-    date: str
-    time: str
-    summary: str
-
-
-class ChatSendRequest(BaseModel):
+class ChatMessageCreate(BaseModel):
     receiver_id: int
-    message: str = Field(..., min_length=1, max_length=5000)
+    message: str
     quote_amount: Optional[float] = None
 
 
-class CommentCreate(BaseModel):
-    content: str = Field(..., min_length=1, max_length=2000)
+class ChatMessageOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    sender_id: int
+    receiver_id: int
+    message: str
+    quote_amount: Optional[float] = None
+    quote_status: str
+    timestamp: datetime
+
+
+class PostCreate(BaseModel):
+    content: str
+    bar_association: str
+    media_url: Optional[str] = None
+    media_type: Optional[str] = None
+
+
+class PostOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    lawyer_id: int
+    bar_association: str
+    content: str
+    media_url: Optional[str] = None
+    media_type: Optional[str] = None
+    created_at: datetime
 
 
 class DocumentRequest(BaseModel):
-    doc_type: str = Field(alias="type", default="Agreement")
-    party1: str = Field("First Party", max_length=200)
-    party2: str = Field("Second Party", max_length=200)
-    court: str = Field("Karachi, Pakistan", max_length=200)
-    purpose: str = Field("Legal Representation", max_length=1000)
+    type: str = "Agreement"
+    party1: str = "First Party"
+    party2: str = "Second Party"
+    court: str = "Karachi Court"
+    purpose: str = "Legal Draft"
 
 
-# Auth Dependencies
+# ================= AUTH DEPENDENCIES =================
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
-    unauthorized_exc = HTTPException(
+    exc = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Session expired or invalid token.",
+        detail="Session invalid ya expire ho chuka hai. Dobara login karein!",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        if user_id is None:
-            raise unauthorized_exc
-    except JWTError:
-        raise unauthorized_exc
+        sub = payload.get("sub")
+        if not sub or not str(sub).isdecimal():
+            raise exc
+        user_id = int(sub)
+    except (JWTError, ValueError):
+        raise exc
 
-    user = db.query(User).filter(User.id == int(user_id)).first()
-    if user is None or not user.is_active:
-        raise unauthorized_exc
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.is_active:
+        raise exc
     return user
 
 
-def require_admin(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required.")
-    return current_user
-
-
-# Health Check
-@app.get("/health")
-@app.get("/api/v1/health")
-def health_check(db: Session = Depends(get_db)):
-    try:
-        db.execute(text("SELECT 1"))
-        return {"status": "ok", "database": "connected", "timestamp": datetime.now(timezone.utc).isoformat()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
-
-
-# WebSockets Endpoint
-@app.websocket("/ws/chat/{user_id}")
-async def websocket_chat_endpoint(websocket: WebSocket, user_id: int):
-    await manager.connect(user_id, websocket)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            if data == "ping":
-                await websocket.send_text("pong")
-    except WebSocketDisconnect:
-        manager.disconnect(user_id)
-
-
-# Auth & Profiles
-@app.get("/api/v1/auth/me", response_model=UserResponse)
-def get_me(current_user: User = Depends(get_current_user)):
-    return current_user
-
+# ================= API ENDPOINTS =================
 
 @app.post("/api/v1/auth/register", status_code=201)
-async def register(
-    name: str = Form(...),
-    password: str = Form(...),
-    phone: Optional[str] = Form(None),
-    email: Optional[str] = Form(None),
-    role: str = Form("client"),
-    specialty: Optional[str] = Form(None),
-    address: Optional[str] = Form(None),
-    residential_address: Optional[str] = Form(None),
-    chamber_address: Optional[str] = Form(None),
-    city: Optional[str] = Form(None),
-    area: Optional[str] = Form(None),
-    license_number: Optional[str] = Form(None),
-    bar_association: Optional[str] = Form(None),
-    experience_years: Optional[str] = Form(None),
-    lat: Optional[str] = Form(None),
-    lng: Optional[str] = Form(None),
-    law_card: Optional[UploadFile] = File(None),
-    db: Session = Depends(get_db)
-):
+def register(payload: UserRegister, db: Session = Depends(get_db)):
+    if db.query(User).filter(User.phone == payload.phone.strip()).first():
+        raise HTTPException(status_code=400, detail="Yeh Mobile Number pehle se registered hai!")
+
+    role = "lawyer" if payload.role.lower() in ["lawyer", "advocate"] else "client"
+    is_approved = True if role == "client" else False
+
+    new_user = User(
+        name=payload.name.strip(),
+        phone=payload.phone.strip(),
+        email=payload.email.lower().strip() if payload.email else None,
+        hashed_password=pwd_context.hash(payload.password),
+        role=role,
+        is_approved=is_approved,
+        city=payload.city,
+        area=payload.area
+    )
+    
     try:
-        clean_phone = phone.strip() if (phone and phone.strip()) else None
-        clean_email = email.strip().lower() if (email and email.strip()) else None
-
-        if not clean_email and not clean_phone:
-            raise HTTPException(status_code=400, detail="Phone number or Email is required.")
-
-        if clean_phone and db.query(User).filter(User.phone == clean_phone).first():
-            raise HTTPException(status_code=400, detail="Phone number is already registered. Please sign in.")
-
-        if clean_email and db.query(User).filter(User.email == clean_email).first():
-            raise HTTPException(status_code=400, detail="Email address is already registered. Please sign in.")
-
-        assigned_role = "lawyer" if role.lower() in ["lawyer", "advocate", "vakeel"] else "client"
-        is_approved = False if assigned_role == "lawyer" else True
-
-        final_address = address or residential_address or chamber_address
-
-        new_user = User(
-            name=name.strip(),
-            phone=clean_phone,
-            email=clean_email,
-            hashed_password=pwd_context.hash(password.strip()),
-            role=assigned_role,
-            is_approved=is_approved,
-            is_active=True,
-            city=city.strip() if city else None,
-            address=final_address.strip() if final_address else None,
-            residential_address=residential_address.strip() if residential_address else final_address
-        )
-
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
 
-        card_url = None
-        if law_card and assigned_role == "lawyer":
-            card_url = save_uploaded_file(law_card, prefix=f"lawcard_{new_user.id}")
-
-        if assigned_role == "lawyer":
-            try:
-                exp_yrs = int(experience_years) if (experience_years and str(experience_years).strip()) else 0
-            except (ValueError, TypeError):
-                exp_yrs = 0
-
-            try:
-                lat_val = float(lat) if (lat and str(lat).strip()) else 31.5204
-            except (ValueError, TypeError):
-                lat_val = 31.5204
-
-            try:
-                lng_val = float(lng) if (lng and str(lng).strip()) else 74.3587
-            except (ValueError, TypeError):
-                lng_val = 74.3587
-
+        if role == "lawyer":
             new_lawyer = Lawyer(
                 user_id=new_user.id,
-                name=new_user.name,
-                specialty=specialty or "General Practice",
-                address=chamber_address or final_address or "Chamber",
-                chamber_address=chamber_address or final_address,
-                city=city,
-                area=area,
-                phone=new_user.phone,
-                law_card_url=card_url,
+                name=payload.name.strip(),
+                specialty=payload.specialty or "General Practice",
+                phone=payload.phone.strip(),
                 is_verified=False,
-                lat=lat_val,
-                lng=lng_val,
-                license_number=license_number,
-                bar_association=bar_association,
-                experience_years=exp_yrs
+                lat=payload.lat or 31.5204,
+                lng=payload.lng or 74.3587,
+                license_number=payload.license_number,
+                bar_association=payload.bar_association,
+                experience_years=payload.experience_years or 0
             )
-
             db.add(new_lawyer)
             db.commit()
 
-        token = jwt.encode(
-            {"sub": str(new_user.id), "role": new_user.role, "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)},
-            SECRET_KEY, algorithm=ALGORITHM
-        )
-
-        return {"message": "Account created successfully!", "access_token": token, "role": new_user.role, "user_id": new_user.id}
-
-    except HTTPException:
+    except IntegrityError:
         db.rollback()
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Registration failure: {e}")
-        raise HTTPException(status_code=500, detail=f"Registration error: {str(e)}")
-
-
-@app.post("/api/v1/auth/token", response_model=TokenResponse)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(
-        (User.email == form_data.username.lower()) | (User.phone == form_data.username)
-    ).first()
-
-    if not user or not pwd_context.verify(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid username or password.")
+        raise HTTPException(status_code=400, detail="Account creation error! Email/Phone pehle se maujood hai.")
 
     token = jwt.encode(
-        {"sub": str(user.id), "role": user.role, "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)},
+        {"sub": str(new_user.id), "role": new_user.role, "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)},
         SECRET_KEY, algorithm=ALGORITHM
     )
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "role": user.role,
-        "user_id": user.id,
-        "name": user.name
-    }
+    return {"message": "Account created successfully!", "access_token": token, "role": new_user.role}
+
+
+@app.post("/api/v1/auth/token")
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    username = form_data.username.strip()
+    user = db.query(User).filter((User.phone == username) | (User.email == username.lower())).first()
+    
+    if not user or not pwd_context.verify(form_data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Ghalat Phone/Email ya Password!")
+
+    token = jwt.encode(
+        {"sub": str(user.id), "role": user.role, "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)},
+        SECRET_KEY, algorithm=ALGORITHM
+    )
+    return {"access_token": token, "token_type": "bearer", "role": user.role, "user_id": user.id, "name": user.name}
+
+
+@app.get("/api/v1/auth/me", response_model=UserMe)
+def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
 
 
 @app.put("/api/v1/users/profile")
 def update_profile(payload: UserUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    update_data = payload.dict(exclude_unset=True)
-    for key, value in update_data.items():
-        if hasattr(current_user, key):
-            setattr(current_user, key, value)
+    if payload.name: current_user.name = payload.name.strip()
+    if payload.phone: current_user.phone = payload.phone.strip()
+    if payload.email: current_user.email = payload.email.strip().lower()
+    if payload.avatar: current_user.avatar = payload.avatar
+    if payload.city: current_user.city = payload.city
+    if payload.area: current_user.area = payload.area
 
     if current_user.role == "lawyer" and current_user.lawyer_profile:
-        for key in ["specialty", "license_number", "bar_association", "experience_years"]:
-            if key in update_data:
-                setattr(current_user.lawyer_profile, key, update_data[key])
+        lp = current_user.lawyer_profile
+        if payload.specialty: lp.specialty = payload.specialty
+        if payload.license or payload.license_number: lp.license_number = payload.license or payload.license_number
+        if payload.bar or payload.bar_association: lp.bar_association = payload.bar or payload.bar_association
+        if payload.exp is not None or payload.experience_years is not None: 
+            lp.experience_years = payload.exp if payload.exp is not None else payload.experience_years
+        if payload.chamberAddress or payload.chamber_address: 
+            lp.address = payload.chamberAddress or payload.chamber_address
 
     db.commit()
-    return {"message": "Profile updated!", "user_id": current_user.id}
+    return {"message": "Profile updated successfully!"}
 
 
-# Admin Verification Workflows
-@app.get("/api/v1/admin/lawyers/pending")
-def list_pending_lawyers(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    pending_users = db.query(User).filter(User.role == "lawyer", User.is_approved == False).all()
-    results = []
-    for u in pending_users:
-        lawyer = u.lawyer_profile
-        results.append({
-            "id": lawyer.id if lawyer else u.id,
-            "user_id": u.id,
-            "name": u.name,
-            "phone": u.phone,
-            "email": u.email,
-            "specialty": lawyer.specialty if lawyer else "General",
-            "license_number": lawyer.license_number if lawyer else "",
-            "bar_association": lawyer.bar_association if lawyer else "",
-            "experience_years": lawyer.experience_years if lawyer else 0,
-            "law_card_url": lawyer.law_card_url if lawyer else None
-        })
-    return results
-
-
-@app.post("/api/v1/admin/lawyers/{lawyer_id}/approve")
-def approve_lawyer(lawyer_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    lawyer = db.query(Lawyer).filter(Lawyer.id == lawyer_id).first()
-    if not lawyer:
-        user = db.query(User).filter(User.id == lawyer_id, User.role == "lawyer").first()
-        if user:
-            user.is_approved = True
-            if user.lawyer_profile:
-                user.lawyer_profile.is_verified = True
-            db.commit()
-            return {"message": f"Lawyer {user.name} approved successfully."}
-        raise HTTPException(status_code=404, detail="Lawyer profile not found.")
-
-    lawyer.is_verified = True
-    if lawyer.user:
-        lawyer.user.is_approved = True
-    db.commit()
-    return {"message": f"Advocate {lawyer.name} approved successfully."}
-
-
-@app.post("/api/v1/admin/lawyers/{lawyer_id}/reject")
-def reject_lawyer(lawyer_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    lawyer = db.query(Lawyer).filter(Lawyer.id == lawyer_id).first()
-    if not lawyer:
-        raise HTTPException(status_code=404, detail="Lawyer profile not found.")
-
-    lawyer.is_verified = False
-    if lawyer.user:
-        lawyer.user.is_approved = False
-    db.commit()
-    return {"message": f"Advocate {lawyer.name} verification request rejected."}
-
-
-# Directory & Proximity Search
-@app.get("/api/v1/lawyers/nearby")
+@app.get("/api/v1/lawyers/nearby", response_model=List[LawyerPublic])
 def get_nearby_lawyers(
-    client_lat: Optional[float] = Query(None, ge=-90, le=90),
-    client_lng: Optional[float] = Query(None, ge=-180, le=180),
-    radius_km: Optional[float] = Query(10.0, gt=0, le=500),
-    city: Optional[str] = Query(None),
-    area: Optional[str] = Query(None),
+    client_lat: float = 31.5204,
+    client_lng: float = 74.3587,
+    radius_km: float = 50.0,
+    city: Optional[str] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
-    query = db.query(Lawyer).join(User).filter(User.is_approved == True, Lawyer.is_verified == True)
-    if city and hasattr(Lawyer, "city"):
-        query = query.filter(Lawyer.city.ilike(f"%{city}%"))
-    if area and hasattr(Lawyer, "area"):
-        query = query.filter(Lawyer.area.ilike(f"%{area}%"))
-
-    lawyers = query.all()
+    query = db.query(Lawyer)
+    if city and city != "All":
+        query = query.filter(Lawyer.address.ilike(f"%{city}%") | Lawyer.bar_association.ilike(f"%{city}%"))
+    
+    lawyers = query.offset(skip).limit(limit).all()
     results = []
-
+    
     for l in lawyers:
-        lawyer_dict = {
-            "id": l.id,
-            "user_id": l.user_id,
-            "name": l.name,
-            "specialty": l.specialty,
-            "address": l.address,
-            "city": getattr(l, "city", None),
-            "area": getattr(l, "area", None),
-            "experience": l.experience_years,
-            "bar_association": l.bar_association,
-            "license_number": l.license_number,
-            "lat": l.lat,
-            "lng": l.lng,
-            "avatar": l.user.avatar if l.user else None
-        }
-
-        if client_lat is not None and client_lng is not None:
-            dist = calculate_distance(client_lat, client_lng, l.lat, l.lng)
-            if dist <= radius_km:
-                lawyer_dict["distance_km"] = dist
-                results.append(lawyer_dict)
-        else:
-            results.append(lawyer_dict)
-
-    if client_lat is not None and client_lng is not None:
-        results.sort(key=lambda x: x.get("distance_km", 0))
-
-    return results[skip : skip + limit]
+        dist = calculate_distance(client_lat, client_lng, l.lat, l.lng)
+        if dist <= radius_km:
+            lp = LawyerPublic.model_validate(l)
+            lp.distance_km = dist
+            results.append(lp)
+            
+    return sorted(results, key=lambda x: x.distance_km or 0)
 
 
-# Bookings State Machine
-@app.post("/api/v1/bookings", status_code=201)
-async def create_booking(payload: BookingCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    lawyer = db.query(Lawyer).filter(Lawyer.id == payload.lawyer_id).first()
-    if not lawyer or not lawyer.is_verified:
-        raise HTTPException(status_code=404, detail="Selected verified advocate profile does not exist.")
-
-    if current_user.id == lawyer.user_id:
-        raise HTTPException(status_code=400, detail="Advocates cannot book consultation appointments with themselves.")
-
-    appointment = Appointment(
-        client_id=current_user.id,
-        lawyer_id=lawyer.id,
-        booking_date=payload.date,
-        time_slot=payload.time,
-        case_summary=payload.summary,
-        status="pending"
-    )
-    db.add(appointment)
-    db.commit()
-    db.refresh(appointment)
-
-    await manager.send_personal_message({
-        "type": "new_booking",
-        "booking_id": appointment.id,
-        "client_name": current_user.name
-    }, lawyer.user_id)
-
-    return {"message": "Booking request submitted successfully!", "booking_id": appointment.id, "status": "pending"}
-
-
-@app.get("/api/v1/bookings")
-def list_bookings(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if current_user.role == "lawyer" and current_user.lawyer_profile:
-        bookings = db.query(Appointment).filter(Appointment.lawyer_id == current_user.lawyer_profile.id).all()
-    else:
-        bookings = db.query(Appointment).filter(Appointment.client_id == current_user.id).all()
-
-    results = []
-    for b in bookings:
-        results.append({
-            "id": b.id,
-            "client_id": b.client_id,
-            "lawyer_id": b.lawyer_id,
-            "clientName": b.client.name if b.client else "Client",
-            "lawyerName": b.lawyer.name if b.lawyer else "Advocate",
-            "date": b.booking_date,
-            "time": b.time_slot,
-            "summary": b.case_summary,
-            "status": b.status
-        })
-    return results
-
-
-@app.post("/api/v1/bookings/{booking_id}/respond")
-async def respond_booking(booking_id: int, action: str = Query(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    booking = db.query(Appointment).filter(Appointment.id == booking_id).first()
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking request not found.")
-
-    if current_user.role != "lawyer" or not current_user.lawyer_profile or booking.lawyer_id != current_user.lawyer_profile.id:
-        raise HTTPException(status_code=403, detail="Unauthorized to alter this booking.")
-
-    if booking.status.lower() in ["cancelled", "declined"]:
-        raise HTTPException(status_code=400, detail=f"Cannot alter booking in '{booking.status}' status.")
-
-    booking.status = "Accepted" if action.lower() in ["accept", "accepted"] else "Declined"
-    db.commit()
-
-    await manager.send_personal_message({
-        "type": "booking_response",
-        "booking_id": booking.id,
-        "status": booking.status
-    }, booking.client_id)
-
-    return {"message": f"Booking {booking.status} successfully.", "booking_id": booking.id, "status": booking.status}
-
-
-@app.post("/api/v1/bookings/{booking_id}/cancel")
-def cancel_booking(booking_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    booking = db.query(Appointment).filter(Appointment.id == booking_id).first()
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking request not found.")
-
-    is_client = booking.client_id == current_user.id
-    is_lawyer = current_user.lawyer_profile and booking.lawyer_id == current_user.lawyer_profile.id
-
-    if not (is_client or is_lawyer or current_user.role == "admin"):
-        raise HTTPException(status_code=403, detail="Unauthorized to cancel this booking.")
-
-    if booking.status.lower() == "cancelled":
-        raise HTTPException(status_code=400, detail="Booking is already cancelled.")
-
-    booking.status = "Cancelled"
-    db.commit()
-    return {"message": "Booking cancelled successfully.", "booking_id": booking.id, "status": "Cancelled"}
-
-
-# Chat & Price Quotations
-@app.post("/api/v1/chat/send", status_code=201)
-async def send_chat_message(payload: ChatSendRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    receiver = db.query(User).filter(User.id == payload.receiver_id).first()
-    if not receiver:
-        raise HTTPException(status_code=404, detail="Recipient user not found.")
-
-    if payload.quote_amount is not None:
-        if current_user.role != "lawyer":
-            raise HTTPException(status_code=403, detail="Only advocates can submit fee quotations.")
-        if payload.quote_amount <= 0:
-            raise HTTPException(status_code=400, detail="Fee quotation amount must be greater than zero.")
-
-    msg = ChatMessage(
+@app.post("/api/v1/chat/send", response_model=ChatMessageOut, status_code=201)
+def send_chat(payload: ChatMessageCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    chat = ChatMessage(
         sender_id=current_user.id,
         receiver_id=payload.receiver_id,
-        message=payload.message.strip(),
+        message=payload.message,
         quote_amount=payload.quote_amount,
-        quote_status="pending" if payload.quote_amount else "none",
-        is_read=False
+        quote_status="pending" if payload.quote_amount else "none"
     )
-    db.add(msg)
+    db.add(chat)
     db.commit()
-    db.refresh(msg)
-
-    await manager.send_personal_message({
-        "type": "chat_message",
-        "chat_id": msg.id,
-        "sender_id": current_user.id,
-        "message": msg.message,
-        "quote_amount": msg.quote_amount,
-        "quote_status": msg.quote_status,
-        "timestamp": msg.timestamp.strftime("%H:%M")
-    }, payload.receiver_id)
-
-    return {"message": "Message sent!", "chat_id": msg.id, "timestamp": msg.timestamp.strftime("%H:%M")}
+    db.refresh(chat)
+    return chat
 
 
-@app.get("/api/v1/chat/history/{user_id}")
-def get_chat_history(
-    user_id: int,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    messages = db.query(ChatMessage).filter(
-        ((ChatMessage.sender_id == current_user.id) & (ChatMessage.receiver_id == user_id)) |
-        ((ChatMessage.sender_id == user_id) & (ChatMessage.receiver_id == current_user.id))
-    ).order_by(ChatMessage.timestamp.asc()).offset(skip).limit(limit).all()
-
-    results = []
-    for m in messages:
-        results.append({
-            "id": m.id,
-            "sender_id": m.sender_id,
-            "receiver_id": m.receiver_id,
-            "message": m.message,
-            "quote_amount": m.quote_amount,
-            "quote_status": m.quote_status,
-            "is_read": getattr(m, 'is_read', False),
-            "timestamp": m.timestamp.strftime("%H:%M")
-        })
-    return results
-
-
-@app.post("/api/v1/chat/messages/{message_id}/read")
-def mark_message_read(message_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    msg = db.query(ChatMessage).filter(ChatMessage.id == message_id).first()
-    if not msg:
-        raise HTTPException(status_code=404, detail="Message not found.")
-
-    if msg.receiver_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized to alter read status.")
-
-    msg.is_read = True
-    db.commit()
-    return {"message": "Message marked as read.", "chat_id": msg.id, "is_read": True}
+@app.get("/api/v1/chat/history/{receiver_id}", response_model=List[ChatMessageOut])
+def chat_history(receiver_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return db.query(ChatMessage).filter(
+        ((ChatMessage.sender_id == current_user.id) & (ChatMessage.receiver_id == receiver_id)) |
+        ((ChatMessage.sender_id == receiver_id) & (ChatMessage.receiver_id == current_user.id))
+    ).order_by(ChatMessage.timestamp.asc()).all()
 
 
 @app.post("/api/v1/chat/quote/{chat_id}/respond")
-async def respond_quote(chat_id: int, action: str = Query(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    msg = db.query(ChatMessage).filter(ChatMessage.id == chat_id).first()
-    if not msg or not msg.quote_amount:
-        raise HTTPException(status_code=404, detail="Quotation message not found.")
-
-    if msg.receiver_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the designated client can respond to this price quote.")
-
-    if msg.quote_status in ["accepted", "rejected"]:
-        raise HTTPException(status_code=400, detail=f"Quotation has already been {msg.quote_status}.")
-
-    msg.quote_status = "accepted" if action.lower() in ["accept", "accepted"] else "rejected"
+def respond_quote(chat_id: int, action: str = Query(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    chat = db.query(ChatMessage).filter(ChatMessage.id == chat_id, ChatMessage.receiver_id == current_user.id).first()
+    if not chat:
+        raise HTTPException(status_code=404, detail="Quotation not found!")
+    
+    chat.quote_status = "accepted" if action.lower() == "accepted" else "rejected"
     db.commit()
-
-    await manager.send_personal_message({
-        "type": "quote_response",
-        "chat_id": msg.id,
-        "status": msg.quote_status
-    }, msg.sender_id)
-
-    return {"message": f"Quotation {msg.quote_status} successfully.", "chat_id": msg.id, "status": msg.quote_status}
+    return {"message": f"Quotation {chat.quote_status} successfully!"}
 
 
-# Forum Endpoints
-@app.post("/api/v1/posts", status_code=201)
-def create_post(
-    content: str = Form(..., min_length=5, max_length=10000),
-    title: Optional[str] = Form(None),
-    bar_association: Optional[str] = Form("Lahore High Court Bar Association"),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+@app.post("/api/v1/posts", response_model=PostOut, status_code=201)
+def create_post(payload: PostCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if current_user.role != "lawyer" or not current_user.lawyer_profile:
-        raise HTTPException(status_code=403, detail="Only verified advocates can publish posts.")
+        raise HTTPException(status_code=403, detail="Only advocates can publish posts!")
 
     post = Post(
         lawyer_id=current_user.lawyer_profile.id,
-        bar_association=bar_association or current_user.lawyer_profile.bar_association or "High Court Bar",
-        title=title,
-        content=content.strip()
+        bar_association=payload.bar_association,
+        content=payload.content,
+        media_url=payload.media_url,
+        media_type=payload.media_type
     )
     db.add(post)
     db.commit()
     db.refresh(post)
-    return {"message": "Post created successfully!", "id": post.id}
+    return post
 
 
-@app.get("/api/v1/posts")
-def get_posts(
-    bar_association: Optional[str] = Query(None),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-    db: Session = Depends(get_db)
-):
+@app.get("/api/v1/posts", response_model=List[PostOut])
+def get_posts(bar_association: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(Post)
     if bar_association:
-        query = query.filter(Post.bar_association.ilike(f"%{bar_association}%"))
-    posts = query.order_by(Post.created_at.desc()).offset(skip).limit(limit).all()
-
-    results = []
-    for p in posts:
-        results.append({
-            "id": p.id,
-            "title": p.title,
-            "author": p.lawyer.name if p.lawyer else "Advocate",
-            "authorRole": p.lawyer.specialty if p.lawyer else "Advocate",
-            "authorAvatar": p.lawyer.user.avatar if (p.lawyer and p.lawyer.user) else None,
-            "category": p.bar_association,
-            "content": p.content,
-            "likes": len(p.likes),
-            "comments_count": len(p.comments),
-            "timestamp": p.created_at.strftime("%Y-%m-%d %H:%M")
-        })
-    return results
+        query = query.filter(Post.bar_association == bar_association)
+    return query.order_by(Post.created_at.desc()).all()
 
 
-@app.delete("/api/v1/posts/{post_id}")
-def delete_post(post_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    post = db.query(Post).filter(Post.id == post_id).first()
-    if not post:
-        raise HTTPException(status_code=404, detail="Post not found.")
-
-    is_author = current_user.lawyer_profile and (post.lawyer_id == current_user.lawyer_profile.id)
-    if not is_author and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Unauthorized to delete this post.")
-
-    db.delete(post)
-    db.commit()
-    return {"message": "Post deleted successfully."}
+@app.get("/api/v1/admin/lawyers/pending")
+def pending_lawyers(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required!")
+    return db.query(User).filter(User.role == "lawyer", User.is_approved == False).all()
 
 
-@app.post("/api/v1/posts/{post_id}/like")
-def like_post(post_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    post = db.query(Post).filter(Post.id == post_id).first()
-    if not post:
-        raise HTTPException(status_code=404, detail="Post not found.")
-
-    existing_like = db.query(Like).filter(Like.post_id == post_id, Like.user_id == current_user.id).first()
-    if existing_like:
-        db.delete(existing_like)
+@app.post("/api/v1/admin/lawyers/{user_id}/approve")
+def approve_lawyer(user_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required!")
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if user:
+        user.is_approved = True
+        if user.lawyer_profile:
+            user.lawyer_profile.is_verified = True
         db.commit()
-        likes_count = db.query(Like).filter(Like.post_id == post_id).count()
-        return {"message": "Unliked post.", "liked": False, "likes": likes_count}
-
-    new_like = Like(post_id=post_id, user_id=current_user.id)
-    db.add(new_like)
-    db.commit()
-    likes_count = db.query(Like).filter(Like.post_id == post_id).count()
-    return {"message": "Liked post.", "liked": True, "likes": likes_count}
+        return {"message": "Lawyer approved successfully!"}
+    raise HTTPException(status_code=404, detail="User not found!")
 
 
-@app.post("/api/v1/posts/{post_id}/comments", status_code=201)
-def add_comment(post_id: int, payload: CommentCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    post = db.query(Post).filter(Post.id == post_id).first()
-    if not post:
-        raise HTTPException(status_code=404, detail="Post not found.")
-
-    comment = Comment(post_id=post_id, user_id=current_user.id, content=payload.content.strip())
-    db.add(comment)
-    db.commit()
-    db.refresh(comment)
-    return {"message": "Comment added successfully!", "comment_id": comment.id}
-
-
-@app.get("/api/v1/posts/{post_id}/comments")
-def list_comments(post_id: int, db: Session = Depends(get_db)):
-    comments = db.query(Comment).filter(Comment.post_id == post_id).order_by(Comment.created_at.asc()).all()
-    results = []
-    for c in comments:
-        results.append({
-            "id": c.id,
-            "author": c.user.name if c.user else "User",
-            "authorAvatar": c.user.avatar if c.user else None,
-            "content": c.content,
-            "timestamp": c.created_at.strftime("%Y-%m-%d %H:%M")
-        })
-    return results
-
-
-# AI Tools
 @app.post("/api/ai/generate-doc")
-@app.post("/api/v1/ai/generate-doc")
 def generate_doc(payload: DocumentRequest):
-    disclaimer = "LEGAL DISCLAIMER: Draft generated by LawNexa AI. This document is an unverified draft template and must be reviewed, edited, and verified by a qualified Advocate before court submission."
-
     draft_template = f"""IN THE COURT OF {payload.court.upper()}
 
 In the Matter of:
@@ -848,54 +385,23 @@ In the Matter of:
 VERSUS
 {payload.party2} ... (Second Party)
 
-SUBJECT: DRAFT PETITION FOR {payload.doc_type.upper()}
+SUBJECT: PRELIMINARY DRAFT FOR {payload.type.upper()}
 
-1. That the applicant submits this representation regarding {payload.purpose}.
-2. That all supporting legal requirements stand submitted under Pakistan Law.
+1. This preliminary draft concerns: {payload.purpose}.
+2. DISCLAIMER: Legal facts and statutory provisions have NOT been independently verified.
+3. This draft requires review and adaptation by a licensed advocate before filing.
 
 PRAYER:
-It is respectfully prayed that this petition be granted in accordance with law.
-
-[{disclaimer}]"""
+It is respectfully prayed that this petition be granted in accordance with law."""
 
     if GEMINI_API_KEY:
         try:
             model = genai.GenerativeModel("gemini-1.5-flash")
-            prompt = f"Draft a professional legal document in Pakistan jurisdiction for: {payload.doc_type}. Parties: {payload.party1} and {payload.party2}. Court: {payload.court}. Purpose: {payload.purpose}. Ensure formal legal tone. Include disclaimer."
-            response = model.generate_content(prompt)
-            if response.text:
-                return {"draft": response.text.strip(), "ai_generated": True, "disclaimer": disclaimer}
+            prompt = f"Draft a formal legal document in Pakistan jurisdiction for {payload.type} between {payload.party1} and {payload.party2} for court {payload.court}. Purpose: {payload.purpose}."
+            res = model.generate_content(prompt)
+            if res.text:
+                return {"draft": res.text.strip(), "review_required": True}
         except Exception:
             pass
 
-    return {"draft": draft_template, "ai_generated": False, "disclaimer": disclaimer}
-
-
-@app.post("/api/v1/ai/analyze-fir")
-async def analyze_fir(
-    text: Optional[str] = Form(None),
-    file: Optional[UploadFile] = File(None)
-):
-    disclaimer = "LEGAL DISCLAIMER: FIR analysis is for informational assistance only and does not constitute guaranteed legal advice or a clinical bail probability. Consult a qualified Advocate for court representation."
-
-    extracted_text = text or ""
-    if file:
-        contents = await file.read()
-        if len(contents) > 5 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail="File size exceeds maximum allowed limit of 5MB.")
-
-        filename_lower = file.filename.lower()
-        if not (filename_lower.endswith('.pdf') or filename_lower.endswith('.png') or filename_lower.endswith('.jpg') or filename_lower.endswith('.jpeg') or filename_lower.endswith('.txt')):
-            raise HTTPException(status_code=400, detail="Unsupported file format. Please upload PDF, TXT, or Image files.")
-
-        if filename_lower.endswith('.txt'):
-            extracted_text += "\n" + contents.decode('utf-8', errors='ignore')
-
-    summary_snippet = extracted_text[:150] if extracted_text else "FIR Document Analysis"
-
-    return {
-        "disclaimer": disclaimer,
-        "bailType": "Interim Pre-Arrest Bail (Section 498 CrPC)",
-        "strategy": f"Analysis for: '{summary_snippet}...'\nRecommended procedure: File an application for pre-arrest bail before the Sessions Court under Section 498 CrPC. Ensure ground of mala fide or ulterior motives is specifically pleaded.",
-        "ai_generated": True if GEMINI_API_KEY else False
-    }
+    return {"draft": draft_template, "review_required": True}

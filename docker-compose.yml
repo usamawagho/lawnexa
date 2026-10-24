@@ -3,33 +3,36 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: legalconnect_postgres
+    container_name: lawnexa_db
     restart: always
     environment:
-      POSTGRES_USER: legaluser
-      POSTGRES_PASSWORD: legalpassword
-      POSTGRES_DB: legalconnect_db
+      POSTGRES_USER: ${POSTGRES_USER:-lawnexa_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lawnexa_secure_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-lawnexa_db}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lawnexa_user -d lawnexa_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   web:
-    build:
-      context: .
-    container_name: legalconnect_api
+    build: .
+    container_name: lawnexa_api
     restart: always
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://legaluser:legalpassword@db:5432/legalconnect_db
+      - DATABASE_URL=postgresql://lawnexa_user:lawnexa_secure_pass_2026@db:5432/lawnexa_db
+      - SECRET_KEY=${SECRET_KEY:-lawnexa_enterprise_production_jwt_secret_key_2026}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
     depends_on:
-      - db
-    volumes:
-      - ./uploads:/app/uploads
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:
