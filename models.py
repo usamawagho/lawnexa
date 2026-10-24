@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, DateTime, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database import Base
@@ -15,7 +15,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_approved = Column(Boolean, default=True)
     avatar = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     lawyer_profile = relationship("Lawyer", back_populates="user", uselist=False, cascade="all, delete-orphan")
     client_appointments = relationship("Appointment", back_populates="client")
@@ -74,8 +74,9 @@ class ChatMessage(Base):
     receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     message = Column(Text, nullable=False)
     quote_amount = Column(Float, nullable=True)
-    quote_status = Column(String, default="none")  # "none", "pending", "accepted", "rejected"
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    quote_status = Column(String, default="none")
+    is_read = Column(Boolean, default=False)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_messages")
     receiver = relationship("User", foreign_keys=[receiver_id], back_populates="received_messages")
@@ -91,7 +92,7 @@ class Post(Base):
     content = Column(Text, nullable=False)
     media_url = Column(String, nullable=True)
     media_type = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     lawyer = relationship("Lawyer", back_populates="posts")
     likes = relationship("Like", back_populates="post", cascade="all, delete-orphan")
@@ -117,7 +118,7 @@ class Comment(Base):
     post_id = Column(Integer, ForeignKey("posts.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     content = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     post = relationship("Post", back_populates="comments")
     user = relationship("User", back_populates="comments")

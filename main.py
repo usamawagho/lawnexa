@@ -1,12 +1,17 @@
 import os
 import shutil
+import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import Optional, List
+from typing import Optional, List, Dict
 
-from fastapi import FastAPI, Depends, HTTPException, status, Form, File, UploadFile, Query
+from fastapi import (
+    FastAPI, Depends, HTTPException, status, Form, File, UploadFile, Query,
+    WebSocket, WebSocketDisconnect
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import JWTError, jwt
@@ -29,7 +34,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 if GEMINI_API_KEY := os.getenv("GEMINI_API_KEY"):
     genai.configure(api_key=GEMINI_API_KEY)
 
-app = FastAPI(title="LawNexa Production API", version="4.5")
+app = FastAPI(title="LawNexa Production API", version="5.0")
 
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
 allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
@@ -41,6 +46,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# WebSocket Connection Manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[int, WebSocket] = {}
+
+    async def connect(self, user_id: int, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections[user_id] = websocket
+
+    def disconnect(self, user_id: int):
+        if user_id in self.active_connections:
+            del self.active_connections[user_id]
+
+    async def send_personal_message(self, message: dict, user_id: int):
+        if user_id in self.active_connections:
+            try:
+                await self.active_connections[user_id].send_json(message)
+            except Exception:
+                self.disconnect(user_id)
+
+manager = ConnectionManager()
 
 # Pydantic Schemas
 class UserResponse(BaseModel):
@@ -96,11 +123,17 @@ class DocumentRequest(BaseModel):
     court: str = Field("Karachi, Pakistan", max_length=200)
     purpose: str = Field("Legal Representation", max_length=1000)
 
-# Seed Admin User
-@app.on_event("startup")
+# Seed Admin User & Auto Migration
 def seed_admin_user():
     db = next(get_db())
     try:
+        # Auto-patch missing 'is_read' column in SQLite
+        try:
+            db.execute(text("ALTER TABLE chat_messages ADD COLUMN is_read BOOLEAN DEFAULT 0"))
+            db.commit()
+        except Exception:
+            pass
+
         admin_phone = "03000000000"
         admin_user = db.query(User).filter(User.phone == admin_phone).first()
         if not admin_user:
@@ -117,6 +150,10 @@ def seed_admin_user():
             db.commit()
     finally:
         db.close()
+
+@app.on_event("startup")
+def startup_db_init():
+    seed_admin_user()
 
 try:
     seed_admin_user()
@@ -147,6 +184,19 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required.")
     return current_user
+
+# ================= WEBSOCKET ROUTE =================
+
+@app.websocket("/ws/chat/{user_id}")
+async def websocket_chat_endpoint(websocket: WebSocket, user_id: int):
+    await manager.connect(user_id, websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        manager.disconnect(user_id)
 
 # ================= AUTH & USER ROUTES =================
 
@@ -372,7 +422,7 @@ def get_nearby_lawyers(
 # ================= APPOINTMENT MANAGEMENT LIFECYCLE =================
 
 @app.post("/api/v1/bookings", status_code=201)
-def create_booking(payload: BookingCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def create_booking(payload: BookingCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     lawyer = db.query(Lawyer).filter(Lawyer.id == payload.lawyer_id).first()
     if not lawyer or not lawyer.is_verified:
         raise HTTPException(status_code=404, detail="Selected verified advocate profile does not exist.")
@@ -391,6 +441,13 @@ def create_booking(payload: BookingCreate, current_user: User = Depends(get_curr
     db.add(appointment)
     db.commit()
     db.refresh(appointment)
+
+    await manager.send_personal_message({
+        "type": "new_booking",
+        "booking_id": appointment.id,
+        "client_name": current_user.name
+    }, lawyer.user_id)
+
     return {"message": "Booking request submitted successfully!", "booking_id": appointment.id, "status": "pending"}
 
 @app.get("/api/v1/bookings")
@@ -416,7 +473,7 @@ def list_bookings(current_user: User = Depends(get_current_user), db: Session = 
     return results
 
 @app.post("/api/v1/bookings/{booking_id}/respond")
-def respond_booking(booking_id: int, action: str = Query(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def respond_booking(booking_id: int, action: str = Query(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     booking = db.query(Appointment).filter(Appointment.id == booking_id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking request not found.")
@@ -429,6 +486,13 @@ def respond_booking(booking_id: int, action: str = Query(...), current_user: Use
             
     booking.status = "Accepted" if action.lower() in ["accept", "accepted"] else "Declined"
     db.commit()
+
+    await manager.send_personal_message({
+        "type": "booking_response",
+        "booking_id": booking.id,
+        "status": booking.status
+    }, booking.client_id)
+
     return {"message": f"Booking {booking.status} successfully.", "booking_id": booking.id, "status": booking.status}
 
 @app.post("/api/v1/bookings/{booking_id}/cancel")
@@ -453,7 +517,7 @@ def cancel_booking(booking_id: int, current_user: User = Depends(get_current_use
 # ================= CHAT & FEE QUOTATIONS =================
 
 @app.post("/api/v1/chat/send", status_code=201)
-def send_chat_message(payload: ChatSendRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def send_chat_message(payload: ChatSendRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     receiver = db.query(User).filter(User.id == payload.receiver_id).first()
     if not receiver:
         raise HTTPException(status_code=404, detail="Recipient user not found.")
@@ -469,11 +533,23 @@ def send_chat_message(payload: ChatSendRequest, current_user: User = Depends(get
         receiver_id=payload.receiver_id,
         message=payload.message.strip(),
         quote_amount=payload.quote_amount,
-        quote_status="pending" if payload.quote_amount else "none"
+        quote_status="pending" if payload.quote_amount else "none",
+        is_read=False
     )
     db.add(msg)
     db.commit()
     db.refresh(msg)
+
+    await manager.send_personal_message({
+        "type": "chat_message",
+        "chat_id": msg.id,
+        "sender_id": current_user.id,
+        "message": msg.message,
+        "quote_amount": msg.quote_amount,
+        "quote_status": msg.quote_status,
+        "timestamp": msg.timestamp.strftime("%H:%M")
+    }, payload.receiver_id)
+
     return {"message": "Message sent!", "chat_id": msg.id, "timestamp": msg.timestamp.strftime("%H:%M")}
 
 @app.get("/api/v1/chat/history/{user_id}")
@@ -498,12 +574,26 @@ def get_chat_history(
             "message": m.message,
             "quote_amount": m.quote_amount,
             "quote_status": m.quote_status,
+            "is_read": getattr(m, 'is_read', False),
             "timestamp": m.timestamp.strftime("%H:%M")
         })
     return results
 
+@app.post("/api/v1/chat/messages/{message_id}/read")
+def mark_message_read(message_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    msg = db.query(ChatMessage).filter(ChatMessage.id == message_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found.")
+    
+    if msg.receiver_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Unauthorized to alter read status.")
+
+    msg.is_read = True
+    db.commit()
+    return {"message": "Message marked as read.", "chat_id": msg.id, "is_read": True}
+
 @app.post("/api/v1/chat/quote/{chat_id}/respond")
-def respond_quote(chat_id: int, action: str = Query(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def respond_quote(chat_id: int, action: str = Query(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     msg = db.query(ChatMessage).filter(ChatMessage.id == chat_id).first()
     if not msg or not msg.quote_amount:
         raise HTTPException(status_code=404, detail="Quotation message not found.")
@@ -516,6 +606,13 @@ def respond_quote(chat_id: int, action: str = Query(...), current_user: User = D
     
     msg.quote_status = "accepted" if action.lower() in ["accept", "accepted"] else "rejected"
     db.commit()
+
+    await manager.send_personal_message({
+        "type": "quote_response",
+        "chat_id": msg.id,
+        "status": msg.quote_status
+    }, msg.sender_id)
+
     return {"message": f"Quotation {msg.quote_status} successfully.", "chat_id": msg.id, "status": msg.quote_status}
 
 # ================= COMMUNITY FORUM =================

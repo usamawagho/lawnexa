@@ -3,7 +3,6 @@ import pytest
 from fastapi.testclient import TestClient
 from main import app, seed_admin_user
 
-# Ensure admin user exists in DB before running tests
 seed_admin_user()
 
 client = TestClient(app)
@@ -67,13 +66,11 @@ def test_04_lawyer_registration_with_proposal_credentials():
 
 
 def test_05_logins_and_capture_user_ids():
-    # Client Login
     res_c = client.post("/api/v1/auth/token", data={"username": "03001234567", "password": "clientpass123"})
     assert res_c.status_code == 200
     state["client_token"] = res_c.json()["access_token"]
     state["client_id"] = res_c.json().get("user_id")
 
-    # Lawyer Login
     res_l = client.post("/api/v1/auth/token", data={"username": "03219876543", "password": "lawyerpass123"})
     assert res_l.status_code == 200
     state["lawyer_token"] = res_l.json()["access_token"]
@@ -94,7 +91,6 @@ def test_06_admin_approve_lawyer():
         app_res = client.post(f"/api/v1/admin/lawyers/{target['id']}/approve", headers=headers)
         assert app_res.status_code == 200
     else:
-        # Fallback for re-runs: fetch lawyer_id from directory search
         lawyers_res = client.get("/api/v1/lawyers/nearby?client_lat=31.5204&client_lng=74.3587&radius_km=100")
         assert lawyers_res.status_code == 200
         lawyers = lawyers_res.json()
@@ -115,7 +111,6 @@ def test_08_appointment_creation_and_cancellation_workflow():
     headers_client = {"Authorization": f"Bearer {state['client_token']}"}
     headers_lawyer = {"Authorization": f"Bearer {state['lawyer_token']}"}
 
-    # 1. Client creates appointment
     book_res = client.post(
         "/api/v1/bookings",
         json={
@@ -129,7 +124,6 @@ def test_08_appointment_creation_and_cancellation_workflow():
     assert book_res.status_code == 201
     booking_id = book_res.json()["booking_id"]
 
-    # 2. Lawyer accepts appointment
     resp_res = client.post(
         f"/api/v1/bookings/{booking_id}/respond?action=accepted",
         headers=headers_lawyer
@@ -137,7 +131,6 @@ def test_08_appointment_creation_and_cancellation_workflow():
     assert resp_res.status_code == 200
     assert resp_res.json()["status"] == "Accepted"
 
-    # 3. Client cancels appointment
     cancel_res = client.post(
         f"/api/v1/bookings/{booking_id}/cancel",
         headers=headers_client
@@ -207,3 +200,11 @@ def test_12_client_accept_in_chat_quote():
     )
     assert response.status_code == 200
     assert "accepted" in response.json()["message"].lower()
+
+
+def test_13_websocket_realtime_chat_delivery():
+    lawyer_user_id = state["lawyer_user_id"]
+    with client.websocket_connect(f"/ws/chat/{lawyer_user_id}") as websocket:
+        websocket.send_text("ping")
+        data = websocket.receive_text()
+        assert data == "pong"
