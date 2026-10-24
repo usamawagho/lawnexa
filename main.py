@@ -1,6 +1,8 @@
 import os
 import shutil
 import asyncio
+import logging
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict
 
@@ -21,8 +23,9 @@ from database import engine, Base, get_db
 from models import User, Lawyer, Appointment, ChatMessage, Post, Like, Comment
 from geo_engine import calculate_distance
 
-# Initialize ORM Schema
-Base.metadata.create_all(bind=engine)
+# Configure Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("lawnexa")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "lawnexa_secure_production_jwt_secret_key_2026")
 ALGORITHM = "HS256"
@@ -34,7 +37,45 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 if GEMINI_API_KEY := os.getenv("GEMINI_API_KEY"):
     genai.configure(api_key=GEMINI_API_KEY)
 
-app = FastAPI(title="LawNexa Production API", version="5.0")
+# Seed Admin & Auto Schema Patch
+def seed_admin_user():
+    db = next(get_db())
+    try:
+        try:
+            db.execute(text("ALTER TABLE chat_messages ADD COLUMN is_read BOOLEAN DEFAULT 0"))
+            db.commit()
+        except Exception:
+            pass
+
+        admin_phone = "03000000000"
+        admin_user = db.query(User).filter(User.phone == admin_phone).first()
+        if not admin_user:
+            admin = User(
+                name="System Administrator",
+                phone=admin_phone,
+                email="admin@lawnexa.pk",
+                hashed_password=pwd_context.hash("admin123"),
+                role="admin",
+                is_approved=True,
+                is_active=True
+            )
+            db.add(admin)
+            db.commit()
+            logger.info("Admin user seeded successfully.")
+    finally:
+        db.close()
+
+# Modern FastAPI Lifespan Manager
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    try:
+        seed_admin_user()
+    except Exception as e:
+        logger.warning(f"Startup db init notice: {e}")
+    yield
+
+app = FastAPI(title="LawNexa Production API", version="5.0", lifespan=lifespan)
 
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
 allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
@@ -47,7 +88,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# WebSocket Connection Manager
+# WebSocket Manager
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[int, WebSocket] = {}
@@ -122,43 +163,6 @@ class DocumentRequest(BaseModel):
     party2: str = Field("Second Party", max_length=200)
     court: str = Field("Karachi, Pakistan", max_length=200)
     purpose: str = Field("Legal Representation", max_length=1000)
-
-# Seed Admin User & Auto Migration
-def seed_admin_user():
-    db = next(get_db())
-    try:
-        # Auto-patch missing 'is_read' column in SQLite
-        try:
-            db.execute(text("ALTER TABLE chat_messages ADD COLUMN is_read BOOLEAN DEFAULT 0"))
-            db.commit()
-        except Exception:
-            pass
-
-        admin_phone = "03000000000"
-        admin_user = db.query(User).filter(User.phone == admin_phone).first()
-        if not admin_user:
-            admin = User(
-                name="System Administrator",
-                phone=admin_phone,
-                email="admin@lawnexa.pk",
-                hashed_password=pwd_context.hash("admin123"),
-                role="admin",
-                is_approved=True,
-                is_active=True
-            )
-            db.add(admin)
-            db.commit()
-    finally:
-        db.close()
-
-@app.on_event("startup")
-def startup_db_init():
-    seed_admin_user()
-
-try:
-    seed_admin_user()
-except Exception:
-    pass
 
 # Auth Dependencies
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
