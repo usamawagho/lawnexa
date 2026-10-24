@@ -72,25 +72,48 @@ app.add_middleware(
 Base.metadata.create_all(bind=engine)
 
 # Lightweight additive migration for existing SQLite/PostgreSQL installs.
-# Existing users, posts and bookings are preserved.
 def upgrade_schema():
-    inspector = inspect(engine)
-    tables = set(inspector.get_table_names())
     migrations = {
+        "users": {
+            "is_approved": "BOOLEAN NOT NULL DEFAULT TRUE",
+            "is_active": "BOOLEAN NOT NULL DEFAULT TRUE",
+            "avatar": "TEXT",
+            "specialty": "VARCHAR(160)",
+            "license_number": "VARCHAR(100)",
+            "bar_association": "VARCHAR(200)",
+            "experience_years": "INTEGER DEFAULT 0",
+            "city": "VARCHAR(100) DEFAULT 'Karachi'",
+            "area": "VARCHAR(160) DEFAULT 'Saddar / City Court'",
+            "chamber_address": "VARCHAR(300)",
+            "created_at": "TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+        },
         "posts": {
             "title": "VARCHAR(250) NOT NULL DEFAULT 'Legal Update'",
             "category": "VARCHAR(100) NOT NULL DEFAULT 'Legal Insight & Analysis'",
         },
-        "appointments": {"location": "VARCHAR(200)"},
+        "appointments": {
+            "location": "VARCHAR(200)",
+        },
     }
+
     with engine.begin() as connection:
         for table, columns in migrations.items():
-            if table not in tables:
+            inspector = inspect(connection)
+            if table not in inspector.get_table_names():
                 continue
-            present = {col["name"] for col in inspector.get_columns(table)}
+
+            present = {
+                column["name"]
+                for column in inspector.get_columns(table)
+            }
+
             for name, sql_type in columns.items():
                 if name not in present:
-                    connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {sql_type}"))
+                    connection.execute(
+                        text(f'ALTER TABLE "{table}" ADD COLUMN "{name}" {sql_type}')
+                    )
+                    logger.info("Added missing column %s.%s", table, name)
+
 
 upgrade_schema()
 
