@@ -59,10 +59,10 @@ def seed_admin_user():
     db = next(get_db())
     try:
         try:
-            db.execute(text("ALTER TABLE chat_messages ADD COLUMN is_read BOOLEAN DEFAULT 0"))
+            db.execute(text("ALTER TABLE chat_messages ADD COLUMN is_read BOOLEAN DEFAULT FALSE"))
             db.commit()
         except Exception:
-            pass
+            db.rollback()  # Prevents PostgreSQL InFailedSqlTransaction aborts
 
         admin_phone = os.getenv("ADMIN_PHONE", "03000000000")
         admin_user = db.query(User).filter(User.phone == admin_phone).first()
@@ -79,6 +79,9 @@ def seed_admin_user():
             db.add(admin)
             db.commit()
             logger.info("Admin account successfully created or verified.")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Database initialization step failed: {e}")
     finally:
         db.close()
 
@@ -264,6 +267,10 @@ async def register(
     role: str = Form("client"),
     specialty: Optional[str] = Form(None),
     address: Optional[str] = Form(None),
+    residential_address: Optional[str] = Form(None),
+    chamber_address: Optional[str] = Form(None),
+    city: Optional[str] = Form(None),
+    area: Optional[str] = Form(None),
     license_number: Optional[str] = Form(None),
     bar_association: Optional[str] = Form(None),
     experience_years: Optional[int] = Form(0),
@@ -293,6 +300,13 @@ async def register(
         is_approved=is_approved,
         is_active=True
     )
+    
+    final_address = address or residential_address or chamber_address
+    if hasattr(new_user, "city") and city:
+        setattr(new_user, "city", city)
+    if hasattr(new_user, "address") and final_address:
+        setattr(new_user, "address", final_address)
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -306,7 +320,7 @@ async def register(
             user_id=new_user.id,
             name=new_user.name,
             specialty=specialty or "General Practice",
-            address=address or "Chamber",
+            address=chamber_address or final_address or "Chamber",
             phone=new_user.phone,
             law_card_url=card_url,
             is_verified=False,
@@ -316,6 +330,13 @@ async def register(
             bar_association=bar_association,
             experience_years=experience_years or 0
         )
+        if hasattr(new_lawyer, "city") and city:
+            setattr(new_lawyer, "city", city)
+        if hasattr(new_lawyer, "area") and area:
+            setattr(new_lawyer, "area", area)
+        if hasattr(new_lawyer, "chamber_address") and (chamber_address or final_address):
+            setattr(new_lawyer, "chamber_address", chamber_address or final_address)
+
         db.add(new_lawyer)
         db.commit()
 
@@ -433,9 +454,9 @@ def get_nearby_lawyers(
     db: Session = Depends(get_db)
 ):
     query = db.query(Lawyer).join(User).filter(User.is_approved == True, Lawyer.is_verified == True)
-    if city:
+    if city and hasattr(Lawyer, "city"):
         query = query.filter(Lawyer.city.ilike(f"%{city}%"))
-    if area:
+    if area and hasattr(Lawyer, "area"):
         query = query.filter(Lawyer.area.ilike(f"%{area}%"))
 
     lawyers = query.all()
@@ -448,8 +469,8 @@ def get_nearby_lawyers(
             "name": l.name,
             "specialty": l.specialty,
             "address": l.address,
-            "city": l.city,
-            "area": l.area,
+            "city": getattr(l, "city", None),
+            "area": getattr(l, "area", None),
             "experience": l.experience_years,
             "bar_association": l.bar_association,
             "license_number": l.license_number,
