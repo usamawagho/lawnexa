@@ -780,7 +780,7 @@
     <!-- MERGED JAVASCRIPT LOGIC -->
     <script>
         // Serve the UI from FastAPI (/), or define window.LAWNEXA_API_BASE when hosted separately.
-        const API_BASE = (window.LAWNEXA_API_BASE || window.location.origin).replace(/\/$/, '');
+        const API_BASE = (window.LAWNEXA_API_BASE || 'https://lawnexa.onrender.com').replace(/\/$/, '');
 
         function readSafeStorage(key, defaultValue) {
             try {
