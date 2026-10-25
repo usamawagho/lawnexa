@@ -21,7 +21,7 @@
 </section>
 </main>
 <script>
-const API=(window.LAWNEXA_API_BASE||location.origin).replace(/\/$/,'');let token=sessionStorage.getItem('lawnexa_admin_token')||'';
+const API = "https://lawnexa.onrender.com";let token=sessionStorage.getItem('lawnexa_admin_token')||'';
 const $=id=>document.getElementById(id);function msg(t,error=false){$('notice').textContent=t;$('notice').classList.remove('hidden');$('notice').className='panel p-3 text-sm '+(error?'text-rose-300':'text-emerald-300')}
 async function api(path,opts={}){const headers={...(opts.headers||{}),...(token?{Authorization:'Bearer '+token}:{})};const r=await fetch(API+path,{...opts,headers});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||'Request failed');return d}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginMessage').textContent='';const f=new FormData();f.append('username',$('identity').value.trim());f.append('password',$('password').value);try{const d=await api('/api/v1/auth/token',{method:'POST',body:f});token=d.access_token;sessionStorage.setItem('lawnexa_admin_token',token);await boot()}catch(err){$('loginMessage').textContent=err.message}});
