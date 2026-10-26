@@ -105,21 +105,7 @@
 
             <!-- LOGIN FORM -->
             <form x-show="authTab === 'login'" @submit.prevent="handleLogin()" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-2">Select Login Role:</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button type="button" @click="loginForm.role = 'client'" 
-                                class="py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
-                                :class="loginForm.role === 'client' ? 'bg-sapphire-600/20 text-sapphire-400 border-sapphire-500 shadow-sm' : 'bg-navy-950/80 text-slate-400 border-slate-800'">
-                            <i class="fa-solid fa-user"></i> Client
-                        </button>
-                        <button type="button" @click="loginForm.role = 'lawyer'" 
-                                class="py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
-                                :class="loginForm.role === 'lawyer' ? 'bg-gold-500/20 text-gold-400 border-gold-500 shadow-sm' : 'bg-navy-950/80 text-slate-400 border-slate-800'">
-                            <i class="fa-solid fa-user-shield"></i> Advocate
-                        </button>
-                    </div>
-                </div>
+                <p class="text-xs text-slate-400">Sign in with your registered email or mobile number. LawNexa will open the right workspace for your account.</p>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-400 mb-1">Phone Number / Email</label>
@@ -148,7 +134,7 @@
             <form x-show="authTab === 'register'" @submit.prevent="handleRegister()" class="space-y-3.5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
                 <div>
                     <label class="block text-xs font-bold text-slate-300 mb-2">I am registering as:</label>
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="grid grid-cols-3 gap-2">
                         <button type="button" @click="registerForm.role = 'client'" 
                                 class="py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
                                 :class="registerForm.role === 'client' ? 'bg-sapphire-600/20 text-sapphire-400 border-sapphire-500' : 'bg-navy-950/80 text-slate-400 border-slate-800'">
@@ -157,6 +143,11 @@
                         <button type="button" @click="showLawyerRegistrationModal = true" 
                                 class="py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition bg-navy-950/80 text-slate-400 border-slate-800 hover:bg-gold-500/10 hover:text-gold-400">
                             Advocate
+                        </button>
+                        <button type="button" @click="registerForm.role = 'business'" 
+                                class="py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
+                                :class="registerForm.role === 'business' ? 'bg-emerald-600/20 text-emerald-300 border-emerald-500' : 'bg-navy-950/80 text-slate-400 border-slate-800'">
+                            Business
                         </button>
                     </div>
                 </div>
@@ -179,6 +170,25 @@
                         </button>
                     </div>
                 </template>
+                <template x-if="registerForm.role === 'business'">
+                    <div class="space-y-3.5">
+                        <p class="text-xs text-slate-400">Create a business account. Admin review is required before corporate services become active.</p>
+                        <input type="text" x-model="registerForm.name" required minlength="2" placeholder="Company / Business Name *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500">
+                        <input type="text" x-model="registerForm.representative_name" required placeholder="Authorized Representative *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500">
+                        <input type="tel" x-model="registerForm.phone" required placeholder="Business Mobile (03XXXXXXXXX) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500">
+                        <input type="email" x-model="registerForm.email" required placeholder="Business Email *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500">
+                        <select x-model="registerForm.business_type" required class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white"><option value="">Business Type *</option><option>Startup</option><option>Sole Proprietorship</option><option>Partnership</option><option>Private Limited Company</option><option>Public Limited Company</option><option>Enterprise / Other</option></select>
+                        <input type="text" x-model="registerForm.business_registration_no" placeholder="Registration / NTN Number (if applicable)" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500">
+                        <label class="block text-[11px] text-slate-300 font-bold">Registered Office Address *</label>
+                        <textarea x-model="registerForm.registered_address" required rows="2" placeholder="Building, street, area, city *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white"></textarea>
+                        <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" x-model="registerForm.operating_same_as_registered"> Operating office is the same as registered office</label>
+                        <textarea x-show="!registerForm.operating_same_as_registered" x-model="registerForm.operating_address" rows="2" placeholder="Operating office address" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white"></textarea>
+                        <select x-model="registerForm.city" required class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white"><option value="">Select city *</option><option>Karachi</option><option>Lahore</option><option>Islamabad</option><option>Rawalpindi</option><option>Peshawar</option><option>Quetta</option><option>Multan</option><option>Faisalabad</option><option>Hyderabad</option><option>Sukkur</option></select>
+                        <input type="text" x-model="registerForm.postal_code" placeholder="Postal Code (optional)" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white">
+                        <input type="password" x-model="registerForm.password" required minlength="8" placeholder="Password (Min 8 chars) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white">
+                        <button type="submit" :disabled="isLoading" class="w-full py-3 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl disabled:opacity-50"><span x-text="isLoading ? 'Creating...' : 'Create Business Account'"></span></button>
+                    </div>
+                </template>
             </form>
         </div>
     </div>
@@ -189,20 +199,20 @@
             <button @click="showForgotModal = false; otpSent = false;" class="absolute top-4 right-4 text-slate-400 hover:text-white" aria-label="Close">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
-            <h3 class="text-base font-extrabold text-gold-400 mb-1"><i class="fa-solid fa-key mr-2"></i>Reset Password via OTP</h3>
-            <p class="text-xs text-slate-400 mb-4">Registered Phone Number ya Email enter karein.</p>
+            <h3 class="text-base font-extrabold text-gold-400 mb-1"><i class="fa-solid fa-key mr-2"></i>Reset Password via Email OTP</h3>
+            <p class="text-xs text-slate-400 mb-4">Apna registered email enter karein. OTP email par bheja jayega.</p>
 
             <div x-show="!otpSent" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1">Phone / Email</label>
-                    <input type="text" x-model="forgotForm.id" placeholder="03XX-XXXXXXX or user@bar.pk" class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-gold-500">
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Registered Email</label>
+                    <input type="email" x-model="forgotForm.id" placeholder="you@company.com" class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-gold-500">
                 </div>
-                <button type="button" @click="sendOtp()" class="w-full py-2.5 bg-gold-500 text-navy-950 font-bold text-xs rounded-xl hover:bg-gold-400 transition">Send Realtime OTP</button>
+                <button type="button" @click="sendOtp()" class="w-full py-2.5 bg-gold-500 text-navy-950 font-bold text-xs rounded-xl hover:bg-gold-400 transition">Send Email OTP</button>
             </div>
 
             <div x-show="otpSent" class="space-y-3">
                 <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1">6-Digit Realtime OTP Code</label>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">6-Digit Email OTP Code</label>
                     <input type="text" x-model="forgotForm.otp" maxlength="6" placeholder="e.g. 482910" class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white text-center font-mono tracking-widest focus:outline-none focus:border-gold-500">
                 </div>
                 <div>
@@ -230,7 +240,7 @@
                         <h1 class="font-cinzel text-lg sm:text-xl font-bold tracking-wider text-white flex items-center gap-1.5">
                             Law<span class="text-gold-400">Nexa</span>
                         </h1>
-                        <p class="text-[9px] uppercase font-sans font-extrabold tracking-widest text-gold-400" x-text="user.role === 'lawyer' ? 'ADVOCATE PORTAL' : 'CLIENT PORTAL'"></p>
+                        <p class="text-[9px] uppercase font-sans font-extrabold tracking-widest text-gold-400" x-text="user.role === 'lawyer' || user.role === 'advocate' ? 'ADVOCATE PORTAL' : (user.role === 'business' ? 'BUSINESS PORTAL' : 'CLIENT PORTAL')"></p>
                     </div>
                 </div>
 
@@ -309,6 +319,7 @@
                         </button>
                     </div>
                 </template>
+                <button @click="activeTab = 'wallet'; mobileMenuOpen = false" class="w-full p-2.5 rounded-xl text-left text-xs font-bold bg-emerald-900/30 border border-emerald-500/30 text-emerald-300">Wallet / Escrow</button>
             </div>
         </div>
 
@@ -326,6 +337,9 @@
                         <span>👨‍⚖️ Advocates Directory</span>
                     </button>
                 </div>
+                <div x-show="user.role === 'business'" class="flex items-center space-x-2 py-2">
+                    <button @click="activeTab = 'business'; loadBusinessRequests()" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition" :class="activeTab === 'business' ? 'bg-gold-500 text-navy-950' : 'text-slate-300 hover:text-white'">Business Workspace</button>
+                </div>
                 <div x-show="user.role === 'client'" class="flex items-center space-x-2 py-2">
                     <button @click="activeTab = 'advocates'" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition" :class="activeTab === 'advocates' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
                         <span>👨‍⚖️ Find Advocates</span>
@@ -338,6 +352,7 @@
                     </button>
                 </div>
                 <div class="flex items-center gap-2">
+                    <button @click="activeTab = 'wallet'" class="px-3 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-900/20 text-emerald-300 font-extrabold text-xs">Wallet / Escrow</button>
                     <button @click="showAiAnalyzerModal = true" class="px-3 py-1.5 rounded-xl bg-purple-900/40 border border-purple-500/40 text-purple-300 font-extrabold text-xs flex items-center gap-1.5 hover:bg-purple-900/60 transition shadow-md">
                         <i class="fa-solid fa-brain text-purple-400"></i> AI FIR Analyzer
                     </button>
@@ -347,6 +362,10 @@
                 </div>
             </div>
         </nav>
+
+        <div x-show="user.role === 'business'" class="md:hidden px-3 py-2 bg-navy-900 border-b border-slate-800">
+            <button @click="activeTab = 'business'; loadBusinessRequests()" class="w-full py-2.5 rounded-xl bg-gold-500 text-navy-950 font-extrabold text-xs">Business Workspace</button>
+        </div>
 
         <!-- MAIN CONTENT AREA -->
         <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full space-y-6">
@@ -492,6 +511,76 @@
                 </div>
             </section>
 
+            <!-- BUSINESS WORKSPACE -->
+            <section x-show="activeTab === 'business' && user.role === 'business'" x-transition class="space-y-5" x-cloak>
+                <div class="glass-panel p-5 sm:p-7 rounded-2xl border border-slate-800 space-y-2">
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-gold-400 font-extrabold">Corporate Legal Services</p>
+                    <h2 class="font-cinzel text-xl sm:text-2xl font-bold text-white">Business Workspace</h2>
+                    <p class="text-sm text-slate-300">Apni company ki legal requirements bhejein, proposals review karein aur har request ka status track karein.</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3">
+                        <div class="rounded-xl bg-navy-950/80 border border-slate-800 p-3"><p class="text-[10px] text-slate-400">Total Requests</p><p class="text-xl font-black text-white" x-text="businessRequests.length"></p></div>
+                        <div class="rounded-xl bg-navy-950/80 border border-slate-800 p-3"><p class="text-[10px] text-slate-400">Under Review</p><p class="text-xl font-black text-amber-300" x-text="businessRequests.filter(r => ['SUBMITTED','UNDER_REVIEW','NEED_INFO'].includes(r.status)).length"></p></div>
+                        <div class="rounded-xl bg-navy-950/80 border border-slate-800 p-3"><p class="text-[10px] text-slate-400">Proposals</p><p class="text-xl font-black text-sapphire-300" x-text="businessRequests.reduce((n,r) => n + (r.proposals || []).filter(p => p.status === 'SENT').length, 0)"></p></div>
+                        <div class="rounded-xl bg-navy-950/80 border border-slate-800 p-3"><p class="text-[10px] text-slate-400">Active Work</p><p class="text-xl font-black text-emerald-300" x-text="businessRequests.filter(r => r.status === 'IN_PROGRESS').length"></p></div>
+                    </div>
+                </div>
+                <div class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div><h3 class="font-bold text-white">Corporate Legal Plans</h3><p class="text-xs text-slate-400 mt-1">Paid plan payment sirf verified Safepay webhook ke baad active hoga.</p></div>
+                    <div class="flex flex-col sm:flex-row gap-2"><select x-model="businessPlanType" class="bg-navy-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"><option value="BASIC_STARTUP">Basic Startup — PKR 15,000/month</option><option value="BUSINESS_PRO">Business Pro — PKR 45,000/month</option></select><button @click="startCorporateCheckout()" class="px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-extrabold text-xs">Continue to Secure Payment</button></div>
+                </div>
+                <div class="grid lg:grid-cols-5 gap-5">
+                    <div class="lg:col-span-2 glass-panel p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-3">
+                        <h3 class="font-bold text-white">Request a Legal Team</h3>
+                        <p class="text-xs text-slate-400">Apni requirement share karein. LawNexa team review ke baad scope aur fee proposal bhejegi.</p>
+                        <label class="block text-xs text-slate-300">Service Type</label>
+                        <select x-model="businessRequestForm.request_type" class="w-full bg-navy-950 border border-slate-700 rounded-xl p-3 text-xs text-white"><option value="Corporate Legal Team">Corporate Legal Team</option><option value="Contracts and Agreements">Contracts & Agreements</option><option value="Employment and Labour">Employment & Labour</option><option value="Compliance and Regulatory">Compliance & Regulatory</option><option value="Dispute or Legal Notice">Dispute or Legal Notice</option><option value="Other">Other</option></select>
+                        <label class="block text-xs text-slate-300">Request Title</label>
+                        <input x-model="businessRequestForm.title" maxlength="200" placeholder="e.g. Monthly legal support" class="w-full bg-navy-950 border border-slate-700 rounded-xl p-3 text-xs text-white">
+                        <label class="block text-xs text-slate-300">Urgency</label>
+                        <select x-model="businessRequestForm.urgency" class="w-full bg-navy-950 border border-slate-700 rounded-xl p-3 text-xs text-white"><option value="NORMAL">Normal</option><option value="LOW">Low</option><option value="HIGH">High</option><option value="URGENT">Urgent</option></select>
+                        <label class="block text-xs text-slate-300">Requirements</label>
+                        <textarea x-model="businessRequestForm.description" rows="5" maxlength="10000" placeholder="Explain your business's legal needs (minimum 20 characters)..." class="w-full bg-navy-950 border border-slate-700 rounded-xl p-3 text-xs text-white"></textarea>
+                        <button @click="submitBusinessRequest()" :disabled="isSubmitting" class="w-full py-3 rounded-xl bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs disabled:opacity-50" x-text="isSubmitting ? 'Submitting...' : 'Submit Legal Request'"></button>
+                    </div>
+                    <div class="lg:col-span-3 glass-panel p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
+                        <div class="flex items-center justify-between gap-3"><h3 class="font-bold text-white">Your Requests & Proposals</h3><button @click="loadBusinessRequests()" class="px-3 py-2 rounded-lg border border-slate-700 text-slate-200 text-xs">Refresh</button></div>
+                        <template x-if="businessRequests.length === 0"><div class="text-center py-10 text-slate-400 text-xs">Abhi koi request nahi. Apni pehli legal request submit karein.</div></template>
+                        <template x-for="req in businessRequests" :key="req.id">
+                            <article class="rounded-xl border border-slate-700 bg-navy-950/70 p-4 space-y-3">
+                                <div class="flex flex-wrap justify-between gap-2"><div><p class="text-sm font-extrabold text-white" x-text="req.title"></p><p class="text-[10px] text-slate-400 mt-1" x-text="'#LN-' + req.id + ' · ' + req.request_type + ' · ' + req.urgency"></p></div><span class="px-2 py-1 rounded-full text-[9px] font-extrabold bg-sapphire-500/20 text-sapphire-300" x-text="req.status.replaceAll('_',' ')"></span></div>
+                                <p class="text-xs text-slate-300 whitespace-pre-line" x-text="req.description"></p>
+                                <p class="text-[10px] text-slate-400" x-text="req.assigned_lawyer_name ? 'Assigned Advocate: ' + req.assigned_lawyer_name : 'LawNexa team is reviewing your request.'"></p>
+                                <template x-for="proposal in (req.proposals || [])" :key="proposal.id">
+                                    <div class="rounded-lg border border-gold-500/30 bg-gold-500/5 p-3 space-y-2">
+                                        <div class="flex items-center justify-between gap-2"><p class="text-xs font-extrabold text-gold-300" x-text="'Proposal #' + proposal.id + ' · PKR ' + Number(proposal.amount_pkr).toLocaleString()"></p><span class="text-[9px] text-slate-300" x-text="proposal.status"></span></div>
+                                        <p class="text-xs text-slate-200 whitespace-pre-line" x-text="proposal.scope"></p><p x-show="proposal.terms" class="text-[10px] text-slate-400" x-text="proposal.terms"></p>
+                                        <div class="flex flex-wrap gap-2"><button x-show="proposal.status === 'SENT'" @click="decideBusinessProposal(proposal.id, 'ACCEPTED')" class="px-3 py-2 rounded-lg bg-emerald-600 text-white text-[10px] font-extrabold">Accept Proposal</button><button x-show="proposal.status === 'SENT'" @click="decideBusinessProposal(proposal.id, 'DECLINED')" class="px-3 py-2 rounded-lg bg-rose-900/60 text-rose-200 text-[10px] font-extrabold">Decline</button><button x-show="proposal.status === 'ACCEPTED_PENDING_PAYMENT'" @click="payBusinessProposal(proposal.id)" class="px-3 py-2 rounded-lg bg-emerald-600 text-white text-[10px] font-extrabold">Pay Securely</button></div>
+                                    </div>
+                                </template>
+                            </article>
+                        </template>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MOCK WALLET / ESCROW TAB -->
+            <section x-show="activeTab === 'wallet'" x-cloak class="space-y-5 max-w-5xl mx-auto">
+                <div class="grid sm:grid-cols-2 gap-3">
+                    <div class="glass-panel rounded-2xl border border-emerald-500/30 p-5"><p class="text-xs text-emerald-300 font-bold">Escrow Vault (Held Funds)</p><h2 class="text-2xl font-black text-white mt-2" x-text="'PKR ' + txns.filter(t => t.status === 'held').reduce((sum,t) => sum + Number(t.amount || 0),0).toLocaleString()"></h2></div>
+                    <div class="glass-panel rounded-2xl border border-sapphire-500/30 p-5"><p class="text-xs text-sapphire-300 font-bold">Total Released Payouts</p><h2 class="text-2xl font-black text-white mt-2" x-text="'PKR ' + txns.filter(t => t.status === 'released').reduce((sum,t) => sum + Number(t.amount || 0),0).toLocaleString()"></h2></div>
+                </div>
+                <div class="glass-panel rounded-2xl border border-slate-800 p-4 sm:p-5 space-y-3">
+                    <div class="flex items-center justify-between"><h3 class="font-extrabold text-white">Mock Escrow Transactions</h3><span class="text-[10px] text-amber-300">DEMO ONLY — no real money moves</span></div>
+                    <template x-if="txns.length === 0"><p class="text-xs text-slate-400 py-6 text-center">No demo transactions yet. Confirm a mock payment to see it here.</p></template>
+                    <template x-for="txn in txns" :key="txn.id">
+                        <div class="rounded-xl border border-slate-700 bg-navy-950/70 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div><p class="text-sm font-bold text-white" x-text="txn.title"></p><p class="text-[10px] text-slate-400 mt-1" x-text="txn.method + ' · ' + txn.transactionId + ' · ' + new Date(txn.createdAt).toLocaleString()"></p><p class="text-xs font-extrabold mt-1" :class="txn.status === 'held' ? 'text-amber-300' : 'text-emerald-300'" x-text="txn.status.toUpperCase() + ' · PKR ' + Number(txn.amount).toLocaleString()"></p></div>
+                            <button x-show="txn.status === 'held'" @click="releaseMockFunds(txn)" class="px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-extrabold">Release Funds</button>
+                        </div>
+                    </template>
+                </div>
+            </section>
+
             <!-- TAB 3: BOOKINGS VIEW -->
             <section x-show="activeTab === 'bookings'" x-transition:enter="transition ease-out duration-200" class="space-y-6" x-cloak>
                 <div class="glass-panel p-4 sm:p-6 rounded-2xl border border-slate-800 space-y-4">
@@ -585,7 +674,7 @@
         <div @click.outside="showLawyerRegistrationModal = false" class="glass-panel max-w-md w-full rounded-2xl border border-gold-500/40 p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h2 class="text-gold-400 text-base font-bold flex items-center gap-2">
-                    <i class="fa-solid fa-scale-balanced"></i> Wakeel Account Registration
+                    <i class="fa-solid fa-scale-balanced"></i> Advocate Registration
                 </h2>
                 <button @click="showLawyerRegistrationModal = false" class="text-slate-400 hover:text-white" aria-label="Close">
                     <i class="fa-solid fa-xmark text-xl"></i>
@@ -750,9 +839,28 @@
                     <input type="text" x-model="bookingForm.time" placeholder="Time e.g. 10 PM" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white">
                 </div>
                 <textarea x-model="bookingForm.summary" rows="3" placeholder="Case Summary..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-3 text-white"></textarea>
-                <button @click="confirmBooking()" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold rounded-xl hover:from-gold-400">Confirm Request</button>
+                <div class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+                    <p class="text-amber-300 font-extrabold">Mock Escrow Checkout — Demo Only</p>
+                    <label class="block text-slate-300">Payment method</label>
+                    <select x-model="mockPaymentMethod" class="w-full bg-navy-950 border border-slate-800 rounded-lg p-2.5 text-white"><option>JazzCash</option><option>EasyPaisa</option><option>IBFT (Mock)</option></select>
+                    <label class="block text-slate-300">Dummy Transaction ID</label>
+                    <input x-model="mockTransactionId" class="w-full bg-navy-950 border border-slate-800 rounded-lg p-2.5 text-white" placeholder="TRX-12345">
+                </div>
+                <button @click="confirmBooking()" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold rounded-xl hover:from-gold-400">Confirm &amp; Pay</button>
             </div>
         </div>
+    </div>
+
+    <!-- MOCK QUOTE ESCROW CHECKOUT MODAL -->
+    <div x-show="showMockCheckoutModal" x-cloak class="fixed inset-0 z-[1000] bg-navy-950/85 backdrop-blur-md flex items-center justify-center p-3" role="dialog" aria-modal="true">
+      <div @click.outside="showMockCheckoutModal=false" class="glass-panel max-w-md w-full rounded-2xl border border-emerald-500/40 p-5 space-y-4">
+        <div class="flex items-center justify-between"><h3 class="font-extrabold text-white">Mock Escrow Checkout</h3><button @click="showMockCheckoutModal=false" class="text-slate-400">✕</button></div>
+        <p class="text-xs text-amber-300">DEMO ONLY — no real payment will be processed.</p>
+        <p class="text-sm font-extrabold text-emerald-300" x-text="'Amount: PKR ' + Number(mockPaymentContext?.amount || 0).toLocaleString()"></p>
+        <label class="block text-xs text-slate-300">Payment method</label><select x-model="mockPaymentMethod" class="w-full bg-navy-950 border border-slate-700 rounded-lg p-3 text-white"><option>JazzCash</option><option>EasyPaisa</option><option>IBFT (Mock)</option></select>
+        <label class="block text-xs text-slate-300">Dummy Transaction ID</label><input x-model="mockTransactionId" class="w-full bg-navy-950 border border-slate-700 rounded-lg p-3 text-white" placeholder="TRX-12345">
+        <button @click="confirmMockQuotePayment()" class="w-full py-3 rounded-xl bg-emerald-500 text-navy-950 font-extrabold">Confirm &amp; Pay</button>
+      </div>
     </div>
 
     <!-- DIRECT CHAT MODAL -->
@@ -776,7 +884,7 @@
                             <template x-if="msg.media_type === 'image'"><img :src="msg.media_url" @click="window.open(msg.media_url,'_blank','noopener')" class="mt-2 max-w-full max-h-56 rounded-lg cursor-zoom-in" alt="Chat image"></template>
                             <template x-if="msg.media_type === 'audio'"><audio controls :src="msg.media_url" class="mt-2 max-w-full"></audio></template>
                             <template x-if="msg.media_type === 'document'"><a :href="msg.media_url" target="_blank" rel="noopener" class="mt-2 flex items-center gap-2 underline text-gold-300"><i class="fa-solid fa-file-lines"></i><span x-text="msg.file_name || 'Open attachment'"></span></a></template>
-                            <div x-show="msg.quote_amount" class="mt-2 pt-2 border-t border-white/10"><p class="font-extrabold" x-text="'Quote: PKR ' + Number(msg.quote_amount || 0).toLocaleString()"></p><p class="text-[10px] opacity-80" x-text="'Status: ' + (msg.quote_status || 'pending')"></p><button x-show="msg.quote_amount && msg.sender === 'other' && user.role === 'client' && msg.quote_status === 'pending'" @click="respondToQuote(msg,'accepted')" class="mt-2 px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-extrabold">Accept Quote</button></div>
+                            <div x-show="msg.quote_amount" class="mt-2 pt-2 border-t border-white/10"><p class="font-extrabold" x-text="'Quote: PKR ' + Number(msg.quote_amount || 0).toLocaleString()"></p><p class="text-[10px] opacity-80" x-text="'Status: ' + (msg.quote_status || 'pending')"></p><button x-show="msg.quote_amount && msg.sender === 'other' && user.role === 'client' && msg.quote_status === 'pending'" @click="startQuoteMockPayment(msg)" class="mt-2 px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-extrabold">Accept Quote</button></div>
                         </div>
                         <span class="text-[9px] text-slate-500 mt-0.5 px-1" x-text="msg.time"></span>
                     </div>
@@ -806,7 +914,7 @@
     <!-- MERGED JAVASCRIPT LOGIC -->
     <script>
         // Serve the UI from FastAPI (/), or define window.LAWNEXA_API_BASE when hosted separately.
-        const API_BASE = (window.LAWNEXA_API_BASE || window.location.origin).replace(/\/$/, '');
+        const API_BASE = (window.LAWNEXA_API_BASE || (window.location.hostname === 'lawnexa.vercel.app' ? 'https://lawnexa.onrender.com' : window.location.origin)).replace(/\/$/, '');
 
         function readSafeStorage(key, defaultValue) {
             try {
@@ -824,6 +932,9 @@
                 mobileMenuOpen: false,
                 authTab: 'login',
                 activeTab: 'advocates',
+                businessRequests: [],
+                businessRequestForm: { request_type: 'Corporate Legal Team', title: '', description: '', urgency: 'NORMAL' },
+                businessPlanType: 'BASIC_STARTUP',
                 currentLocation: 'Location detect ho rahi hai...',
                 userLat: null,
                 userLng: null,
@@ -841,7 +952,7 @@
                 searchQuery: '',
 
                 loginForm: { id: '', password: '', role: 'client' },
-                registerForm: { role: 'client', name: '', phone: '', email: '', password: '', city: '', area: '', address: '', lat: '', lng: '' },
+                registerForm: { role: 'client', name: '', phone: '', email: '', password: '', city: '', area: '', address: '', lat: '', lng: '', business_type: '', business_registration_no: '', representative_name: '', registered_address: '', operating_address: '', operating_same_as_registered: true, postal_code: '' },
 
                 showLawyerRegistrationModal: false,
                 lawyerRegForm: { name: '', email: '', phone: '', license: '', jurisdiction: '', barAssociation: '', specialty: '', exp: '', city: '', area: '', chamberAddress: '', lat: '', lng: '', password: '' },
@@ -876,6 +987,11 @@
 
                 showBookingModal: false,
                 bookingForm: { location: '', date: '', time: '', summary: '' },
+                mockPaymentMethod: 'JazzCash',
+                mockTransactionId: 'TRX-12345',
+                mockPaymentContext: null,
+                showMockCheckoutModal: false,
+                txns: readSafeStorage('lawnexa_mock_txns', []),
 
                 showChatModal: false,
                 activeChatAdvocate: null,
@@ -905,7 +1021,7 @@
                         return defaultValue;
                     }
                 },
-                setSafeStorage(key, value) {
+                , value) {
                     try {
                         localStorage.setItem(key, typeof value === 'object' ? JSON.stringify(value) : value);
                     } catch (e) {
@@ -965,8 +1081,9 @@
                     return this.cityAreas[this.selectedCity] || [];
                 },
 
-                resetDefaultTab() {
-                    this.activeTab = (this.user.role === 'lawyer' || this.user.role === 'advocate') ? 'dashboard' : 'advocates';
+                resetsetSafeStorage(keyDefaultTab() {
+                    this.activeTab = (this.user.role === 'lawyer' || this.user.role === 'advocate') ? 'bookings' : (this.user.role === 'business' ? 'business' : 'advocates');
+                    if (this.user.role === 'business') this.loadBusinessRequests();
                 },
 
                 // Safe Clipboard Fallback
@@ -1006,9 +1123,8 @@
                             this.user = userData;
                             this.isLoggedIn = true;
                             this.setSafeStorage('user', this.user);
-                            if (this.user.role === 'lawyer' || this.user.role === 'advocate') {
-                                this.activeTab = 'bookings'; // Set default view for lawyers
-                            }
+                            if (this.user.role === 'lawyer' || this.user.role === 'advocate') { this.activeTab = 'bookings'; }
+                            else if (this.user.role === 'business') { this.activeTab = 'business'; this.loadBusinessRequests(); }
                         } else if (res.status === 401 || res.status === 403) {
                             this.logout();
                         }
@@ -1023,7 +1139,8 @@
                     this.setSafeStorage('token', this.token);
                     this.setSafeStorage('user', this.user);
                     this.isLoggedIn = true;
-                    this.activeTab = this.user.role === 'lawyer' || this.user.role === 'advocate' ? 'bookings' : 'advocates';
+                    this.activeTab = (this.user.role === 'lawyer' || this.user.role === 'advocate') ? 'bookings' : (this.user.role === 'business' ? 'business' : 'advocates');
+                    if (this.user.role === 'business') this.loadBusinessRequests();
                 },
 
                 async handleLogin() {
@@ -1052,16 +1169,27 @@
                     try {
                         const cleanPhone = String(this.registerForm.phone || '').replace(/[\s-]/g, '');
                         if (!/^03\d{9}$/.test(cleanPhone)) { this.showToast('Mobile number exactly 11 digits hona chahiye (03XXXXXXXXX).', 'error'); this.isLoading = false; return; }
-                        const payload = { ...this.registerForm, phone: cleanPhone, role: 'client', lat: this.registerForm.lat === '' ? null : Number(this.registerForm.lat), lng: this.registerForm.lng === '' ? null : Number(this.registerForm.lng) };
+                        const isBusiness = this.registerForm.role === 'business';
+                        if (isBusiness && (!this.registerForm.business_type || !this.registerForm.representative_name.trim() || !this.registerForm.registered_address.trim())) {
+                            throw new Error('Business type, authorized representative aur registered office address fill karein.');
+                        }
+                        const payload = isBusiness ? {
+                            name: this.registerForm.name, email: this.registerForm.email, phone: cleanPhone, password: this.registerForm.password,
+                            role: 'business', business_type: this.registerForm.business_type,
+                            business_registration_no: this.registerForm.business_registration_no || null,
+                            representative_name: this.registerForm.representative_name, registered_address: this.registerForm.registered_address,
+                            operating_address: this.registerForm.operating_same_as_registered ? this.registerForm.registered_address : (this.registerForm.operating_address || null),
+                            postal_code: this.registerForm.postal_code || null, city: this.registerForm.city, area: this.registerForm.area || null
+                        } : { ...this.registerForm, phone: cleanPhone, role: 'client', lat: this.registerForm.lat === '' ? null : Number(this.registerForm.lat), lng: this.registerForm.lng === '' ? null : Number(this.registerForm.lng) };
                         const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
                             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                         });
                         const data = await res.json().catch(() => ({}));
                         if (!res.ok || !data.access_token) throw new Error(data.detail || 'Registration nahi ho saki.');
                         this.applyAuth(data);
-                        this.registerForm = { role: 'client', name: '', phone: '', email: '', password: '', city: '', area: '', address: '', lat: '', lng: '' };
+                        this.registerForm = { role: 'client', name: '', phone: '', email: '', password: '', city: '', area: '', address: '', lat: '', lng: '', business_type: '', business_registration_no: '', representative_name: '', registered_address: '', operating_address: '', operating_same_as_registered: true, postal_code: '' };
                         await Promise.all([this.fetchLawyers(true), this.fetchPosts(true), this.fetchBookings(true)]);
-                        this.showToast('Client account database mein create ho gaya.', 'success');
+                        this.showToast(isBusiness ? 'Business account created. Admin review is pending.' : 'Client account database mein create ho gaya.', 'success');
                     } catch (e) {
                         this.showToast(e.message || 'Backend se connection nahi ho saka.', 'error');
                     } finally { this.isLoading = false; }
@@ -1332,11 +1460,78 @@
                     this.setSafeStorage('user', this.user);
                 },
 
-                sendOtp() {
-                    this.showToast('Password reset abhi available nahi: pehle verified SMS/email provider configure karna hoga. Koi fake OTP send nahi hua.', 'error');
+                async startCorporateCheckout() {
+                    if (!this.token || this.user.role !== 'business') { this.showToast('Business account se login karein.', 'error'); return; }
+                    try {
+                        let createRes = await fetch(`${API_BASE}/api/v1/subscriptions/subscribe`, { method: 'POST', headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ company_name: this.user.name, plan_type: this.businessPlanType }) });
+                        let created = await createRes.json().catch(() => ({}));
+                        if (!createRes.ok) throw new Error(created.detail || 'Plan request create nahi hui.');
+                        const payRes = await fetch(`${API_BASE}/api/v1/subscriptions/${created.id}/checkout`, { method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` } });
+                        const payment = await payRes.json().catch(() => ({}));
+                        if (!payRes.ok) throw new Error(payment.detail || 'Checkout create nahi hua.');
+                        if (!payment.checkout_url || !payment.checkout_url.startsWith('https://')) throw new Error('Gateway ne valid checkout URL return nahi ki.');
+                        window.location.assign(payment.checkout_url);
+                    } catch (err) { this.showToast(err.message || 'Payment start nahi ho saki.', 'error'); }
                 },
-                submitResetPassword() {
-                    this.showToast('Password reset service configure nahi hai; password change nahi hua. Support/admin se rabta karein.', 'error');
+                async loadBusinessRequests() {
+                    if (!this.token || this.user.role !== 'business') return;
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/business/requests`, { headers: { 'Authorization': `Bearer ${this.token}` }, cache: 'no-store' });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Business requests load nahi ho sakin.');
+                        this.businessRequests = Array.isArray(data) ? data : [];
+                    } catch (err) { this.showToast(err.message || 'Business workspace load nahi hua.', 'error'); }
+                },
+                async submitBusinessRequest() {
+                    if (!this.token) { this.showToast('Pehle login karein.', 'error'); return; }
+                    if (this.businessRequestForm.title.trim().length < 3 || this.businessRequestForm.description.trim().length < 20) { this.showToast('Title aur requirements detail se fill karein (minimum 20 characters).', 'error'); return; }
+                    this.isSubmitting = true;
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/business/requests`, { method: 'POST', headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(this.businessRequestForm) });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Request submit nahi ho saki. Business approval required ho sakti hai.');
+                        this.businessRequestForm = { request_type: 'Corporate Legal Team', title: '', description: '', urgency: 'NORMAL' };
+                        this.showToast('Legal request submit ho gayi.', 'success'); await this.loadBusinessRequests();
+                    } catch (err) { this.showToast(err.message || 'Request submit fail hui.', 'error'); }
+                    finally { this.isSubmitting = false; }
+                },
+                async payBusinessProposal(id) {
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/business/proposals/${id}/checkout`, { method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` } });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Payment checkout create nahi hua.');
+                        if (!data.checkout_url || !data.checkout_url.startsWith('https://')) throw new Error('Gateway ne valid checkout URL return nahi ki.');
+                        window.location.assign(data.checkout_url);
+                    } catch (err) { this.showToast(err.message || 'Payment start nahi ho saki.', 'error'); }
+                },
+                async decideBusinessProposal(id, decision) {
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/business/proposals/${id}/decision?decision=${encodeURIComponent(decision)}`, { method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` } });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Proposal update nahi hui.');
+                        this.showToast(decision === 'ACCEPTED' ? 'Proposal accept ho gayi.' : 'Proposal decline ho gayi.', 'success'); await this.loadBusinessRequests();
+                    } catch (err) { this.showToast(err.message || 'Proposal decision fail hui.', 'error'); }
+                },
+
+                async sendOtp() {
+                    const email = String(this.forgotForm.id || '').trim();
+                    if (!email.includes('@')) { this.showToast('Password reset ke liye registered email enter karein.', 'error'); return; }
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/auth/password-reset/request`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'OTP email nahi ho saki.');
+                        this.otpSent = true; this.showToast(data.message || 'Agar account maujood hai to reset code email kar diya gaya hai.', 'success');
+                    } catch (err) { this.showToast(err.message || 'Password reset request fail hui.', 'error'); }
+                },
+                async submitResetPassword() {
+                    const email = String(this.forgotForm.id || '').trim();
+                    if (!email.includes('@') || !/^\d{6}$/.test(String(this.forgotForm.otp || '')) || String(this.forgotForm.newPassword || '').length < 8) { this.showToast('Email, 6-digit OTP aur kam az kam 8-character password enter karein.', 'error'); return; }
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/auth/password-reset/confirm`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, otp: this.forgotForm.otp, new_password: this.forgotForm.newPassword }) });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Password reset nahi hua.');
+                        this.showToast(data.message || 'Password reset ho gaya.', 'success'); this.showForgotModal = false; this.otpSent = false; this.forgotForm = { id: '', otp: '', newPassword: '' };
+                    } catch (err) { this.showToast(err.message || 'Password reset fail hua.', 'error'); }
                 },
 
                 async createPost() {
@@ -1423,21 +1618,54 @@ ${data.disclaimer || ''}`;
                     if (!this.bookingForm.date || !this.bookingForm.time || !this.bookingForm.summary.trim()) {
                         this.showToast('Date, time aur case summary complete karein.', 'error'); return;
                     }
-                    try {
-                        const res = await fetch(`${API_BASE}/api/v1/bookings`, {
-                            method: 'POST', headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ lawyer_id: this.activeBookingAdvocate.lawyer_id || this.activeBookingAdvocate.id,
-                                booking_date: this.bookingForm.date, time_slot: this.bookingForm.time,
-                                location: this.bookingForm.location, case_summary: this.bookingForm.summary })
-                        });
-                        const data = await res.json().catch(() => ({}));
-                        if (!res.ok) throw new Error(data.detail || 'Booking request save nahi hui.');
-                        this.showBookingModal = false;
-                        await this.fetchBookings(true);
-                        this.showToast('Consultation request database mein save ho gayi.', 'success');
-                    } catch (e) { this.showToast(e.message || 'Booking request save nahi hui.', 'error'); }
+                    const amount = Number(this.activeBookingAdvocate.consultation_fee || 1000);
+                    const bookingId = 'MOCK-BKG-' + Date.now();
+                    const booking = { id: bookingId, clientName: this.user.name || 'Demo Client',
+                        advocateName: this.activeBookingAdvocate.name || this.activeBookingAdvocate.full_name || 'Advocate',
+                        summary: this.bookingForm.summary, date: this.bookingForm.date, time: this.bookingForm.time,
+                        location: this.bookingForm.location, status: 'Accepted', transaction_status: 'held' };
+                    this.addMockEscrowTransaction({ title: 'Consultation with ' + booking.advocateName, amount, kind: 'booking', booking });
+                    this.myBookings.unshift(booking);
+                    this.showBookingModal = false;
+                    this.showToast('Mock Payment Successful! Amount locked in Escrow Vault 🔒', 'success');
                 },
-
+                addMockEscrowTransaction(data) {
+                    const transactionId = String(this.mockTransactionId || '').trim() || ('TRX-' + Date.now());
+                    const txn = { id: 'MOCK-TXN-' + Date.now() + '-' + Math.random().toString(36).slice(2,7),
+                        title: data.title || 'Legal service payment', amount: Number(data.amount || 0),
+                        method: this.mockPaymentMethod || 'JazzCash', transactionId,
+                        status: 'held', kind: data.kind || 'quote', createdAt: new Date().toISOString(),
+                        booking: data.booking || null, quoteMessageId: data.quoteMessageId || null };
+                    this.txns.unshift(txn);
+                    this.setSafeStorage('lawnexa_mock_txns', this.txns);
+                    return txn;
+                },
+                startQuoteMockPayment(msg) {
+                    const amount = Number(msg.quote_amount || 0);
+                    if (!(amount > 0)) { this.showToast('Quote amount valid nahi hai.', 'error'); return; }
+                    this.mockPaymentContext = { type: 'quote', msg, amount };
+                    this.mockPaymentMethod = 'JazzCash';
+                    this.mockTransactionId = 'TRX-12345';
+                    this.showMockCheckoutModal = true;
+                },
+                confirmMockQuotePayment() {
+                    const context = this.mockPaymentContext;
+                    if (!context || !context.msg) { this.showToast('Quote checkout session nahi mili.', 'error'); return; }
+                    context.msg.quote_status = 'held';
+                    this.addMockEscrowTransaction({ title: 'Chat quote #' + (context.msg.id || 'demo'), amount: context.amount, kind: 'quote', quoteMessageId: context.msg.id });
+                    this.showMockCheckoutModal = false;
+                    this.mockPaymentContext = null;
+                    this.showToast('Mock Payment Successful! Amount locked in Escrow Vault 🔒', 'success');
+                },
+                releaseMockFunds(txn) {
+                    if (!txn || txn.status !== 'held') return;
+                    txn.status = 'released';
+                    txn.releasedAt = new Date().toISOString();
+                    this.setSafeStorage('lawnexa_mock_txns', this.txns);
+                    const booking = this.myBookings.find(b => String(b.id) === String(txn.booking?.id));
+                    if (booking) booking.transaction_status = 'released';
+                    this.showToast('Mock escrow funds released. Total Released Payouts updated.', 'success');
+                },
                 async openChatModal(adv) {
                     if (!this.token) { this.showToast('Chat karne ke liye login karein.', 'error'); return; }
                     if (!adv || !(adv.user_id || adv.id)) { this.showToast('Lawyer profile ID nahi mili.', 'error'); return; }
@@ -1520,12 +1748,9 @@ ${data.disclaimer || ''}`;
                     } catch(e) { this.showToast('Microphone permission allow karein.', 'error'); }
                 },
                 async respondToQuote(msg, action) {
-                    try {
-                        const res = await fetch(`${API_BASE}/api/v1/chat/quote/${msg.id}/respond?action=${encodeURIComponent(action)}`, { method:'POST', headers:{'Authorization':`Bearer ${this.token}`} });
-                        const data = await res.json().catch(()=>({})); if (!res.ok) throw new Error(data.detail || 'Quote response failed.');
-                        msg.quote_status = data.quote_status || action;
-                        this.showToast('Quote accept ho gaya. Actual online payment ke liye configured gateway zaroori hai.', 'success');
-                    } catch(e) { this.showToast(e.message || 'Quote response save nahi hua.', 'error'); }
+                    if (action === 'accepted') return this.startQuoteMockPayment(msg);
+                    msg.quote_status = action;
+                    this.showToast('Quote ' + action + ' (demo state only).', 'info');
                 },
                 speakUrdu(text) {
                     if (!('speechSynthesis' in window)) { this.showToast('Is browser mein text-to-speech support available nahi.', 'error'); return; }
