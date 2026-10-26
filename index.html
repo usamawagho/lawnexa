@@ -923,7 +923,8 @@
             } catch (_) { return defaultValue; }
         }
 
-        function lawNexaApp() {
+        // Expose the Alpine component factory explicitly on window so CDN Alpine can resolve x-data.
+        window.lawNexaApp = function lawNexaApp() {
             return {
                 token: localStorage.getItem('token') || '',
                 isLoggedIn: !!localStorage.getItem('token'), // BUG FIXED HERE
@@ -1021,7 +1022,7 @@
                         return defaultValue;
                     }
                 },
-                , value) {
+                setSafeStorage(key, value) {
                     try {
                         localStorage.setItem(key, typeof value === 'object' ? JSON.stringify(value) : value);
                     } catch (e) {
@@ -1081,7 +1082,7 @@
                     return this.cityAreas[this.selectedCity] || [];
                 },
 
-                resetsetSafeStorage(keyDefaultTab() {
+                resetDefaultTab() {
                     this.activeTab = (this.user.role === 'lawyer' || this.user.role === 'advocate') ? 'bookings' : (this.user.role === 'business' ? 'business' : 'advocates');
                     if (this.user.role === 'business') this.loadBusinessRequests();
                 },
@@ -1782,7 +1783,7 @@ ${data.disclaimer || ''}`;
                     } catch (e) { this.showToast(e.message || 'Booking response save nahi hua.', 'error'); }
                 }
             };
-        }
+        };
     </script>
 </body>
 </html>
