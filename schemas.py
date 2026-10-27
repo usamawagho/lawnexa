@@ -18,3 +18,14 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    profile_image: Optional[str] = None
+    specializations: Optional[List[str]] = []
+    bar_council_no: Optional[str] = None
+    chamber_address: Optional[str] = None
+    experience_years: Optional[int] = None
+    consultation_fee: Optional[int] = None

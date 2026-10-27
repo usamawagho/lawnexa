@@ -30,7 +30,7 @@ class LegalResearchRequest(BaseModel):
 def register_user(user_data: schemas.UserCreate, db: Session = Depends(database.get_db)):
     existing = db.query(models.User).filter(models.User.email == user_data.email).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="Email address pehle se registered hai.")
 
     if user_data.role == "advocate" and len(user_data.specializations) > 3:
         raise HTTPException(status_code=400, detail="Maximum 3 specializations allowed.")
@@ -55,7 +55,20 @@ def register_user(user_data: schemas.UserCreate, db: Session = Depends(database.
     db.refresh(user)
 
     token = auth.create_access_token(data={"sub": user.email, "role": user.role})
-    return {"status": "success", "token": token, "user": {"id": user.id, "email": user.email, "role": user.role}}
+    return {
+        "status": "success", 
+        "token": token, 
+        "user": {
+            "id": user.id, 
+            "email": user.email, 
+            "role": user.role,
+            "full_name": user.full_name,
+            "phone": user.phone,
+            "address": user.address,
+            "city": user.city,
+            "profile_image": user.profile_image
+        }
+    }
 
 @app.post("/api/login")
 def login_user(user_data: schemas.UserLogin, db: Session = Depends(database.get_db)):
@@ -64,7 +77,70 @@ def login_user(user_data: schemas.UserLogin, db: Session = Depends(database.get_
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     token = auth.create_access_token(data={"sub": user.email, "role": user.role})
-    return {"token": token, "user": {"id": user.id, "email": user.email, "role": user.role}}
+    return {
+        "token": token, 
+        "user": {
+            "id": user.id, 
+            "email": user.email, 
+            "role": user.role,
+            "full_name": user.full_name,
+            "phone": user.phone,
+            "address": user.address,
+            "city": user.city,
+            "profile_image": user.profile_image
+        }
+    }
+
+@app.get("/api/profile")
+def get_user_profile(email: str, db: Session = Depends(database.get_db)):
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "full_name": user.full_name,
+        "email": user.email,
+        "phone": user.phone,
+        "address": user.address,
+        "role": user.role,
+        "profile_image": user.profile_image,
+        "city": user.city,
+        "specializations": json.loads(user.specializations) if user.specializations else [],
+        "bar_council_no": user.bar_council_no,
+        "chamber_address": user.chamber_address,
+        "experience_years": user.experience_years,
+        "consultation_fee": user.consultation_fee
+    }
+
+@app.put("/api/profile")
+def update_user_profile(email: str, data: schemas.UserProfileUpdate, db: Session = Depends(database.get_db)):
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if data.full_name is not None:
+        user.full_name = data.full_name
+    if data.address is not None:
+        user.address = data.address
+    if data.city is not None:
+        user.city = data.city
+    if data.profile_image is not None:
+        user.profile_image = data.profile_image
+    if data.specializations is not None:
+        user.specializations = json.dumps(data.specializations)
+    if data.bar_council_no is not None:
+        user.bar_council_no = data.bar_council_no
+    if data.chamber_address is not None:
+        user.chamber_address = data.chamber_address
+    if data.experience_years is not None:
+        user.experience_years = data.experience_years
+    if data.consultation_fee is not None:
+        user.consultation_fee = data.consultation_fee
+
+    db.commit()
+    db.refresh(user)
+
+    return {"status": "success", "message": "Profile updated successfully"}
 
 @app.post("/api/ai-legal-research")
 async def process_legal_research(req: LegalResearchRequest):
@@ -72,7 +148,7 @@ async def process_legal_research(req: LegalResearchRequest):
     if turn_count < 3:
         return {
             "status": "clarifying",
-            "reply": "Aapke incident facts ke mutabiq: Kya is haadse me koi physical injury aayi hai ya sirf vehicle/property damage hua hai?",
+            "reply": "Aapke bataye gaye facts ke mutabiq: Kya is haadse me koi physical injury aayi hai ya sirf vehicle/property damage hua hai?",
             "case_brief": None
         }
     else:

@@ -10,8 +10,11 @@ class User(Base):
     phone = Column(String(20), nullable=True)
     address = Column(String(255), nullable=True)
     hashed_password = Column(String(255), nullable=False)
-    role = Column(String(50), default="client")
+    role = Column(String(50), default="client") # 'client' or 'advocate'
     
+    # Profile Picture
+    profile_image = Column(Text, nullable=True)
+
     # Advocate Dynamic Fields
     city = Column(String(100), nullable=True)
     specializations = Column(Text, nullable=True)

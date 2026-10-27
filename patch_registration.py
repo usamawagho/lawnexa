@@ -11,7 +11,8 @@ def run_patch():
         ("chamber_address", "TEXT"),
         ("city", "TEXT"),
         ("experience_years", "INTEGER"),
-        ("consultation_fee", "INTEGER")
+        ("consultation_fee", "INTEGER"),
+        ("profile_image", "TEXT")
     ]
     for col_name, col_type in cols:
         try:
