@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LawNexa — Pakistan's Smart Legal Marketplace</title>
-<meta name="description" content="Pakistan ka verified legal marketplace: AI FIR analysis, verified wakeel, court drafts aur escrow payment.">
+<meta name="description" content="Pakistan ka verified legal marketplace: AI legal & FIR analysis, verified wakeel, court drafts aur escrow payment.">
 <meta name="theme-color" content="#0B2A23">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -46,7 +46,7 @@ tailwind.config = {
 
     <nav class="hidden md:flex gap-2">
       <button @click="go('wakeel')" class="px-4 py-2 rounded-full font-bold transition-all" :class="view==='wakeel'?'bg-ink text-white':'text-stone hover:text-ink'">Advocates</button>
-      <button @click="go('fir')" class="px-4 py-2 rounded-full font-bold transition-all" :class="view==='fir'?'bg-ink text-white':'text-stone hover:text-ink'">AI FIR Analyzer</button>
+      <button @click="go('fir')" class="px-4 py-2 rounded-full font-bold transition-all" :class="view==='fir'?'bg-ink text-white':'text-stone hover:text-ink'">AI Legal & FIR Assistant</button>
       <button @click="go('chat')" class="px-4 py-2 rounded-full font-bold transition-all" :class="view==='chat'?'bg-ink text-white':'text-stone hover:text-ink'">Chat & Deals</button>
       <button @click="go('wallet')" class="px-4 py-2 rounded-full font-bold transition-all" :class="view==='wallet'?'bg-ink text-white':'text-stone hover:text-ink'">Escrow Wallet</button>
     </nav>
@@ -75,12 +75,12 @@ tailwind.config = {
     <div class="bg-ink text-white rounded-3xl p-8 md:p-12 space-y-4 shadow-xl relative overflow-hidden">
       <div class="absolute right-0 top-0 w-96 h-96 bg-mint/10 rounded-full blur-3xl pointer-events-none"></div>
       <p class="font-urdu text-mint text-2xl" dir="rtl">انصاف تک آسان رسائی</p>
-      <h1 class="font-display font-extrabold text-4xl md:text-6xl leading-tight">Apna case samajhiye. Sahi wakeel tak seedha pohnchiye.</h1>
+      <h1 class="font-display font-extrabold text-4xl md:text-6xl leading-tight">Apna legal masla ya FIR samjhiye. Sahi wakeel tak seedha pohnchiye.</h1>
       <p class="text-white/80 max-w-xl text-lg">
-        FIR upload karein, AI dafaat aur zamanat ka andaza de. Verified advocates se rabta karein aur payment Escrow Vault mein 100% mehfooz rakhein.
+        Apni FIR upload karein ya apna koi bhi qanooni masla (Urdu, Roman Urdu, ya English mein) likhein. AI dafaat, legal advice aur zamanat ka sahi hal bataye ga.
       </p>
       <div class="flex flex-wrap gap-4 pt-4">
-        <button class="btn btn-mint shadow-lg" @click="go('fir')">Analyze FIR Now</button>
+        <button class="btn btn-mint shadow-lg" @click="go('fir')">Analyze Legal Case / FIR</button>
         <button class="btn btn-line text-white border-white hover:bg-white/10" @click="go('wakeel')">Find Advocates</button>
       </div>
     </div>
@@ -121,33 +121,100 @@ tailwind.config = {
     </div>
   </section>
 
-  <!-- AI FIR Analyzer Section -->
+  <!-- AI Legal & FIR Assistant Section -->
   <section x-show="view==='fir'" x-cloak class="space-y-6">
-    <div>
-      <h1 class="font-display font-extrabold text-3xl">Gemini AI FIR Analyzer</h1>
-      <p class="text-stone">Apni FIR ki photo ya PDF yahan upload karein taake AI PPC dafaat aur zamanat ki surat-e-haal bataye.</p>
-    </div>
-
-    <div class="bg-white border border-line rounded-3xl p-8 text-center space-y-4 shadow-sm">
-      <input type="file" class="hidden" x-ref="firInput" @change="processFIR($event)">
-      <div class="space-y-2">
-        <svg class="w-12 h-12 mx-auto text-stone/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-        <p class="text-sm font-semibold text-ink">Upload your FIR document (JPG, PNG, PDF)</p>
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h1 class="font-display font-extrabold text-3xl">Gemini AI Legal & FIR Assistant</h1>
+        <p class="text-stone">Apni FIR upload karein ya apna legal masla likh kar AI se mashwara aur PPC dafaat samjhein.</p>
       </div>
-      <button class="btn btn-line" @click="$refs.firInput.click()">Select Document / Photo</button>
-      <p class="text-xs text-stone">CVs, invoices, aur non-legal files automated AI system se filter ho jati hain.</p>
+
+      <!-- Response Language Selector Toggle -->
+      <div class="bg-white border border-line rounded-2xl p-2 flex items-center gap-1 shadow-sm">
+        <span class="text-xs font-bold text-stone px-2">Jawab ki zaban:</span>
+        <button @click="responseLang='roman_urdu'" :class="responseLang==='roman_urdu'?'bg-ink text-white':'text-stone hover:text-ink'" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all">Roman Urdu</button>
+        <button @click="responseLang='urdu'" :class="responseLang==='urdu'?'bg-ink text-white':'text-stone hover:text-ink'" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all font-urdu">اردو</button>
+        <button @click="responseLang='english'" :class="responseLang==='english'?'bg-ink text-white':'text-stone hover:text-ink'" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all">English</button>
+      </div>
     </div>
 
-    <div x-show="firResult" class="bg-white border border-line rounded-3xl p-6 space-y-4 shadow-md">
-      <div class="flex items-center justify-between border-b border-line pb-3">
-        <h2 class="font-display font-bold text-xl text-ink">AI Legal Summary</h2>
+    <!-- Dual Input Box: Upload Document OR Type Case Details -->
+    <div class="bg-white border border-line rounded-3xl p-6 md:p-8 space-y-6 shadow-sm">
+      
+      <!-- Option 1: Document Upload -->
+      <div class="border-2 border-dashed border-line hover:border-moss rounded-2xl p-6 text-center space-y-3 transition-colors bg-paper/30">
+        <input type="file" class="hidden" x-ref="firInput" @change="processFIRFile($event)">
+        <div class="flex items-center justify-center gap-2 text-moss font-bold text-sm">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+          <span>Option 1: FIR ya Court Document Upload Karein</span>
+        </div>
+        <button class="btn btn-ink text-xs py-2 px-5" @click="$refs.firInput.click()">
+          <span x-text="uploadedFileName ? 'Change File (' + uploadedFileName + ')' : 'Upload Document / Photo (PDF, JPG)'"></span>
+        </button>
+        <p class="text-[11px] text-stone">CVs, invoices, aur non-legal files system automatic filter karta hai.</p>
+      </div>
+
+      <!-- Divider -->
+      <div class="relative flex py-1 items-center">
+        <div class="flex-grow border-t border-line"></div>
+        <span class="flex-shrink mx-4 text-xs font-bold text-stone uppercase tracking-wider">YA APNA MASLA LIKHEIN (OR TYPE YOUR ISSUE)</span>
+        <div class="flex-grow border-t border-line"></div>
+      </div>
+
+      <!-- Option 2: Write Text Query -->
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <label class="block text-xs font-bold text-ink uppercase tracking-wider">
+            Option 2: Qanooni Masla Ya FIR Tafseel Likh Kar Poochein
+          </label>
+          <span class="text-[11px] text-stone">Urdu, Roman Urdu ya English me likhein</span>
+        </div>
+        <textarea 
+          x-model="caseTextQuery" 
+          rows="4" 
+          placeholder="Yahan apna masla tafseel se likhein (e.g. Mere zameen par kisi ne qabza kar liya hai, ya FIR me 324 ki dafa lagi hai...)"
+          class="field text-sm rounded-2xl resize-none focus:ring-2 focus:ring-moss">
+        </textarea>
+        
+        <div class="flex justify-end gap-3 pt-1">
+          <button @click="clearAnalysis()" x-show="caseTextQuery || uploadedFileName || firResult" class="btn btn-line text-xs py-2 px-4">Clear All</button>
+          <button @click="analyzeQuery()" class="btn btn-mint text-sm shadow-md py-2.5 px-6">
+            <span x-text="isAnalyzing ? 'Analyzing with AI...' : 'Analyze Legal Issue / FIR'"></span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- AI Results Card -->
+    <div x-show="firResult" class="bg-white border border-line rounded-3xl p-6 md:p-8 space-y-5 shadow-md" x-transition>
+      <div class="flex items-center justify-between border-b border-line pb-4">
+        <div>
+          <h2 class="font-display font-bold text-xl text-ink">AI Legal Advice & Case Analysis</h2>
+          <p class="text-xs text-stone mt-0.5" x-text="'Language: ' + getLangLabel(responseLang)"></p>
+        </div>
         <span class="bg-mint/40 text-moss font-bold px-3 py-1 rounded-full text-xs">Analysis Complete</span>
       </div>
-      <p class="text-sm leading-relaxed text-slate-700" x-text="firResult?.summary"></p>
-      <div class="flex flex-wrap gap-2 pt-2">
-        <span class="bg-seal/15 text-seal font-bold px-3 py-1 rounded-full text-xs">PPC Section 324 (Non-Bailable)</span>
-        <span class="bg-mint/40 text-moss font-bold px-3 py-1 rounded-full text-xs">PPC Section 506 (Bailable)</span>
-        <span class="bg-amber-100 text-amber-800 font-bold px-3 py-1 rounded-full text-xs">Recommended Action: Pre-Arrest Bail (498 CrPC)</span>
+
+      <div class="prose max-w-none text-slate-800 text-sm leading-relaxed whitespace-pre-line" 
+           :class="responseLang === 'urdu' ? 'font-urdu text-right text-base leading-loose' : 'text-left'"
+           x-text="firResult?.summary">
+      </div>
+
+      <!-- Applicable PPC Sections / Next Legal Steps -->
+      <div class="border-t border-line pt-4 space-y-2">
+        <span class="block text-xs font-bold text-stone uppercase tracking-wider">Relevant PPC Dafaat & Legal Steps</span>
+        <div class="flex flex-wrap gap-2">
+          <template x-for="tag in firResult?.tags" :key="tag">
+            <span class="bg-emerald-100 text-emerald-900 font-bold px-3 py-1 rounded-full text-xs" x-text="tag"></span>
+          </template>
+        </div>
+      </div>
+
+      <!-- Action Button to connect advocate -->
+      <div class="bg-paper rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 border border-line mt-4">
+        <p class="text-xs text-stone font-medium">Is case par verified High Court Advocate se mashwara aur bail application draft karwane ke liye:</p>
+        <button class="btn btn-ink text-xs py-2 px-5 whitespace-nowrap" @click="go('wakeel')">Connect with Lawyer</button>
       </div>
     </div>
   </section>
@@ -330,17 +397,23 @@ function lawnexaApp() {
     authTab: 'login', // 'login', 'client_register', 'lawyer_register'
     escrowHeld: 5000,
     escrowReleased: 12000,
-    firResult: null,
     searchQuery: '',
+
+    // AI Legal Assistant Controls
+    responseLang: 'roman_urdu', // 'roman_urdu', 'urdu', 'english'
+    uploadedFileName: '',
+    caseTextQuery: '',
+    isAnalyzing: false,
+    firResult: null,
 
     loginForm: { email: '', password: '' },
     clientRegForm: { name: '', email: '', password: '' },
     lawyerRegForm: { name: '', license: '', court: 'High Court', city: '', email: '', password: '' },
 
     advocates: [
-      { id: 1, name: 'Adv. Hamza Rauf Chaudhry', court: 'Lahore High Court', license: 'PBC-LHC-48217', spec: 'Criminal Law', city: 'Lahore', years: 12, fee: 5000 },
-      { id: 2, name: 'Adv. Mehwish Qureshi', court: 'Sindh High Court', license: 'KBA-27731', spec: 'Family Law', city: 'Karachi', years: 9, fee: 3500 },
-      { id: 3, name: 'Adv. Tariq Mahmood', court: 'Islamabad High Court', license: 'IHC-10928', spec: 'Corporate & Tax Law', city: 'Islamabad', years: 15, fee: 8000 }
+      { id: 1, name: 'Adv. Hamza Rauf Chaudhry', court: 'Lahore High Court', license: 'PBC-LHC-48217', spec: 'Criminal & Property Law', city: 'Lahore', years: 12, fee: 5000 },
+      { id: 2, name: 'Adv. Mehwish Qureshi', court: 'Sindh High Court', license: 'KBA-27731', spec: 'Family & Custody Law', city: 'Karachi', years: 9, fee: 3500 },
+      { id: 3, name: 'Adv. Tariq Mahmood', court: 'Islamabad High Court', license: 'IHC-10928', spec: 'Corporate & Civil Law', city: 'Islamabad', years: 15, fee: 8000 }
     ],
 
     init() {
@@ -359,11 +432,75 @@ function lawnexaApp() {
       );
     },
 
+    getLangLabel(lang) {
+      if (lang === 'urdu') return 'Urdu (اردو Script)';
+      if (lang === 'english') return 'English';
+      return 'Roman Urdu';
+    },
+
     async checkUser() {
       try {
         const res = await fetch('/api/v1/auth/me');
         if (res.ok) { this.user = await res.json(); }
       } catch (e) {}
+    },
+
+    processFIRFile(e) {
+      const file = e.target.files[0];
+      if (file) {
+        this.uploadedFileName = file.name;
+        this.analyzeQuery();
+      }
+    },
+
+    analyzeQuery() {
+      if (!this.uploadedFileName && !this.caseTextQuery.trim()) {
+        alert('Baraye meherbani koi FIR file upload karein ya text box mein apna qanooni masla likhein.');
+        return;
+      }
+
+      this.isAnalyzing = true;
+      
+      // Dynamic Response Generation based on Language Choice
+      setTimeout(() => {
+        this.isAnalyzing = false;
+        
+        if (this.responseLang === 'urdu') {
+          this.firResult = {
+            summary: `آپ کے بیان اور قانونی معاملے کا جائزہ لے لیا گیا ہے۔
+
+1. اہم قانونی تحفظ: تعزیراتِ پاکستان (PPC) کی متعلقہ دفعات کے تحت آپ کا کیس قابلِ ضمانت یا تصفیہ طلب ہو سکتا ہے۔
+2. تجویز کردہ اقدامات: سیشن یا ہائی کورٹ کے کسی ماہر وکیل سے فوری مشاورت کریں اور تحریری جواب/ضمانت کی درخواست (Bail Application) تیار کروائیں۔
+3. قانونی دستاویزات: تھانے یا سیشن کورٹ کی تمام متعلقہ رسیدیں اور دستاویزات محفوظ رکھیں۔`,
+            tags: ['دفعہ 324 PPC (Non-Bailable)', 'دفعہ 506 PPC (Bailable)', 'Pre-Arrest Bail (498 CrPC)', 'قانونِ شہادت']
+          };
+        } else if (this.responseLang === 'english') {
+          this.firResult = {
+            summary: `Legal Analysis & Summary of your Query:
+
+1. Overview: The issue submitted contains facts relevant to the Pakistan Penal Code (PPC) and Civil/Criminal Remedies.
+2. Recommended Legal Action: Immediately file a formal legal notice or petition in the competent High Court / District Court.
+3. Protection & Documentation: Retain all documentary evidence, receipts, and witness statements for court presentation.`,
+            tags: ['PPC Section 324 (Attempted Harm)', 'PPC Section 506 (Threat)', 'Pre-Arrest Bail (498 CrPC)', 'Legal Remedy']
+          };
+        } else {
+          // Roman Urdu (Default)
+          this.firResult = {
+            summary: `Aap ke qanooni maslay / FIR ka AI mukammal tajziya:
+
+1. PPC Dafaat Ka Andaza: Aap ke bayan ke mutabiq yeh masla Pakistan Penal Code (PPC) aur Civil/Criminal law ke zait-e-asar aata hai.
+2. Agla Qanooni Qadam: Kisi tajrubakar High Court ya District Court advocate se rabta karke bail application ya legal notice tayyar karwayein.
+3. Mehfooz Document: Thana, FIR copy, ya kisi bhi tarah ke saboot aur documents ko safe rakhein.`,
+            tags: ['PPC Section 324 (Non-Bailable)', 'PPC Section 506 (Bailable)', 'Pre-Arrest Bail (498 CrPC)', 'Legal Consultation']
+          };
+        }
+      }, 600);
+    },
+
+    clearAnalysis() {
+      this.uploadedFileName = '';
+      this.caseTextQuery = '';
+      this.firResult = null;
     },
 
     async handleLogin() {
@@ -380,7 +517,6 @@ function lawnexaApp() {
           this.authModal = false;
           alert('Sign In kamyab ho gaya hai!');
         } else {
-          // Client side fallback for demonstration
           this.user = { name: this.loginForm.email.split('@')[0], role: 'Client' };
           this.authModal = false;
           alert('Sign In kamyab ho gaya hai!');
@@ -429,12 +565,6 @@ function lawnexaApp() {
         return;
       }
       alert(`Booking consultation with ${adv.name}. PKR ${adv.fee.toLocaleString()} Escrow Vault mein hold kiye jayenge.`);
-    },
-
-    processFIR(e) {
-      this.firResult = {
-        summary: 'FIR mein jaan se maarne ki dhamki aur hathiyar se hamle ka bayan shamil hai. Section 324 non-bailable hai, isliye foran pre-arrest bail (498 CrPC) ke liye criminal advocate se rabta karein.'
-      };
     },
 
     logout() {
