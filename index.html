@@ -40,12 +40,13 @@
                 <i class="fa-solid me-2 fa-scale-balanced text-yellow-500 text-2xl"></i>
                 <span class="text-xl font-bold tracking-wide">LawNexa</span>
             </div>
-            <nav class="hidden md:flex space-x-6 text-sm font-medium">
+            <nav id="dynamic-nav-container" class="hidden md:flex space-x-5 text-sm font-medium">
                 <a href="#" onclick="switchTab('home-tab')" class="hover:text-yellow-400 transition">Home</a>
                 <a href="#" id="advocates-tab" onclick="switchTab('advocates-tab')" class="hover:text-yellow-400 transition nav-item">Advocates</a>
-                <a href="#" id="docgen-tab" onclick="switchTab('docgen-tab')" class="hover:text-yellow-400 transition nav-item">Legal Documents</a>
-                <a href="#" id="chat-tab" onclick="switchTab('chat-tab')" class="hover:text-yellow-400 transition nav-item">Chat & Deals</a>
-                <a href="#" id="escrow-tab" onclick="switchTab('escrow-tab')" class="hover:text-yellow-400 transition nav-item">Escrow Wallet</a>
+                <a href="#" id="docgen-tab" onclick="switchTab('docgen-tab')" class="hover:text-yellow-400 transition nav-item">Doc Generator</a>
+                <a href="#" id="bookings-tab" onclick="switchTab('bookings-tab')" class="hover:text-yellow-400 transition nav-item">My Bookings</a>
+                <a href="#" id="chat-tab" onclick="switchTab('chat-tab')" class="hover:text-yellow-400 transition nav-item">Lawyer Deals</a>
+                <a href="#" id="escrow-tab" onclick="switchTab('escrow-tab')" class="hover:text-yellow-400 transition nav-item">Payment</a>
             </nav>
             <div id="auth-buttons-container">
                 <button onclick="openAuthModal()" class="bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold px-4 py-2 rounded-lg text-sm transition">
@@ -218,6 +219,61 @@
                         <button onclick="bookConsultation('Adv. Sarah Khan')" class="btn-book-appointment w-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold py-2 rounded-lg transition">
                             Book Consultation
                         </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MY BOOKINGS TAB (CLIENT) -->
+        <section id="bookings-tab-content" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-check text-yellow-500"></i>
+                    <span>My Booked Consultations</span>
+                </h2>
+                <p class="text-slate-600 text-sm mb-6">Track status of your booked advocate consultations.</p>
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center text-slate-500 text-sm">
+                    <i class="fa-solid fa-folder-open text-2xl text-slate-400 mb-2 block"></i>
+                    Aapki filhal koi active consultation booking nahi hai.
+                </div>
+            </div>
+        </section>
+
+        <!-- CLIENT REQUESTS TAB (LAWYER) -->
+        <section id="requests-tab-content" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-user-clock text-yellow-500"></i>
+                    <span>Incoming Client Requests</span>
+                </h2>
+                <p class="text-slate-600 text-sm mb-6">Clients ki taraf se aane wali consultation requests aur case leads accept ya reject karein.</p>
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center text-slate-500 text-sm">
+                    <i class="fa-solid fa-inbox text-2xl text-slate-400 mb-2 block"></i>
+                    Nayi client requests yahan show hongi.
+                </div>
+            </div>
+        </section>
+
+        <!-- LAWYER PEER FORUM TAB (LAWYER) -->
+        <section id="peer-forum-tab-content" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-users-rectangle text-yellow-500"></i>
+                    <span>Advocates Legal Network & Peer Guidance</span>
+                </h2>
+                <p class="text-slate-600 text-sm mb-6">Wukala aapas me qanoon ki rehnumai, High Court precedents, aur complex cases par discussion karein.</p>
+                <div class="space-y-4">
+                    <div class="border border-slate-200 rounded-xl p-4 bg-slate-50">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-yellow-600 uppercase tracking-wider">Civil PPC Discussion</span>
+                            <span class="text-[10px] text-slate-400">2 hours ago</span>
+                        </div>
+                        <h4 class="font-bold text-slate-900 text-sm mb-1">Pre-arrest Bail Grounds in 489-F Cheque Bounce cases?</h4>
+                        <p class="text-xs text-slate-600 mb-3">High Court landmark judgements on 489-F where settlement offer is under process...</p>
+                        <div class="flex items-center space-x-4 text-xs text-slate-500 font-semibold">
+                            <span><i class="fa-regular fa-comment mr-1"></i> 12 Answers</span>
+                            <span><i class="fa-solid fa-gavel mr-1 text-yellow-600"></i> Verified Advocates Only</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -635,12 +691,34 @@
 
         function updateAuthUI() {
             const container = document.getElementById('auth-buttons-container');
+            const navContainer = document.getElementById('dynamic-nav-container');
+
             if (isLoggedIn()) {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
                 const isLawyer = user.role === 'advocate';
                 const roleLabel = isLawyer ? 'Lawyer / Advocate' : 'Client';
                 const roleBadgeBg = isLawyer ? 'bg-yellow-500 text-slate-900' : 'bg-blue-600 text-white';
                 const avatarImg = user.profile_image || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+
+                // Render Role-Specific Navbar Tabs
+                if (isLawyer) {
+                    navContainer.innerHTML = `
+                        <a href="#" onclick="switchTab('home-tab')" class="hover:text-yellow-400 transition">Home</a>
+                        <a href="#" id="requests-tab" onclick="switchTab('requests-tab')" class="hover:text-yellow-400 transition nav-item">Client Requests</a>
+                        <a href="#" id="docgen-tab" onclick="switchTab('docgen-tab')" class="hover:text-yellow-400 transition nav-item">Doc Generator</a>
+                        <a href="#" id="peer-forum-tab" onclick="switchTab('peer-forum-tab')" class="hover:text-yellow-400 transition nav-item">Advocate Forum</a>
+                        <a href="#" id="escrow-tab" onclick="switchTab('escrow-tab')" class="hover:text-yellow-400 transition nav-item">Payment & Earnings</a>
+                    `;
+                } else {
+                    navContainer.innerHTML = `
+                        <a href="#" onclick="switchTab('home-tab')" class="hover:text-yellow-400 transition">Home</a>
+                        <a href="#" id="advocates-tab" onclick="switchTab('advocates-tab')" class="hover:text-yellow-400 transition nav-item">Advocates</a>
+                        <a href="#" id="docgen-tab" onclick="switchTab('docgen-tab')" class="hover:text-yellow-400 transition nav-item">Doc Generator</a>
+                        <a href="#" id="bookings-tab" onclick="switchTab('bookings-tab')" class="hover:text-yellow-400 transition nav-item">My Bookings</a>
+                        <a href="#" id="chat-tab" onclick="switchTab('chat-tab')" class="hover:text-yellow-400 transition nav-item">Lawyer Deals</a>
+                        <a href="#" id="escrow-tab" onclick="switchTab('escrow-tab')" class="hover:text-yellow-400 transition nav-item">Payment</a>
+                    `;
+                }
 
                 container.innerHTML = `
                     <div class="flex items-center space-x-3 text-sm">
@@ -655,6 +733,14 @@
                         </button>
                         <button onclick="logout()" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 transition">Logout</button>
                     </div>
+                `;
+            } else {
+                navContainer.innerHTML = `
+                    <a href="#" onclick="switchTab('home-tab')" class="hover:text-yellow-400 transition">Home</a>
+                    <a href="#" id="advocates-tab" onclick="switchTab('advocates-tab')" class="hover:text-yellow-400 transition nav-item">Advocates</a>
+                    <a href="#" id="docgen-tab" onclick="switchTab('docgen-tab')" class="hover:text-yellow-400 transition nav-item">Doc Generator</a>
+                    <a href="#" id="chat-tab" onclick="switchTab('chat-tab')" class="hover:text-yellow-400 transition nav-item">Lawyer Deals</a>
+                    <a href="#" id="escrow-tab" onclick="switchTab('escrow-tab')" class="hover:text-yellow-400 transition nav-item">Payment</a>
                 `;
             }
         }
@@ -674,6 +760,9 @@
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
             const target = document.getElementById(tabId === 'advocates-tab' ? 'advocates-tab-content' : 
                                                tabId === 'docgen-tab' ? 'docgen-tab-content' :
+                                               tabId === 'bookings-tab' ? 'bookings-tab-content' :
+                                               tabId === 'requests-tab' ? 'requests-tab-content' :
+                                               tabId === 'peer-forum-tab' ? 'peer-forum-tab-content' :
                                                tabId === 'chat-tab' ? 'chat-tab-content' : 
                                                tabId === 'escrow-tab' ? 'escrow-tab-content' : tabId);
             if (target) target.classList.remove('hidden');
