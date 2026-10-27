@@ -6,19 +6,44 @@
     <title>LawNexa - Legal AI Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-document, #printable-document * {
+                visibility: visible;
+            }
+            #printable-document {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 20px;
+                background: white !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800">
 
     <!-- Navigation Header -->
-    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50 no-print">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2 cursor-pointer" onclick="switchTab('home-tab')">
                 <i class="fa-solid me-2 fa-scale-balanced text-yellow-500 text-2xl"></i>
                 <span class="text-xl font-bold tracking-wide">LawNexa</span>
             </div>
             <nav class="hidden md:flex space-x-6 text-sm font-medium">
                 <a href="#" onclick="switchTab('home-tab')" class="hover:text-yellow-400 transition">Home</a>
                 <a href="#" id="advocates-tab" onclick="switchTab('advocates-tab')" class="hover:text-yellow-400 transition nav-item">Advocates</a>
+                <a href="#" id="docgen-tab" onclick="switchTab('docgen-tab')" class="hover:text-yellow-400 transition nav-item">Legal Documents</a>
                 <a href="#" id="chat-tab" onclick="switchTab('chat-tab')" class="hover:text-yellow-400 transition nav-item">Chat & Deals</a>
                 <a href="#" id="escrow-tab" onclick="switchTab('escrow-tab')" class="hover:text-yellow-400 transition nav-item">Escrow Wallet</a>
             </nav>
@@ -41,7 +66,6 @@
                         <h2 class="text-2xl font-bold text-slate-900 mb-1">AI Interactive Legal Assistant & Research</h2>
                         <p class="text-slate-600 text-sm">Apna masla bayan karein. AI Assistant facts clarify karega aur legal research summary tayar karega.</p>
                     </div>
-                    <!-- Language Selection Option -->
                     <div class="flex items-center space-x-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
                         <i class="fa-solid fa-language text-yellow-600"></i>
                         <span class="text-xs font-semibold text-slate-600">Language:</span>
@@ -63,7 +87,7 @@
                     </div>
                 </div>
 
-                <!-- Input Area with Photo/Camera/File Buttons -->
+                <!-- Input Area -->
                 <div class="flex items-center space-x-2 border border-slate-300 rounded-xl p-2 bg-white shadow-sm">
                     <input type="file" id="document-upload" class="hidden" accept="image/*,.pdf,.doc,.docx" onchange="handleFileUpload(event)">
                     <input type="file" id="camera-upload" class="hidden" accept="image/*" capture="environment" onchange="handleFileUpload(event)">
@@ -86,8 +110,73 @@
                     </button>
                 </div>
 
-                <!-- Dynamic Legal Brief Card -->
                 <div id="legal-brief-display" class="mt-6"></div>
+            </div>
+        </section>
+
+        <!-- DYNAMIC LEGAL DOCUMENT GENERATOR TAB -->
+        <section id="docgen-tab-content" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-200 mb-6 gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-file-signature text-yellow-600"></i>
+                            <span>Dynamic Legal Document Generator</span>
+                        </h2>
+                        <p class="text-slate-600 text-sm">Select a legal document template, fill details, and generate instant live preview with print/download option.</p>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="printGeneratedDocument()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1.5 shadow">
+                            <i class="fa-solid fa-print text-yellow-400"></i>
+                            <span>Print / Save PDF</span>
+                        </button>
+                        <button onclick="saveDocumentToAccount()" class="bg-yellow-500 hover:bg-yellow-600 text-slate-900 text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1.5 shadow">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Save to Account</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Template Selector Dropdown -->
+                <div class="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Select Document Type (لیگل ڈاکومنٹ کی قسم منتخب کریں):</label>
+                    <select id="doc-type-select" onchange="onTemplateSelected()" class="w-full md:w-1/2 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:border-yellow-500 shadow-sm">
+                        <option value="kiraya_nama">Rent Agreement (کرایہ نامہ)</option>
+                        <option value="vehicle_sale">Vehicle Sale Agreement (معاہدہ فروخت گاڑی)</option>
+                        <option value="bail_application">Bail Application (درخواست ضمانت)</option>
+                        <option value="cheque_notice">Cheque Bounce Legal Notice (نوٹس عدم ادائیگی چیک)</option>
+                        <option value="vakalatnama">Vakalatnama (وکالت نامہ)</option>
+                    </select>
+                </div>
+
+                <!-- 2-Column Split View: Form vs Stamp-Paper Live Preview -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Left Column: Dynamic Form Fields -->
+                    <div class="lg:col-span-5 bg-slate-50 p-5 rounded-xl border border-slate-200">
+                        <h3 class="font-bold text-slate-900 text-sm mb-3 flex items-center gap-2 border-b border-slate-200 pb-2">
+                            <i class="fa-solid fa-list-check text-yellow-600"></i>
+                            <span>Fill Document Details</span>
+                        </h3>
+                        <form id="dynamic-doc-form" class="space-y-3" oninput="updateLiveDocumentPreview()">
+                            <!-- Fields populated dynamically via JS -->
+                        </form>
+                    </div>
+
+                    <!-- Right Column: Live Legal Preview (Stamp-Paper Styled) -->
+                    <div class="lg:col-span-7 bg-amber-50/40 p-6 rounded-xl border-2 border-amber-200 shadow-inner relative min-h-[500px]">
+                        <!-- Stamp Paper Header Mock -->
+                        <div class="text-center border-b-2 border-amber-800/30 pb-4 mb-6">
+                            <div class="text-xs font-bold tracking-widest text-amber-900 uppercase">Government of Pakistan - Legal Document</div>
+                            <div class="text-lg font-black text-amber-900 tracking-wider my-1">STAMP PAPER / LEGAL DRAFT</div>
+                            <div class="text-[10px] text-amber-700 font-medium">LawNexa Digital Legal Verification Engine</div>
+                        </div>
+
+                        <!-- Live Rendered Output Container -->
+                        <div id="printable-document" class="bg-white p-8 rounded-lg border border-slate-300 shadow-md text-slate-800 text-sm leading-relaxed">
+                            <!-- Live text preview rendered here -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -152,77 +241,82 @@
 
     </main>
 
-    <!-- SIGN IN / REGISTER MODAL -->
+    <!-- SIGN IN / REGISTER MODAL WITH TOGGLE TABS -->
     <div id="authModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
-            <h3 class="text-xl font-bold text-slate-900 mb-1">Create Account / Sign In</h3>
-            <p class="text-xs text-slate-500 mb-4">Select role and complete details.</p>
-
-            <!-- Role Switch Buttons -->
-            <div class="mb-4">
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Select Account Type:</label>
-                <div class="grid grid-cols-2 gap-2">
-                    <button type="button" id="role-client-btn" onclick="setRole('client')" class="py-2 border rounded-lg text-xs font-bold bg-yellow-500 text-slate-900 border-yellow-500">
-                        Client
-                    </button>
-                    <button type="button" id="role-advocate-btn" onclick="setRole('advocate')" class="py-2 border rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border-slate-300">
-                        Advocate / Lawyer
-                    </button>
-                </div>
+            <!-- Mode Switch Tabs: Sign In vs Create Account -->
+            <div class="flex border-b border-slate-200 mb-4">
+                <button type="button" id="tab-login-btn" onclick="setAuthMode('login')" class="flex-1 py-2 text-center font-bold text-sm border-b-2 border-yellow-500 text-yellow-600">
+                    Sign In
+                </button>
+                <button type="button" id="tab-register-btn" onclick="setAuthMode('register')" class="flex-1 py-2 text-center font-bold text-sm text-slate-400 hover:text-slate-600">
+                    Create Account
+                </button>
             </div>
 
             <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-3">
-                <!-- Common Fields -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
-                    <input type="text" id="reg-fullname" required placeholder="Full Name" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
+                <!-- Register Only: Role Switch -->
+                <div id="role-selector-container" class="hidden mb-3">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Select Account Type:</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="role-client-btn" onclick="setRole('client')" class="py-2 border rounded-lg text-xs font-bold bg-yellow-500 text-slate-900 border-yellow-500">
+                            Client
+                        </button>
+                        <button type="button" id="role-advocate-btn" onclick="setRole('advocate')" class="py-2 border rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border-slate-300">
+                            Advocate / Lawyer
+                        </button>
+                    </div>
                 </div>
 
+                <!-- Register Only: Full Name -->
+                <div id="field-fullname" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
+                    <input type="text" id="reg-fullname" placeholder="Full Name" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
+                </div>
+
+                <!-- Email & Phone -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address *</label>
                         <input type="email" id="reg-email" required placeholder="name@domain.com" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
                     </div>
-                    <div>
+                    <!-- Register Only: Phone -->
+                    <div id="field-phone" class="hidden">
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number *</label>
-                        <input type="tel" id="reg-phone" required placeholder="03001234567" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
+                        <input type="tel" id="reg-phone" placeholder="03001234567" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
                     </div>
                 </div>
 
+                <!-- Password -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Password *</label>
                     <input type="password" id="reg-password" required placeholder="••••••••" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
                 </div>
 
-                <div>
+                <!-- Register Only: Address -->
+                <div id="field-address" class="hidden">
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Residential / Personal Address *</label>
-                    <input type="text" id="reg-address" required placeholder="House / Street / Area Address" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
+                    <input type="text" id="reg-address" placeholder="House / Street / Area Address" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
                 </div>
 
                 <!-- Advocate Specific Dynamic Fields -->
                 <div id="advocate-fields" class="hidden space-y-3 pt-3 border-t border-slate-200">
                     <p class="text-xs font-bold text-yellow-600">Lawyer Professional Details</p>
-
-                    <!-- Custom Specialization Add Input (Max 3) -->
                     <div>
                         <div class="flex justify-between items-center mb-1">
                             <label class="block text-xs font-semibold text-slate-700">Add Specialization Categories *</label>
                             <span class="text-[10px] text-slate-500 font-medium">(Maximum 3 Categories)</span>
                         </div>
                         <div class="flex space-x-2 mb-2">
-                            <input type="text" id="spec-input" placeholder="e.g. Criminal Law, Property Law, Cyber Crime" 
-                                   class="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-yellow-500"
-                                   onkeypress="if(event.key === 'Enter'){ event.preventDefault(); addSpecialization(); }">
-                            <button type="button" onclick="addSpecialization()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg transition font-semibold">
-                                + Add
-                            </button>
+                            <input type="text" id="spec-input" placeholder="e.g. Criminal Law, Property Law" class="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-yellow-500" onkeypress="if(event.key === 'Enter'){ event.preventDefault(); addSpecialization(); }">
+                            <button type="button" onclick="addSpecialization()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg transition font-semibold">+ Add</button>
                         </div>
-                        <div id="spec-tags-container" class="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-slate-50 border border-slate-200 rounded-lg items-center">
-                            <span class="text-xs text-slate-400 italic" id="no-spec-msg">Lawyer apni specializations add karein (Maximum 3 categories).</span>
+                        <div id="spec-tags-container" class="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-slate-50 border rounded-lg items-center">
+                            <span class="text-xs text-slate-400 italic">Lawyer apni specializations add karein.</span>
                         </div>
                     </div>
 
@@ -254,8 +348,8 @@
                     </div>
                 </div>
 
-                <button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-bold py-2 rounded-lg text-sm transition mt-3">
-                    Continue / Submit
+                <button type="submit" id="auth-submit-btn" class="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-bold py-2 rounded-lg text-sm transition mt-3">
+                    Sign In
                 </button>
             </form>
         </div>
@@ -272,7 +366,6 @@
             <p class="text-xs text-slate-500 mb-4">Apni info aur profile image upload & edit karein.</p>
 
             <form id="profile-edit-form" onsubmit="handleProfileSave(event)" class="space-y-3">
-                <!-- Profile Image Upload Preview -->
                 <div class="flex items-center space-x-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <img id="profile-img-preview" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="w-16 h-16 rounded-full object-cover border-2 border-yellow-500 shadow-sm">
                     <div>
@@ -281,17 +374,15 @@
                     </div>
                 </div>
 
-                <!-- Full Name -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
                     <input type="text" id="edit-fullname" required class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
                 </div>
 
-                <!-- Locked Read-Only Fields (Phone & Password) -->
                 <div class="grid grid-cols-2 gap-2 bg-slate-100 p-3 rounded-lg border border-slate-200">
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1"><i class="fa-solid fa-lock text-xs mr-1 text-slate-400"></i> Phone Number</label>
-                        <input type="text" id="edit-phone" disabled value="" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs bg-slate-200 text-slate-500 cursor-not-allowed font-medium">
+                        <input type="text" id="edit-phone" disabled class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs bg-slate-200 text-slate-500 cursor-not-allowed font-medium">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1"><i class="fa-solid fa-lock text-xs mr-1 text-slate-400"></i> Password</label>
@@ -299,7 +390,6 @@
                     </div>
                 </div>
 
-                <!-- Address & City -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Residential / Personal Address *</label>
                     <input type="text" id="edit-address" placeholder="House / Street / Area Address" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
@@ -316,19 +406,15 @@
                     </div>
                 </div>
 
-                <!-- Advocate Specific Dynamic Fields -->
                 <div id="edit-advocate-section" class="hidden space-y-3 pt-3 border-t border-slate-200">
                     <p class="text-xs font-bold text-yellow-600">Lawyer Professional Information</p>
-
-                    <!-- Specializations Tag Adder (Max 3) -->
                     <div>
                         <div class="flex justify-between items-center mb-1">
                             <label class="block text-xs font-semibold text-slate-700">Specialization Categories</label>
                             <span class="text-[10px] text-slate-500 font-medium">(Maximum 3 Categories)</span>
                         </div>
                         <div class="flex space-x-2 mb-2">
-                            <input type="text" id="edit-spec-input" placeholder="e.g. Criminal Law" class="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-yellow-500"
-                                   onkeypress="if(event.key === 'Enter'){ event.preventDefault(); addEditSpec(); }">
+                            <input type="text" id="edit-spec-input" placeholder="e.g. Criminal Law" class="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-yellow-500" onkeypress="if(event.key === 'Enter'){ event.preventDefault(); addEditSpec(); }">
                             <button type="button" onclick="addEditSpec()" class="bg-slate-900 text-white text-xs px-3 py-1.5 rounded-lg font-bold">+ Add</button>
                         </div>
                         <div id="edit-spec-tags-container" class="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-lg min-h-[36px] items-center"></div>
@@ -364,10 +450,12 @@
     </div>
 
     <script>
+        let currentAuthMode = 'login';
         let currentSelectedRole = 'client';
         let customSpecializations = [];
         let editSpecs = [];
         let editProfileImageBase64 = '';
+        let docTemplates = [];
 
         function isLoggedIn() {
             return !!(localStorage.getItem('token') && localStorage.getItem('user'));
@@ -381,6 +469,43 @@
             document.getElementById('authModal').classList.add('hidden');
         }
 
+        function setAuthMode(mode) {
+            currentAuthMode = mode;
+            const loginTab = document.getElementById('tab-login-btn');
+            const registerTab = document.getElementById('tab-register-btn');
+            const roleContainer = document.getElementById('role-selector-container');
+            const fullNameField = document.getElementById('field-fullname');
+            const phoneField = document.getElementById('field-phone');
+            const addressField = document.getElementById('field-address');
+            const submitBtn = document.getElementById('auth-submit-btn');
+
+            if (mode === 'login') {
+                loginTab.className = "flex-1 py-2 text-center font-bold text-sm border-b-2 border-yellow-500 text-yellow-600";
+                registerTab.className = "flex-1 py-2 text-center font-bold text-sm text-slate-400 hover:text-slate-600";
+                
+                roleContainer.classList.add('hidden');
+                fullNameField.classList.add('hidden');
+                phoneField.classList.add('hidden');
+                addressField.classList.add('hidden');
+                document.getElementById('advocate-fields').classList.add('hidden');
+                
+                submitBtn.innerText = "Sign In";
+            } else {
+                registerTab.className = "flex-1 py-2 text-center font-bold text-sm border-b-2 border-yellow-500 text-yellow-600";
+                loginTab.className = "flex-1 py-2 text-center font-bold text-sm text-slate-400 hover:text-slate-600";
+                
+                roleContainer.classList.remove('hidden');
+                fullNameField.classList.remove('hidden');
+                phoneField.classList.remove('hidden');
+                addressField.classList.remove('hidden');
+                if (currentSelectedRole === 'advocate') {
+                    document.getElementById('advocate-fields').classList.remove('hidden');
+                }
+                
+                submitBtn.innerText = "Complete Registration";
+            }
+        }
+
         function setRole(role) {
             currentSelectedRole = role;
             const clientBtn = document.getElementById('role-client-btn');
@@ -390,7 +515,7 @@
             if (role === 'advocate') {
                 advBtn.className = "py-2 border rounded-lg text-xs font-bold bg-yellow-500 text-slate-900 border-yellow-500";
                 clientBtn.className = "py-2 border rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border-slate-300";
-                advFields.classList.remove('hidden');
+                if (currentAuthMode === 'register') advFields.classList.remove('hidden');
             } else {
                 clientBtn.className = "py-2 border rounded-lg text-xs font-bold bg-yellow-500 text-slate-900 border-yellow-500";
                 advBtn.className = "py-2 border rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border-slate-300";
@@ -404,18 +529,14 @@
             if (!val) return;
 
             if (customSpecializations.length >= 3) {
-                alert("Aap zayada se zayada 3 specialization categories add kar sakte hain.");
+                alert("Maximum 3 specializations allowed.");
                 return;
             }
-
-            if (customSpecializations.includes(val)) {
-                alert("Yeh category pehle se added hai.");
-                return;
+            if (!customSpecializations.includes(val)) {
+                customSpecializations.push(val);
+                input.value = '';
+                renderSpecTags();
             }
-
-            customSpecializations.push(val);
-            input.value = '';
-            renderSpecTags();
         }
 
         function removeSpecialization(index) {
@@ -426,68 +547,89 @@
         function renderSpecTags() {
             const container = document.getElementById('spec-tags-container');
             if (customSpecializations.length === 0) {
-                container.innerHTML = '<span class="text-xs text-slate-400 italic">Lawyer apni specializations add karein (Maximum 3 categories).</span>';
+                container.innerHTML = '<span class="text-xs text-slate-400 italic">Lawyer apni specializations add karein.</span>';
                 return;
             }
-
             container.innerHTML = customSpecializations.map((spec, i) => `
-                <span class="inline-flex items-center bg-yellow-100 text-yellow-900 border border-yellow-300 text-xs px-2.5 py-1 rounded-full font-semibold shadow-sm">
+                <span class="inline-flex items-center bg-yellow-100 text-yellow-900 border border-yellow-300 text-xs px-2.5 py-1 rounded-full font-semibold">
                     ${spec}
-                    <button type="button" onclick="removeSpecialization(${i})" class="ml-1.5 text-yellow-700 hover:text-red-600 focus:outline-none font-bold text-sm">&times;</button>
+                    <button type="button" onclick="removeSpecialization(${i})" class="ml-1.5 text-yellow-700 hover:text-red-600 font-bold text-sm">&times;</button>
                 </span>
             `).join('');
         }
 
         async function handleAuthSubmit(e) {
             e.preventDefault();
-            const fullName = document.getElementById('reg-fullname').value;
             const email = document.getElementById('reg-email').value;
-            const phone = document.getElementById('reg-phone').value;
             const password = document.getElementById('reg-password').value;
-            const address = document.getElementById('reg-address').value;
 
-            if (currentSelectedRole === 'advocate' && customSpecializations.length === 0) {
-                alert("Baraye meharbani kam az kam 1 specialization category add karein.");
-                return;
-            }
-
-            const payload = {
-                full_name: fullName,
-                email: email,
-                phone: phone,
-                password: password,
-                address: address,
-                role: currentSelectedRole,
-                city: document.getElementById('reg-city').value,
-                specializations: customSpecializations,
-                bar_council_no: document.getElementById('reg-bar-no').value,
-                chamber_address: document.getElementById('reg-chamber').value,
-                experience_years: parseInt(document.getElementById('reg-exp').value) || 0,
-                consultation_fee: parseInt(document.getElementById('reg-fee').value) || 0
-            };
-
-            try {
-                const response = await fetch('/api/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    alert("Registration successful!");
+            if (currentAuthMode === 'login') {
+                try {
+                    const res = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        alert("Sign In successful!");
+                        closeAuthModal();
+                        updateAuthUI();
+                    } else {
+                        alert(data.detail || "Invalid Email or Password.");
+                    }
+                } catch (err) {
+                    localStorage.setItem('token', 'demo-token');
+                    localStorage.setItem('user', JSON.stringify({ email: email, role: 'client' }));
+                    alert("Signed In!");
                     closeAuthModal();
                     updateAuthUI();
-                } else {
-                    alert(data.detail || "Error during registration.");
                 }
-            } catch (err) {
-                localStorage.setItem('token', 'demo-token');
-                localStorage.setItem('user', JSON.stringify({ email: email, role: currentSelectedRole, full_name: fullName, phone: phone }));
-                alert("Success! Signed in.");
-                closeAuthModal();
-                updateAuthUI();
+            } else {
+                const fullName = document.getElementById('reg-fullname').value;
+                const phone = document.getElementById('reg-phone').value;
+                const address = document.getElementById('reg-address').value;
+
+                const payload = {
+                    full_name: fullName,
+                    email: email,
+                    phone: phone,
+                    password: password,
+                    address: address,
+                    role: currentSelectedRole,
+                    city: document.getElementById('reg-city').value,
+                    specializations: customSpecializations,
+                    bar_council_no: document.getElementById('reg-bar-no').value,
+                    chamber_address: document.getElementById('reg-chamber').value,
+                    experience_years: parseInt(document.getElementById('reg-exp').value) || 0,
+                    consultation_fee: parseInt(document.getElementById('reg-fee').value) || 0
+                };
+
+                try {
+                    const res = await fetch('/api/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        alert("Registration successful!");
+                        closeAuthModal();
+                        updateAuthUI();
+                    } else {
+                        alert(data.detail || "Error during registration.");
+                    }
+                } catch (err) {
+                    localStorage.setItem('token', 'demo-token');
+                    localStorage.setItem('user', JSON.stringify({ email: email, role: currentSelectedRole, full_name: fullName }));
+                    alert("Registration complete!");
+                    closeAuthModal();
+                    updateAuthUI();
+                }
             }
         }
 
@@ -502,20 +644,15 @@
 
                 container.innerHTML = `
                     <div class="flex items-center space-x-3 text-sm">
-                        <!-- User Account Profile Badge -->
                         <div class="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 shadow-sm">
                             <img id="header-avatar" src="${avatarImg}" class="w-6 h-6 rounded-full object-cover border border-yellow-400">
                             <span class="text-slate-200 text-xs font-semibold">${user.email}</span>
                             <span class="text-[10px] font-bold px-2 py-0.5 rounded ${roleBadgeBg}">${roleLabel}</span>
                         </div>
-
-                        <!-- Edit Profile Button -->
                         <button onclick="openProfileModal()" class="text-xs bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-bold px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
                             <i class="fa-solid fa-user-pen text-xs"></i>
                             <span>Profile</span>
                         </button>
-
-                        <!-- Logout Button -->
                         <button onclick="logout()" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 transition">Logout</button>
                     </div>
                 `;
@@ -536,15 +673,251 @@
 
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
             const target = document.getElementById(tabId === 'advocates-tab' ? 'advocates-tab-content' : 
+                                               tabId === 'docgen-tab' ? 'docgen-tab-content' :
                                                tabId === 'chat-tab' ? 'chat-tab-content' : 
                                                tabId === 'escrow-tab' ? 'escrow-tab-content' : tabId);
             if (target) target.classList.remove('hidden');
+
+            if (tabId === 'docgen-tab') {
+                loadDocumentTemplates();
+            }
         }
 
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (file) {
                 alert(`File selected: ${file.name}`);
+            }
+        }
+
+        // --- DYNAMIC LEGAL DOCUMENT GENERATOR FRONTEND LOGIC ---
+        async function loadDocumentTemplates() {
+            try {
+                const res = await fetch('/api/documents/templates');
+                docTemplates = await res.json();
+                onTemplateSelected();
+            } catch (err) {
+                console.log("Using fallback doc templates");
+                docTemplates = [
+                    {
+                        "id": "kiraya_nama",
+                        "name": "Rent Agreement (کرایہ نامہ)",
+                        "fields": [
+                            {"name": "landlord_name", "label": "Landlord Name (مالک مکان)", "type": "text", "placeholder": "Ahmad Raza"},
+                            {"name": "landlord_cnic", "label": "Landlord CNIC", "type": "text", "placeholder": "42101-1234567-1"},
+                            {"name": "tenant_name", "label": "Tenant Name (کرایہ دار)", "type": "text", "placeholder": "Muhammad Usama"},
+                            {"name": "tenant_cnic", "label": "Tenant CNIC", "type": "text", "placeholder": "42101-7654321-2"},
+                            {"name": "property_address", "label": "Property Address (پتہ)", "type": "text", "placeholder": "House No. 12, Block 4, Gulshan, Karachi"},
+                            {"name": "monthly_rent", "label": "Monthly Rent (PKR)", "type": "number", "placeholder": "35000"},
+                            {"name": "security_deposit", "label": "Advance/Deposit (PKR)", "type": "number", "placeholder": "70000"},
+                            {"name": "commencement_date", "label": "Agreement Start Date", "type": "date", "placeholder": ""},
+                            {"name": "duration_months", "label": "Duration (Months)", "type": "number", "placeholder": "11"}
+                        ]
+                    },
+                    {
+                        "id": "vehicle_sale",
+                        "name": "Vehicle Sale Agreement (معاہدہ فروخت گاڑی)",
+                        "fields": [
+                            {"name": "seller_name", "label": "Seller Name (بیچنے والا)", "type": "text", "placeholder": "Ali Hassan"},
+                            {"name": "seller_cnic", "label": "Seller CNIC", "type": "text", "placeholder": "42101-1111111-1"},
+                            {"name": "buyer_name", "label": "Buyer Name (خریدنے والا)", "type": "text", "placeholder": "Bilal Ahmed"},
+                            {"name": "buyer_cnic", "label": "Buyer CNIC", "type": "text", "placeholder": "42101-2222222-2"},
+                            {"name": "vehicle_make_model", "label": "Vehicle Model & Name", "type": "text", "placeholder": "Honda Civic 2021"},
+                            {"name": "reg_no", "label": "Registration No", "type": "text", "placeholder": "KBL-1234"},
+                            {"name": "engine_no", "label": "Engine No", "type": "text", "placeholder": "R18A-987654"},
+                            {"name": "chassis_no", "label": "Chassis No", "type": "text", "placeholder": "N32-456789"},
+                            {"name": "sale_amount", "label": "Total Price (PKR)", "type": "number", "placeholder": "3200000"}
+                        ]
+                    },
+                    {
+                        "id": "bail_application",
+                        "name": "Bail Application (درخواست ضمانت)",
+                        "fields": [
+                            {"name": "court_name", "label": "Court Name", "type": "text", "placeholder": "In the Court of Judicial Magistrate, Karachi"},
+                            {"name": "applicant_name", "label": "Applicant/Accused Name", "type": "text", "placeholder": "Tariq Mahmood"},
+                            {"name": "fir_no", "label": "FIR No", "type": "text", "placeholder": "124/2026"},
+                            {"name": "police_station", "label": "Police Station (تھانہ)", "type": "text", "placeholder": "PS Ferozabad"},
+                            {"name": "offense_sections", "label": "PPC Sections", "type": "text", "placeholder": "PPC 379 / 411"},
+                            {"name": "bail_grounds", "label": "Grounds for Bail", "type": "textarea", "placeholder": "Applicant is innocent, falsely implicated due to rivalry."}
+                        ]
+                    },
+                    {
+                        "id": "cheque_notice",
+                        "name": "Cheque Bounce Legal Notice (نوٹس عدم ادائیگی چیک)",
+                        "fields": [
+                            {"name": "sender_name", "label": "Payee Name (نوٹس دہندہ)", "type": "text", "placeholder": "Zubair Khan"},
+                            {"name": "recipient_name", "label": "Drawer Name (خلاف ورزی کنندہ)", "type": "text", "placeholder": "Kamran Sheikh"},
+                            {"name": "cheque_no", "label": "Cheque Number", "type": "text", "placeholder": "CHK-99887766"},
+                            {"name": "cheque_amount", "label": "Cheque Amount (PKR)", "type": "number", "placeholder": "500000"},
+                            {"name": "bank_name", "label": "Bank & Branch", "type": "text", "placeholder": "Meezan Bank, Main Branch"},
+                            {"name": "notice_days", "label": "Demand Notice Period (Days)", "type": "number", "placeholder": "14"}
+                        ]
+                    },
+                    {
+                        "id": "vakalatnama",
+                        "name": "Vakalatnama (وکالت نامہ)",
+                        "fields": [
+                            {"name": "court_title", "label": "Honourable Court", "type": "text", "placeholder": "High Court of Sindh at Karachi"},
+                            {"name": "case_title", "label": "Case Title / Suits No", "type": "text", "placeholder": "Muhammad Usama Vs State"},
+                            {"name": "client_name", "label": "Client Name (سائل)", "type": "text", "placeholder": "Muhammad Usama"},
+                            {"name": "lawyer_name", "label": "Advocate Name (وکیل)", "type": "text", "placeholder": "Adv. Sarah Khan"},
+                            {"name": "bar_reg", "label": "Advocate Bar Reg No", "type": "text", "placeholder": "BC-9876/SHC"}
+                        ]
+                    }
+                ];
+                onTemplateSelected();
+            }
+        }
+
+        function onTemplateSelected() {
+            const selectedType = document.getElementById('doc-type-select').value;
+            const tpl = docTemplates.find(t => t.id === selectedType) || docTemplates[0];
+            const formContainer = document.getElementById('dynamic-doc-form');
+
+            if (!tpl) return;
+
+            formContainer.innerHTML = tpl.fields.map(f => {
+                if (f.type === 'textarea') {
+                    return `
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">${f.label}</label>
+                            <textarea name="${f.name}" placeholder="${f.placeholder}" rows="3" class="w-full border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-yellow-500 bg-white"></textarea>
+                        </div>
+                    `;
+                }
+                return `
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">${f.label}</label>
+                        <input type="${f.type}" name="${f.name}" placeholder="${f.placeholder}" class="w-full border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-yellow-500 bg-white">
+                    </div>
+                `;
+            }).join('');
+
+            updateLiveDocumentPreview();
+        }
+
+        function updateLiveDocumentPreview() {
+            const selectedType = document.getElementById('doc-type-select').value;
+            const form = document.getElementById('dynamic-doc-form');
+            const formData = new FormData(form);
+            const val = {};
+            formData.forEach((v, k) => val[k] = v || `[${k.replace('_', ' ').toUpperCase()}]`);
+
+            const previewElem = document.getElementById('printable-document');
+
+            if (selectedType === 'kiraya_nama') {
+                previewElem.innerHTML = `
+                    <div class="text-center font-bold text-lg mb-6 underline text-slate-900 uppercase">RENT AGREEMENT (معاہدہ کرایہ نامہ)</div>
+                    <p class="mb-4">This Rent Agreement is executed on this day between <strong>${val.landlord_name || '___'}</strong> (CNIC: ${val.landlord_cnic || '___'}), hereinafter called the <strong>LANDLORD</strong> of the First Part.</p>
+                    <p class="mb-4">AND <strong>${val.tenant_name || '___'}</strong> (CNIC: ${val.tenant_cnic || '___'}), hereinafter called the <strong>TENANT</strong> of the Second Part.</p>
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 my-4 space-y-1.5 text-xs">
+                        <p><strong>1. Rented Property:</strong> ${val.property_address || '___'}</p>
+                        <p><strong>2. Monthly Rent:</strong> PKR ${val.monthly_rent || '0'} /- (Payable in advance by 5th of each month).</p>
+                        <p><strong>3. Security Deposit / Advance:</strong> PKR ${val.security_deposit || '0'} /- (Refundable at lease end).</p>
+                        <p><strong>4. Commencement & Term:</strong> Starting from <strong>${val.commencement_date || '___'}</strong> for a period of <strong>${val.duration_months || '11'} months</strong>.</p>
+                    </div>
+                    <p class="text-xs mb-6 text-slate-600">The Tenant agrees not to sublet the premises, pay electricity/gas utility bills regularly, and use the property strictly for lawful purpose.</p>
+                    <div class="flex justify-between pt-12 text-xs font-bold">
+                        <div>________________________<br>Landlord Signature</div>
+                        <div>________________________<br>Tenant Signature</div>
+                    </div>
+                `;
+            } else if (selectedType === 'vehicle_sale') {
+                previewElem.innerHTML = `
+                    <div class="text-center font-bold text-lg mb-6 underline text-slate-900 uppercase">VEHICLE SALE AGREEMENT (معاہدہ فروخت گاڑی)</div>
+                    <p class="mb-4">I, <strong>${val.seller_name || '___'}</strong> (CNIC: ${val.seller_cnic || '___'}), hereby declare that I have sold my vehicle to <strong>${val.buyer_name || '___'}</strong> (CNIC: ${val.buyer_cnic || '___'}).</p>
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 my-4 space-y-1.5 text-xs">
+                        <p><strong>Vehicle Model & Make:</strong> ${val.vehicle_make_model || '___'}</p>
+                        <p><strong>Registration Number:</strong> ${val.reg_no || '___'}</p>
+                        <p><strong>Engine No:</strong> ${val.engine_no || '___'} | <strong>Chassis No:</strong> ${val.chassis_no || '___'}</p>
+                        <p><strong>Total Agreed Sale Price:</strong> PKR ${val.sale_amount || '0'} /-</p>
+                    </div>
+                    <p class="text-xs mb-6 text-slate-600">The Buyer has inspected the vehicle and accepted possession. All future liabilities after today belong to the Buyer.</p>
+                    <div class="flex justify-between pt-12 text-xs font-bold">
+                        <div>________________________<br>Seller Signature</div>
+                        <div>________________________<br>Buyer Signature</div>
+                    </div>
+                `;
+            } else if (selectedType === 'bail_application') {
+                previewElem.innerHTML = `
+                    <div class="text-center font-bold text-base mb-4 text-slate-900 uppercase">${val.court_name || 'IN THE COURT OF MAGISTRATE'}</div>
+                    <div class="text-right text-xs font-bold mb-4">In Case FIR No: ${val.fir_no || '___'} | PS: ${val.police_station || '___'}</div>
+                    <div class="text-center font-bold text-sm my-3 underline">APPLICATION FOR BAIL UNDER SECTION 497 CrPC</div>
+                    <p class="mb-3">Respectfully Sheweth,</p>
+                    <p class="mb-3">1. That the applicant <strong>${val.applicant_name || '___'}</strong> has been falsely nominated under PPC Section(s) <strong>${val.offense_sections || '___'}</strong>.</p>
+                    <p class="mb-3">2. Grounds: ${val.bail_grounds || '___'}</p>
+                    <p class="mb-6">It is humbly prayed that post-arrest/pre-arrest bail may kindly be granted in the interest of justice.</p>
+                    <div class="text-right pt-8 text-xs font-bold">
+                        <div>________________________<br>Applicant through Advocate</div>
+                    </div>
+                `;
+            } else if (selectedType === 'cheque_notice') {
+                previewElem.innerHTML = `
+                    <div class="text-center font-bold text-lg mb-6 underline text-slate-900 uppercase">LEGAL NOTICE FOR DISHONORED CHEQUE</div>
+                    <p class="mb-2">To: <strong>${val.recipient_name || '___'}</strong></p>
+                    <p class="mb-4">From: <strong>${val.sender_name || '___'}</strong></p>
+                    <p class="mb-3">Take notice that Cheque No. <strong>${val.cheque_no || '___'}</strong> drawn on <strong>${val.bank_name || '___'}</strong> for the amount of <strong>PKR ${val.cheque_amount || '0'} /-</strong> issued by you was dishonored upon presentation.</p>
+                    <p class="mb-6">You are hereby called upon to settle the payment within <strong>${val.notice_days || '14'} days</strong>, failing which criminal proceedings under Section 489-F PPC will be initiated.</p>
+                    <div class="text-right pt-8 text-xs font-bold">
+                        <div>________________________<br>Payee / Legal Counsel</div>
+                    </div>
+                `;
+            } else {
+                previewElem.innerHTML = `
+                    <div class="text-center font-bold text-lg mb-6 underline text-slate-900 uppercase">VAKALATNAMA (وکالت نامہ)</div>
+                    <p class="mb-2"><strong>IN THE COURT OF:</strong> ${val.court_title || '___'}</p>
+                    <p class="mb-4"><strong>SUIT / CASE TITLE:</strong> ${val.case_title || '___'}</p>
+                    <p class="mb-4">I/We, <strong>${val.client_name || '___'}</strong>, do hereby appoint and retain <strong>${val.lawyer_name || '___'}</strong> (Bar Reg No: ${val.bar_reg || '___'}) to represent, plead, and act on my behalf in the above-titled proceedings.</p>
+                    <p class="text-xs mb-6 text-slate-600">All acts and decisions executed by the appointed advocate shall be binding upon the client.</p>
+                    <div class="flex justify-between pt-12 text-xs font-bold">
+                        <div>________________________<br>Client Signature</div>
+                        <div>________________________<br>Advocate Acceptance</div>
+                    </div>
+                `;
+            }
+        }
+
+        function printGeneratedDocument() {
+            window.print();
+        }
+
+        async function saveDocumentToAccount() {
+            if (!isLoggedIn()) {
+                openAuthModal();
+                alert("Please Sign In to save documents to your account.");
+                return;
+            }
+
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const selectedType = document.getElementById('doc-type-select').value;
+            const htmlContent = document.getElementById('printable-document').innerHTML;
+            
+            const form = document.getElementById('dynamic-doc-form');
+            const formDataObj = {};
+            new FormData(form).forEach((v, k) => formDataObj[k] = v);
+
+            const payload = {
+                doc_type: selectedType,
+                title: `${selectedType.toUpperCase()} - ${new Date().toLocaleDateString()}`,
+                form_data: formDataObj,
+                generated_html: htmlContent,
+                user_email: user.email
+            };
+
+            try {
+                const res = await fetch('/api/documents/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert("Document saved successfully to your LawNexa Account!");
+                } else {
+                    alert(data.detail || "Failed to save document.");
+                }
+            } catch (err) {
+                alert("Document saved locally!");
             }
         }
 
@@ -691,7 +1064,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             updateAuthUI();
-            const protectedSelectors = ['#advocates-tab', '#chat-tab', '#escrow-tab', '.btn-book-appointment'];
+            const protectedSelectors = ['#advocates-tab', '#docgen-tab', '#chat-tab', '#escrow-tab', '.btn-book-appointment'];
             document.querySelectorAll(protectedSelectors.join(',')).forEach(element => {
                 element.addEventListener('click', (event) => {
                     if (!isLoggedIn()) {

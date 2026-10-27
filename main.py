@@ -2,12 +2,12 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import models, schemas, auth, database, json
 
 models.Base.metadata.create_all(bind=database.engine)
 
-app = FastAPI(title="LawNexa API", version="2.5.0")
+app = FastAPI(title="LawNexa API", version="2.7.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -74,7 +74,7 @@ def register_user(user_data: schemas.UserCreate, db: Session = Depends(database.
 def login_user(user_data: schemas.UserLogin, db: Session = Depends(database.get_db)):
     user = db.query(models.User).filter(models.User.email == user_data.email).first()
     if not user or not auth.verify_password(user_data.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="Invalid email address or password.")
 
     token = auth.create_access_token(data={"sub": user.email, "role": user.role})
     return {
@@ -141,6 +141,120 @@ def update_user_profile(email: str, data: schemas.UserProfileUpdate, db: Session
     db.refresh(user)
 
     return {"status": "success", "message": "Profile updated successfully"}
+
+# --- LEGAL DOCUMENTS API ENDPOINTS ---
+
+@app.get("/api/documents/templates")
+def get_document_templates():
+    return [
+        {
+            "id": "kiraya_nama",
+            "name": "Rent Agreement (کرایہ نامہ)",
+            "description": "Standard tenancy agreement for residential/commercial property in Pakistan.",
+            "fields": [
+                {"name": "landlord_name", "label": "Landlord Name (مالک مکان)", "type": "text", "placeholder": "Ahmad Raza"},
+                {"name": "landlord_cnic", "label": "Landlord CNIC", "type": "text", "placeholder": "42101-1234567-1"},
+                {"name": "tenant_name", "label": "Tenant Name (کرایہ دار)", "type": "text", "placeholder": "Muhammad Usama"},
+                {"name": "tenant_cnic", "label": "Tenant CNIC", "type": "text", "placeholder": "42101-7654321-2"},
+                {"name": "property_address", "label": "Property Address (پتہ)", "type": "text", "placeholder": "House No. 12, Block 4, Gulshan, Karachi"},
+                {"name": "monthly_rent", "label": "Monthly Rent (PKR)", "type": "number", "placeholder": "35000"},
+                {"name": "security_deposit", "label": "Advance/Deposit (PKR)", "type": "number", "placeholder": "70000"},
+                {"name": "commencement_date", "label": "Agreement Start Date", "type": "date", "placeholder": ""},
+                {"name": "duration_months", "label": "Duration (Months)", "type": "number", "placeholder": "11"}
+            ]
+        },
+        {
+            "id": "vehicle_sale",
+            "name": "Vehicle Sale Agreement (معاہدہ فروخت گاڑی)",
+            "description": "Legally binding agreement for selling or purchasing cars, bikes, or commercial vehicles.",
+            "fields": [
+                {"name": "seller_name", "label": "Seller Name (بیچنے والا)", "type": "text", "placeholder": "Ali Hassan"},
+                {"name": "seller_cnic", "label": "Seller CNIC", "type": "text", "placeholder": "42101-1111111-1"},
+                {"name": "buyer_name", "label": "Buyer Name (خریدنے والا)", "type": "text", "placeholder": "Bilal Ahmed"},
+                {"name": "buyer_cnic", "label": "Buyer CNIC", "type": "text", "placeholder": "42101-2222222-2"},
+                {"name": "vehicle_make_model", "label": "Vehicle Model & Name", "type": "text", "placeholder": "Honda Civic 2021"},
+                {"name": "reg_no", "label": "Registration No", "type": "text", "placeholder": "KBL-1234"},
+                {"name": "engine_no", "label": "Engine No", "type": "text", "placeholder": "R18A-987654"},
+                {"name": "chassis_no", "label": "Chassis No", "type": "text", "placeholder": "N32-456789"},
+                {"name": "sale_amount", "label": "Total Price (PKR)", "type": "number", "placeholder": "3200000"}
+            ]
+        },
+        {
+            "id": "bail_application",
+            "name": "Bail Application (درخواست ضمانت)",
+            "description": "Criminal bail petition format under Criminal Procedure Code (CrPC).",
+            "fields": [
+                {"name": "court_name", "label": "Court Name", "type": "text", "placeholder": "In the Court of Judicial Magistrate, Karachi"},
+                {"name": "applicant_name", "label": "Applicant/Accused Name", "type": "text", "placeholder": "Tariq Mahmood"},
+                {"name": "fir_no", "label": "FIR No", "type": "text", "placeholder": "124/2026"},
+                {"name": "police_station", "label": "Police Station (تھانہ)", "type": "text", "placeholder": "PS Ferozabad"},
+                {"name": "offense_sections", "label": "PPC Sections", "type": "text", "placeholder": "PPC 379 / 411"},
+                {"name": "bail_grounds", "label": "Grounds for Bail", "type": "textarea", "placeholder": "Applicant is innocent, falsely implicated due to rivalry, ready to furnish surety bonds."}
+            ]
+        },
+        {
+            "id": "cheque_notice",
+            "name": "Cheque Bounce Legal Notice (نوٹس عدم ادائیگی چیک)",
+            "description": "Legal notice for dishonored cheque under Section 489-F PPC & Negotiable Instruments Act.",
+            "fields": [
+                {"name": "sender_name", "label": "Payee Name (نوٹس دہندہ)", "type": "text", "placeholder": "Zubair Khan"},
+                {"name": "recipient_name", "label": "Drawer Name (خلاف ورزی کنندہ)", "type": "text", "placeholder": "Kamran Sheikh"},
+                {"name": "cheque_no", "label": "Cheque Number", "type": "text", "placeholder": "CHK-99887766"},
+                {"name": "cheque_amount", "label": "Cheque Amount (PKR)", "type": "number", "placeholder": "500000"},
+                {"name": "bank_name", "label": "Bank & Branch", "type": "text", "placeholder": "Meezan Bank, Main Branch"},
+                {"name": "notice_days", "label": "Demand Notice Period (Days)", "type": "number", "placeholder": "14"}
+            ]
+        },
+        {
+            "id": "vakalatnama",
+            "name": "Vakalatnama (وکالت نامہ)",
+            "description": "Official legal power of attorney authorizing advocate to represent client in court.",
+            "fields": [
+                {"name": "court_title", "label": "Honourable Court", "type": "text", "placeholder": "High Court of Sindh at Karachi"},
+                {"name": "case_title", "label": "Case Title / Suits No", "type": "text", "placeholder": "Muhammad Usama Vs State"},
+                {"name": "client_name", "label": "Client Name (سائل)", "type": "text", "placeholder": "Muhammad Usama"},
+                {"name": "lawyer_name", "label": "Advocate Name (وکیل)", "type": "text", "placeholder": "Adv. Sarah Khan"},
+                {"name": "bar_reg", "label": "Advocate Bar Reg No", "type": "text", "placeholder": "BC-9876/SHC"}
+            ]
+        }
+    ]
+
+@app.post("/api/documents/save")
+def save_user_document(req: schemas.DocumentSaveRequest, db: Session = Depends(database.get_db)):
+    user = db.query(models.User).filter(models.User.email == req.user_email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User profile not found")
+
+    new_doc = models.UserDocument(
+        user_id=user.id,
+        doc_type=req.doc_type,
+        title=req.title,
+        form_data=json.dumps(req.form_data),
+        generated_html=req.generated_html
+    )
+    db.add(new_doc)
+    db.commit()
+    db.refresh(new_doc)
+
+    return {"status": "success", "message": "Document saved successfully!", "document_id": new_doc.id}
+
+@app.get("/api/documents/my-documents")
+def get_my_documents(email: str, db: Session = Depends(database.get_db)):
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    docs = db.query(models.UserDocument).filter(models.UserDocument.user_id == user.id).order_by(models.UserDocument.id.desc()).all()
+    return [
+        {
+            "id": d.id,
+            "doc_type": d.doc_type,
+            "title": d.title,
+            "created_at": d.created_at.strftime("%Y-%m-%d %H:%M"),
+            "form_data": json.loads(d.form_data) if d.form_data else {},
+            "generated_html": d.generated_html
+        } for d in docs
+    ]
 
 @app.post("/api/ai-legal-research")
 async def process_legal_research(req: LegalResearchRequest):

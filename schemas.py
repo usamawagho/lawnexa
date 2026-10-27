@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 class UserCreate(BaseModel):
     full_name: str
@@ -29,3 +29,10 @@ class UserProfileUpdate(BaseModel):
     chamber_address: Optional[str] = None
     experience_years: Optional[int] = None
     consultation_fee: Optional[int] = None
+
+class DocumentSaveRequest(BaseModel):
+    doc_type: str
+    title: str
+    form_data: Dict[str, Any]
+    generated_html: str
+    user_email: str

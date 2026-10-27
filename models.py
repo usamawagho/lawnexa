@@ -1,5 +1,7 @@
-from sqlalchemy import Column, Integer, String, Boolean, Text
+from sqlalchemy import Column, Integer, String, Boolean, Text, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from database import Base
+import datetime
 
 class User(Base):
     __tablename__ = "users"
@@ -24,6 +26,8 @@ class User(Base):
     consultation_fee = Column(Integer, nullable=True)
     is_active = Column(Boolean, default=True)
 
+    documents = relationship("UserDocument", back_populates="owner")
+
 class CaseBrief(Base):
     __tablename__ = "case_briefs"
 
@@ -33,3 +37,16 @@ class CaseBrief(Base):
     applicable_laws = Column(Text)
     summary = Column(Text)
     recommended_specialty = Column(String(100))
+
+class UserDocument(Base):
+    __tablename__ = "user_documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    doc_type = Column(String(50), nullable=False) # 'kiraya_nama', 'vehicle_sale', 'bail_app', 'cheque_notice', 'vakalatnama'
+    title = Column(String(200), nullable=False)
+    form_data = Column(Text, nullable=False) # Stored JSON
+    generated_html = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    owner = relationship("User", back_populates="documents")
