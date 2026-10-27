@@ -1,34 +1,183 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LawNexa | Private Admin Portal</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>body{background:#070b13;color:#e5e7eb;font-family:Inter,system-ui,sans-serif}.panel{background:#111827;border:1px solid #263244;border-radius:18px}.gold{color:#fbbf24}.btn{background:#fbbf24;color:#111827;font-weight:800;border-radius:10px;padding:10px 14px}.input{width:100%;background:#080d17;border:1px solid #334155;border-radius:10px;padding:10px;color:#fff}.muted{color:#94a3b8}</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LawNexa — Admin Governance Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    [x-cloak]{display:none!important}
+    body{background:#020617;color:#e2e8f0}
+    .panel{background:#0f172a;border:1px solid #1e293b;border-radius:1rem}
+    .field{width:100%;background:#020617;border:1px solid #334155;border-radius:.65rem;padding:.7rem;color:#f8fafc}
+    .btn{border-radius:.6rem;padding:.55rem .85rem;font-weight:700}
+  </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
-<main class="max-w-7xl mx-auto space-y-6">
-<header class="flex flex-wrap justify-between items-center gap-4"><div><p class="uppercase tracking-[.25em] text-xs gold">Private operations</p><h1 class="text-3xl font-black mt-1">LawNexa <span class="gold">Admin</span></h1><p class="muted text-sm mt-1">Management portal · not linked from the public app</p></div><button id="logout" class="hidden border border-slate-700 rounded-xl px-4 py-2">Sign out</button></header>
-<section id="loginPanel" class="panel max-w-md p-6 space-y-4"><h2 class="text-xl font-bold">Authorized admin sign in</h2><p class="muted text-sm">Use the admin account provisioned through ADMIN_EMAIL / ADMIN_PHONE / ADMIN_PASSWORD environment variables.</p><form id="loginForm" class="space-y-3"><input id="identity" class="input" placeholder="Admin email or phone" required autocomplete="username"><input id="password" type="password" class="input" placeholder="Password" required autocomplete="current-password"><button class="btn w-full">Sign in securely</button></form><p id="loginMessage" class="text-sm text-rose-300"></p></section>
-<section id="dashboard" class="hidden space-y-6">
-<div id="notice" class="hidden panel p-3 text-sm"></div>
-<div id="metrics" class="grid sm:grid-cols-2 lg:grid-cols-5 gap-3"></div>
-<div class="grid lg:grid-cols-2 gap-5">
-<section class="panel p-5 space-y-4"><div><h2 class="text-lg font-bold">Invite a lawyer / corporate contact</h2><p class="muted text-sm">Creates a time-limited invite token. Email/SMS delivery needs a configured provider.</p></div><form id="inviteForm" class="space-y-3"><select id="inviteRole" class="input"><option value="lawyer">Lawyer</option><option value="corporate">Corporate contact</option></select><input id="inviteEmail" type="email" class="input" placeholder="Email (optional)"><input id="invitePhone" class="input" placeholder="Phone (optional)"><button class="btn">Create invitation</button></form><pre id="inviteResult" class="hidden whitespace-pre-wrap break-all text-xs bg-black/30 p-3 rounded-xl"></pre></section>
-<section class="panel p-5 space-y-4"><div><h2 class="text-lg font-bold">Corporate subscriptions</h2><p class="muted text-sm">Assign an approved lawyer as retainer adviser.</p></div><div id="corporateList" class="space-y-3"><p class="muted text-sm">Sign in to load records.</p></div></section>
-</div>
-<section class="panel p-5"><div class="flex justify-between gap-3 items-center mb-4"><div><h2 class="text-lg font-bold">User management</h2><p class="muted text-sm">Private user list. Avoid sharing this screen with unauthorized people.</p></div><button id="refresh" class="border border-slate-700 rounded-xl px-4 py-2">Refresh data</button></div><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="muted text-left"><tr><th class="p-2">User</th><th class="p-2">Role</th><th class="p-2">City</th><th class="p-2">Status</th></tr></thead><tbody id="usersTable"></tbody></table></div></section>
-</section>
+
+<body class="min-h-screen" x-data="adminPortal()" x-init="init()">
+
+<header class="border-b border-slate-800 bg-slate-900/90">
+  <div class="max-w-7xl mx-auto px-4 py-5 flex items-center justify-between">
+    <div>
+      <p class="text-xs uppercase tracking-[.25em] text-amber-400">Restricted Access</p>
+      <h1 class="text-2xl font-black">LAWNEXA <span class="text-amber-400">ADMIN</span></h1>
+    </div>
+    <div class="flex gap-2" x-show="authenticated">
+      <button class="btn bg-amber-400 text-slate-950" @click="refreshAll()">Refresh Data</button>
+      <button class="btn bg-rose-700" @click="logout()">Sign Out</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
+
+  <section x-show="!authenticated" class="panel max-w-lg mx-auto p-6 space-y-4">
+    <h2 class="text-xl font-bold">Administrator Sign In</h2>
+    <p class="text-sm text-slate-400">Restricted access portal for advocate license verifications and governance.</p>
+
+    <form @submit.prevent="login()" class="space-y-3">
+      <label class="block text-sm">
+        Admin Email
+        <input class="field mt-1" type="email" x-model.trim="email" required>
+      </label>
+      <label class="block text-sm">
+        Password
+        <input class="field mt-1" type="password" x-model="password" required>
+      </label>
+      <button class="btn bg-amber-400 text-slate-950 w-full">Sign In</button>
+    </form>
+  </section>
+
+  <section x-show="authenticated" x-cloak class="space-y-6">
+
+    <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div class="panel p-5">
+        <p class="text-sm text-slate-400">Total Registered Clients</p>
+        <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.total_clients"></p>
+      </div>
+      <div class="panel p-5">
+        <p class="text-sm text-slate-400">Verified Advocates</p>
+        <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.total_lawyers"></p>
+      </div>
+      <div class="panel p-5">
+        <p class="text-sm text-slate-400">Pending Bar Verifications</p>
+        <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.pending_lawyers"></p>
+      </div>
+      <div class="panel p-5">
+        <p class="text-sm text-slate-400">Escrow Vault Balance</p>
+        <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.escrow_balance"></p>
+      </div>
+    </div>
+
+    <section class="panel p-5 space-y-4">
+      <div>
+        <h2 class="text-lg font-bold">Pending Advocate Verifications</h2>
+        <p class="text-sm text-slate-400">Approve only after verifying credentials against official Bar Council registers.</p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs uppercase text-slate-400 bg-slate-800">
+            <tr>
+              <th class="p-3">Name</th>
+              <th class="p-3">Bar License No.</th>
+              <th class="p-3">Bar Association</th>
+              <th class="p-3">Jurisdiction</th>
+              <th class="p-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="lawyer in pendingLawyers" :key="lawyer.id">
+              <tr class="border-t border-slate-800">
+                <td class="p-3 font-semibold" x-text="lawyer.name"></td>
+                <td class="p-3 font-mono text-amber-300" x-text="lawyer.license_number || 'Not Provided'"></td>
+                <td class="p-3" x-text="lawyer.bar_association || '—'"></td>
+                <td class="p-3" x-text="lawyer.jurisdiction || 'High Court'"></td>
+                <td class="p-3 space-x-2">
+                  <button class="btn bg-emerald-700" @click="reviewLawyer(lawyer.id, 'approve')">Approve Advocate</button>
+                  <button class="btn bg-rose-700" @click="reviewLawyer(lawyer.id, 'reject')">Reject Application</button>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="pendingLawyers.length === 0">
+              <td colspan="5" class="p-5 text-center text-slate-400">No pending advocate verification requests found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </section>
+
 </main>
+
 <script>
-const API = "https://lawnexa.onrender.com";let token=sessionStorage.getItem('lawnexa_admin_token')||'';
-const $=id=>document.getElementById(id);function msg(t,error=false){$('notice').textContent=t;$('notice').classList.remove('hidden');$('notice').className='panel p-3 text-sm '+(error?'text-rose-300':'text-emerald-300')}
-async function api(path,opts={}){const headers={...(opts.headers||{}),...(token?{Authorization:'Bearer '+token}:{})};const r=await fetch(API+path,{...opts,headers});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||'Request failed');return d}
-$('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginMessage').textContent='';const f=new FormData();f.append('username',$('identity').value.trim());f.append('password',$('password').value);try{const d=await api('/api/v1/auth/token',{method:'POST',body:f});token=d.access_token;sessionStorage.setItem('lawnexa_admin_token',token);await boot()}catch(err){$('loginMessage').textContent=err.message}});
-async function boot(){try{const me=await api('/api/v1/auth/me');if(me.role!=='admin')throw new Error('This portal is restricted to authorized administrators.');$('loginPanel').classList.add('hidden');$('dashboard').classList.remove('hidden');$('logout').classList.remove('hidden');await refreshAll()}catch(e){token='';sessionStorage.removeItem('lawnexa_admin_token');$('loginPanel').classList.remove('hidden');$('dashboard').classList.add('hidden');if(e.message!=='Failed to fetch')$('loginMessage').textContent=e.message}}
-async function refreshAll(){try{const [o,users,corps]=await Promise.all([api('/api/v1/admin/overview'),api('/api/v1/admin/users'),api('/api/v1/admin/corporate')]);$('metrics').innerHTML=Object.entries({'Total users':o.users,'Pending lawyers':o.lawyers_pending,'Corporate plans':o.corporate_subscriptions,'Open questions':o.questions_open,'Pending withdrawals':o.withdrawals_pending}).map(([k,v])=>`<div class="panel p-4"><p class="muted text-xs">${k}</p><p class="text-2xl font-black gold mt-1">${v}</p></div>`).join('');$('usersTable').innerHTML=users.map(u=>`<tr class="border-t border-slate-800"><td class="p-2"><b>${esc(u.name)}</b><div class="muted text-xs">${esc(u.email||u.phone||'No contact')}</div></td><td class="p-2">${esc(u.role)}</td><td class="p-2">${esc(u.city||'—')}</td><td class="p-2">${u.is_active?'Active':'Disabled'}${u.role==='lawyer'&&!u.is_approved?' · Pending':''}</td></tr>`).join('');$('corporateList').innerHTML=corps.length?corps.map(c=>`<div class="rounded-xl border border-slate-700 p-3"><div class="font-bold">${esc(c.company_name)}</div><p class="muted text-xs">${esc(c.plan_type)} · ${c.contracts_used}/${c.contracts_limit} reviews · ${esc(c.status)}</p><div class="flex gap-2 mt-2"><input class="input" id="lawyer-${c.id}" placeholder="Approved lawyer user ID"><button class="btn" onclick="assignLawyer(${c.id})">Assign</button></div></div>`).join(''):'<p class="muted text-sm">No corporate subscriptions yet.</p>'}catch(e){msg(e.message,true)}}
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-window.assignLawyer=async id=>{try{const v=Number($('lawyer-'+id).value);if(!v)throw new Error('Enter approved lawyer user ID');await api(`/api/v1/admin/corporate/${id}/assign/${v}`,{method:'PATCH'});msg('Retainer lawyer assigned.');await refreshAll()}catch(e){msg(e.message,true)}};
-$('inviteForm').addEventListener('submit',async e=>{e.preventDefault();try{const d=await api('/api/v1/admin/invites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:$('inviteRole').value,email:$('inviteEmail').value||null,phone:$('invitePhone').value||null})});$('inviteResult').textContent=JSON.stringify(d,null,2);$('inviteResult').classList.remove('hidden');msg('Invite created. Share token securely; do not publish it.')}catch(e){msg(e.message,true)}});
-$('refresh').onclick=refreshAll;$('logout').onclick=()=>{token='';sessionStorage.removeItem('lawnexa_admin_token');location.reload()};if(token)boot();
-</script></body></html>
+function adminPortal() {
+  return {
+    authenticated: false,
+    email: '',
+    password: '',
+    stats: { total_clients: 0, total_lawyers: 0, pending_lawyers: 0, escrow_balance: 'PKR 0.00' },
+    pendingLawyers: [],
+
+    async init() {
+      try {
+        const res = await fetch('/api/v1/auth/me');
+        if (res.ok) {
+          const user = await res.json();
+          if (user.role === 'admin') {
+            this.authenticated = true;
+            await this.refreshAll();
+          }
+        }
+      } catch (e) {}
+    },
+
+    async login() {
+      const form = new URLSearchParams();
+      form.set('username', this.email);
+      form.set('password', this.password);
+
+      const res = await fetch('/api/v1/auth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: form
+      });
+
+      if (res.ok) {
+        this.authenticated = true;
+        await this.refreshAll();
+      } else {
+        alert('Authentication failed. Admin privileges required.');
+      }
+    },
+
+    async refreshAll() {
+      const overviewRes = await fetch('/api/v1/admin/overview');
+      if (overviewRes.ok) {
+        this.stats = await overviewRes.json();
+      }
+
+      const pendingRes = await fetch('/api/v1/admin/lawyers/pending');
+      if (pendingRes.ok) {
+        this.pendingLawyers = await pendingRes.json();
+      }
+    },
+
+    async reviewLawyer(id, action) {
+      const res = await fetch(`/api/v1/admin/lawyers/${id}/${action}`, { method: 'POST' });
+      if (res.ok) {
+        await this.refreshAll();
+      }
+    },
+
+    logout() {
+      this.authenticated = false;
+      window.location.reload();
+    }
+  };
+}
+</script>
+</body>
+</html>

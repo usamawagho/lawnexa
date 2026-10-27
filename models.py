@@ -1,128 +1,101 @@
-"""All SQLAlchemy models use the one shared Base from database.py."""
+"""
+SQLAlchemy Relational Database Schemas for LawNexa
+"""
+import enum
 from datetime import datetime
 from sqlalchemy import (
-    Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text,
-    UniqueConstraint,
+    Column, Integer, String, Boolean, Float, Text, DateTime, ForeignKey, Enum
 )
 from sqlalchemy.orm import relationship
 from database import Base
 
+class UserRole(str, enum.Enum):
+    CLIENT = "client"
+    LAWYER = "lawyer"
+    BUSINESS = "business"
+    ADMIN = "admin"
+
+class RequestStatus(str, enum.Enum):
+    SUBMITTED = "SUBMITTED"
+    UNDER_REVIEW = "UNDER_REVIEW"
+    NEED_INFO = "NEED_INFO"
+    PROPOSAL_SENT = "PROPOSAL_SENT"
+    AWAITING_PAYMENT = "AWAITING_PAYMENT"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    REJECTED = "REJECTED"
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(160), nullable=False)
-    phone = Column(String(32), unique=True, index=True, nullable=True)
-    email = Column(String(320), unique=True, index=True, nullable=True)
-    hashed_password = Column(String(255), nullable=False)
-    role = Column(String(20), nullable=False, default="client", index=True)
-    is_approved = Column(Boolean, nullable=False, default=True, index=True)
-    is_active = Column(Boolean, nullable=False, default=True)
-    avatar = Column(Text, nullable=True)
-    specialty = Column(String(160), nullable=True)
-    license_number = Column(String(100), nullable=True)
-    bar_association = Column(String(200), nullable=True)
-    experience_years = Column(Integer, nullable=True, default=0)
-    city = Column(String(100), nullable=True, default="Karachi")
-    area = Column(String(160), nullable=True, default="Saddar / City Court")
-    chamber_address = Column(String(300), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    name = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    phone = Column(String, nullable=True)
+    password_hash = Column(String, nullable=False)
+    role = Column(Enum(UserRole), default=UserRole.CLIENT, nullable=False)
+    city = Column(String, nullable=True, default="Lahore")
+    area = Column(String, nullable=True)
+    address = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    is_approved = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-    lawyer_profile = relationship("Lawyer", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    client_appointments = relationship("Appointment", back_populates="client", foreign_keys="Appointment.client_id")
-    sent_messages = relationship("ChatMessage", foreign_keys="ChatMessage.sender_id", back_populates="sender")
-    received_messages = relationship("ChatMessage", foreign_keys="ChatMessage.receiver_id", back_populates="receiver")
-    likes = relationship("Like", back_populates="user", cascade="all, delete-orphan")
-    comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
+    # Lawyer details
+    license_number = Column(String, nullable=True)
+    bar_association = Column(String, nullable=True)
+    experience_years = Column(Integer, nullable=True)
+    jurisdiction = Column(String, nullable=True)
+    specialization = Column(String, nullable=True)
+    consultation_fee = Column(Float, default=0.0)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
 
+    # Business details
+    business_type = Column(String, nullable=True)
+    business_registration_no = Column(String, nullable=True)
+    representative_name = Column(String, nullable=True)
 
-class Lawyer(Base):
-    __tablename__ = "lawyers"
+class CorporateRequest(Base):
+    __tablename__ = "corporate_requests"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
-    name = Column(String(160), nullable=False)
-    specialty = Column(String(160), nullable=False, default="General Practice")
-    address = Column(String(300), nullable=True)
-    phone = Column(String(32), nullable=True)
-    law_card_url = Column(String(500), nullable=True)
-    is_verified = Column(Boolean, nullable=False, default=False, index=True)
-    lat = Column(Float, nullable=True)
-    lng = Column(Float, nullable=True)
-    license_number = Column(String(100), nullable=True)
-    bar_association = Column(String(200), index=True, nullable=True)
-    experience_years = Column(Integer, default=0)
-    rating = Column(Float, nullable=True)
+    business_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    request_type = Column(String, nullable=False)
+    urgency = Column(String, default="Medium")
+    status = Column(Enum(RequestStatus), default=RequestStatus.SUBMITTED)
+    assigned_lawyer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-    user = relationship("User", back_populates="lawyer_profile")
-    appointments = relationship("Appointment", back_populates="lawyer")
-    posts = relationship("Post", back_populates="lawyer", cascade="all, delete-orphan")
+    business = relationship("User", foreign_keys=[business_id])
+    assigned_lawyer = relationship("User", foreign_keys=[assigned_lawyer_id])
+    proposals = relationship("CorporateProposal", back_populates="request")
 
+class CorporateProposal(Base):
+    __tablename__ = "corporate_proposals"
 
-class Appointment(Base):
-    __tablename__ = "appointments"
     id = Column(Integer, primary_key=True, index=True)
-    client_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    lawyer_id = Column(Integer, ForeignKey("lawyers.id", ondelete="CASCADE"), nullable=False)
-    booking_date = Column(String(30), nullable=False)
-    time_slot = Column(String(40), nullable=False)
-    case_summary = Column(Text, nullable=False)
-    location = Column(String(200), nullable=True)
-    status = Column(String(20), nullable=False, default="pending")
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    request_id = Column(Integer, ForeignKey("corporate_requests.id"), nullable=False)
+    scope = Column(Text, nullable=False)
+    amount_pkr = Column(Float, nullable=False)
+    validity_days = Column(Integer, default=14)
+    terms = Column(Text, nullable=True)
+    status = Column(String, default="PENDING")
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-    client = relationship("User", back_populates="client_appointments", foreign_keys=[client_id])
-    lawyer = relationship("Lawyer", back_populates="appointments")
+    request = relationship("CorporateRequest", back_populates="proposals")
 
+class EscrowTransaction(Base):
+    __tablename__ = "escrow_transactions"
 
-class ChatMessage(Base):
-    __tablename__ = "chat_messages"
     id = Column(Integer, primary_key=True, index=True)
-    sender_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    receiver_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    message = Column(Text, nullable=False)
-    quote_amount = Column(Float, nullable=True)
-    quote_status = Column(String(20), nullable=False, default="none")
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-    sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_messages")
-    receiver = relationship("User", foreign_keys=[receiver_id], back_populates="received_messages")
-
-
-class Post(Base):
-    __tablename__ = "posts"
-    id = Column(Integer, primary_key=True, index=True)
-    lawyer_id = Column(Integer, ForeignKey("lawyers.id", ondelete="CASCADE"), nullable=False, index=True)
-    bar_association = Column(String(200), nullable=False, index=True)
-    title = Column(String(250), nullable=False, default="Legal Update")
-    category = Column(String(100), nullable=False, default="Legal Insight & Analysis")
-    content = Column(Text, nullable=False)
-    media_url = Column(String(500), nullable=True)
-    media_type = Column(String(20), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-    lawyer = relationship("Lawyer", back_populates="posts")
-    likes = relationship("Like", back_populates="post", cascade="all, delete-orphan")
-    comments = relationship("Comment", back_populates="post", cascade="all, delete-orphan")
-
-
-class Like(Base):
-    __tablename__ = "likes"
-    __table_args__ = (UniqueConstraint("post_id", "user_id", name="uq_like_post_user"),)
-    id = Column(Integer, primary_key=True, index=True)
-    post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    post = relationship("Post", back_populates="likes")
-    user = relationship("User", back_populates="likes")
-
-
-class Comment(Base):
-    __tablename__ = "comments"
-    id = Column(Integer, primary_key=True, index=True)
-    post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    content = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    post = relationship("Post", back_populates="comments")
-    user = relationship("User", back_populates="comments")
+    client_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    lawyer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    title = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    method = Column(String, nullable=False)
+    transaction_id = Column(String, nullable=True)
+    status = Column(String, default="held")
+    created_at = Column(DateTime, default=datetime.utcnow)
