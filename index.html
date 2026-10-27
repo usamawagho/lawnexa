@@ -1,4 +1,4 @@
-<!doctype html>
+html_content = """<!doctype html>
 <html lang="ur-PK" dir="ltr">
 <head>
 <meta charset="utf-8">
@@ -94,7 +94,7 @@ tailwind.config = {
         <p class="text-stone">Har advocate ka Bar Council license independently verify kiya jata hai.</p>
       </div>
       <div class="flex gap-2">
-        <input type="text" x-model="searchQuery" placeholder="Search by city or legal issue..." class="field max-w-xs text-sm">
+        <input type="text" x-model="searchQuery" placeholder="Search by city, court or specialization..." class="field max-w-xs text-sm">
       </div>
     </div>
 
@@ -105,6 +105,7 @@ tailwind.config = {
             <div>
               <h2 class="font-display font-bold text-xl text-ink" x-text="adv.name"></h2>
               <p class="text-xs text-stone mt-1" x-text="adv.court + ' · License: ' + adv.license"></p>
+              <p class="text-xs text-moss font-semibold mt-0.5" x-text="'Chamber: ' + adv.chamber"></p>
             </div>
             <span class="bg-mint/40 text-moss font-bold px-3 py-1 rounded-full text-xs" x-text="adv.city"></span>
           </div>
@@ -272,7 +273,7 @@ tailwind.config = {
 <!-- Authentication Modal (Sign In / Client Register / Advocate Join) -->
 <div x-show="authModal" 
      x-cloak 
-     class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+     class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto"
      x-transition:enter="transition ease-out duration-200"
      x-transition:enter-start="opacity-0"
      x-transition:enter-end="opacity-100"
@@ -280,7 +281,7 @@ tailwind.config = {
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0">
     
-  <div @click.away="authModal = false" class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl relative border border-line">
+  <div @click.away="authModal = false" class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl relative border border-line my-8">
     <!-- Close Button -->
     <button @click="authModal = false" class="absolute top-5 right-5 text-stone hover:text-ink font-bold text-lg">✕</button>
 
@@ -322,7 +323,7 @@ tailwind.config = {
       </form>
     </div>
 
-    <!-- 2. Client Registration Form -->
+    <!-- 2. Client Registration Form (With Home Address & Contact) -->
     <div x-show="authTab === 'client_register'" class="space-y-4">
       <div>
         <h3 class="font-display font-bold text-2xl text-ink">Create Client Account</h3>
@@ -338,6 +339,20 @@ tailwind.config = {
           <input type="email" x-model="clientRegForm.email" required placeholder="ali@example.com" class="field text-sm">
         </div>
         <div>
+          <label class="block text-xs font-semibold text-stone uppercase mb-1">Contact Number</label>
+          <input type="tel" x-model="clientRegForm.phone" required placeholder="0300-1234567" class="field text-sm">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold text-stone uppercase mb-1">City</label>
+            <input type="text" x-model="clientRegForm.city" required placeholder="Lahore / Karachi" class="field text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-stone uppercase mb-1">Home Address / Area</label>
+            <input type="text" x-model="clientRegForm.address" required placeholder="House No, Block / Sector" class="field text-sm">
+          </div>
+        </div>
+        <div>
           <label class="block text-xs font-semibold text-stone uppercase mb-1">Password</label>
           <input type="password" x-model="clientRegForm.password" required placeholder="••••••••" class="field text-sm">
         </div>
@@ -345,7 +360,7 @@ tailwind.config = {
       </form>
     </div>
 
-    <!-- 3. Advocate / Lawyer Registration Form -->
+    <!-- 3. Advocate / Lawyer Registration Form (With Chamber Address & Bar Details) -->
     <div x-show="authTab === 'lawyer_register'" class="space-y-4">
       <div>
         <h3 class="font-display font-bold text-2xl text-ink">Advocate Onboarding</h3>
@@ -366,11 +381,26 @@ tailwind.config = {
             <select x-model="lawyerRegForm.court" class="field text-sm">
               <option value="High Court">High Court</option>
               <option value="District Court">District Court</option>
+              <option value="Supreme Court">Supreme Court</option>
             </select>
           </div>
           <div>
             <label class="block text-xs font-semibold text-stone uppercase mb-1">City</label>
             <input type="text" x-model="lawyerRegForm.city" required placeholder="Lahore" class="field text-sm">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone uppercase mb-1">Chamber / Office Address</label>
+          <input type="text" x-model="lawyerRegForm.chamber" required placeholder="Chamber No 42, District Courts / High Court Block" class="field text-sm">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold text-stone uppercase mb-1">Contact Phone</label>
+            <input type="tel" x-model="lawyerRegForm.phone" required placeholder="0300-9876543" class="field text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-stone uppercase mb-1">Specialization</label>
+            <input type="text" x-model="lawyerRegForm.spec" required placeholder="Criminal / Civil / Family" class="field text-sm">
           </div>
         </div>
         <div>
@@ -407,13 +437,13 @@ function lawnexaApp() {
     firResult: null,
 
     loginForm: { email: '', password: '' },
-    clientRegForm: { name: '', email: '', password: '' },
-    lawyerRegForm: { name: '', license: '', court: 'High Court', city: '', email: '', password: '' },
+    clientRegForm: { name: '', email: '', phone: '', city: '', address: '', password: '' },
+    lawyerRegForm: { name: '', license: '', court: 'High Court', city: '', chamber: '', phone: '', spec: '', email: '', password: '' },
 
     advocates: [
-      { id: 1, name: 'Adv. Hamza Rauf Chaudhry', court: 'Lahore High Court', license: 'PBC-LHC-48217', spec: 'Criminal & Property Law', city: 'Lahore', years: 12, fee: 5000 },
-      { id: 2, name: 'Adv. Mehwish Qureshi', court: 'Sindh High Court', license: 'KBA-27731', spec: 'Family & Custody Law', city: 'Karachi', years: 9, fee: 3500 },
-      { id: 3, name: 'Adv. Tariq Mahmood', court: 'Islamabad High Court', license: 'IHC-10928', spec: 'Corporate & Civil Law', city: 'Islamabad', years: 15, fee: 8000 }
+      { id: 1, name: 'Adv. Hamza Rauf Chaudhry', court: 'Lahore High Court', license: 'PBC-LHC-48217', chamber: 'Chamber 14, Lahore High Court', spec: 'Criminal & Property Law', city: 'Lahore', years: 12, fee: 5000 },
+      { id: 2, name: 'Adv. Mehwish Qureshi', court: 'Sindh High Court', license: 'KBA-27731', chamber: 'Chamber 205, Sindh High Court', spec: 'Family & Custody Law', city: 'Karachi', years: 9, fee: 3500 },
+      { id: 3, name: 'Adv. Tariq Mahmood', court: 'Islamabad High Court', license: 'IHC-10928', chamber: 'Suite 9, F-8 Markaz', spec: 'Corporate & Civil Law', city: 'Islamabad', years: 15, fee: 8000 }
     ],
 
     init() {
@@ -428,7 +458,8 @@ function lawnexaApp() {
       return this.advocates.filter(a => 
         a.name.toLowerCase().includes(q) || 
         a.city.toLowerCase().includes(q) || 
-        a.spec.toLowerCase().includes(q)
+        a.spec.toLowerCase().includes(q) ||
+        a.chamber.toLowerCase().includes(q)
       );
     },
 
@@ -461,36 +492,22 @@ function lawnexaApp() {
 
       this.isAnalyzing = true;
       
-      // Dynamic Response Generation based on Language Choice
       setTimeout(() => {
         this.isAnalyzing = false;
         
         if (this.responseLang === 'urdu') {
           this.firResult = {
-            summary: `آپ کے بیان اور قانونی معاملے کا جائزہ لے لیا گیا ہے۔
-
-1. اہم قانونی تحفظ: تعزیراتِ پاکستان (PPC) کی متعلقہ دفعات کے تحت آپ کا کیس قابلِ ضمانت یا تصفیہ طلب ہو سکتا ہے۔
-2. تجویز کردہ اقدامات: سیشن یا ہائی کورٹ کے کسی ماہر وکیل سے فوری مشاورت کریں اور تحریری جواب/ضمانت کی درخواست (Bail Application) تیار کروائیں۔
-3. قانونی دستاویزات: تھانے یا سیشن کورٹ کی تمام متعلقہ رسیدیں اور دستاویزات محفوظ رکھیں۔`,
+            summary: `آپ کے بیان اور قانونی معاملے کا جائزہ لے لیا گیا ہے۔\n\n1. اہم قانونی تحفظ: تعزیراتِ پاکستان (PPC) کی متعلقہ دفعات کے تحت آپ کا کیس قابلِ ضمانت یا تصفیہ طلب ہو سکتا ہے۔\n2. تجویز کردہ اقدامات: سیشن یا ہائی کورٹ کے کسی ماہر وکیل سے فوری مشاورت کریں اور تحریری جواب/ضمانت کی درخواست (Bail Application) تیار کروائیں۔\n3. قانونی دستاویزات: تھانے یا سیشن کورٹ کی تمام متعلقہ رسیدیں اور دستاویزات محفوظ رکھیں۔`,
             tags: ['دفعہ 324 PPC (Non-Bailable)', 'دفعہ 506 PPC (Bailable)', 'Pre-Arrest Bail (498 CrPC)', 'قانونِ شہادت']
           };
         } else if (this.responseLang === 'english') {
           this.firResult = {
-            summary: `Legal Analysis & Summary of your Query:
-
-1. Overview: The issue submitted contains facts relevant to the Pakistan Penal Code (PPC) and Civil/Criminal Remedies.
-2. Recommended Legal Action: Immediately file a formal legal notice or petition in the competent High Court / District Court.
-3. Protection & Documentation: Retain all documentary evidence, receipts, and witness statements for court presentation.`,
+            summary: `Legal Analysis & Summary of your Query:\n\n1. Overview: The issue submitted contains facts relevant to the Pakistan Penal Code (PPC) and Civil/Criminal Remedies.\n2. Recommended Legal Action: Immediately file a formal legal notice or petition in the competent High Court / District Court.\n3. Protection & Documentation: Retain all documentary evidence, receipts, and witness statements for court presentation.`,
             tags: ['PPC Section 324 (Attempted Harm)', 'PPC Section 506 (Threat)', 'Pre-Arrest Bail (498 CrPC)', 'Legal Remedy']
           };
         } else {
-          // Roman Urdu (Default)
           this.firResult = {
-            summary: `Aap ke qanooni maslay / FIR ka AI mukammal tajziya:
-
-1. PPC Dafaat Ka Andaza: Aap ke bayan ke mutabiq yeh masla Pakistan Penal Code (PPC) aur Civil/Criminal law ke zait-e-asar aata hai.
-2. Agla Qanooni Qadam: Kisi tajrubakar High Court ya District Court advocate se rabta karke bail application ya legal notice tayyar karwayein.
-3. Mehfooz Document: Thana, FIR copy, ya kisi bhi tarah ke saboot aur documents ko safe rakhein.`,
+            summary: `Aap ke qanooni maslay / FIR ka AI mukammal tajziya:\n\n1. PPC Dafaat Ka Andaza: Aap ke bayan ke mutabiq yeh masla Pakistan Penal Code (PPC) aur Civil/Criminal law ke zait-e-asar aata hai.\n2. Agla Qanooni Qadam: Kisi tajrubakar High Court ya District Court advocate se rabta karke bail application ya legal notice tayyar karwayein.\n3. Mehfooz Document: Thana, FIR copy, ya kisi bhi tarah ke saboot aur documents ko safe rakhein.`,
             tags: ['PPC Section 324 (Non-Bailable)', 'PPC Section 506 (Bailable)', 'Pre-Arrest Bail (498 CrPC)', 'Legal Consultation']
           };
         }
