@@ -1,596 +1,542 @@
-html_content = """<!doctype html>
-<html lang="ur-PK" dir="ltr">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>LawNexa — Pakistan's Smart Legal Marketplace</title>
-<meta name="description" content="Pakistan ka verified legal marketplace: AI legal & FIR analysis, verified wakeel, court drafts aur escrow payment.">
-<meta name="theme-color" content="#0B2A23">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@500;700&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-tailwind.config = {
-  theme: { extend: {
-    colors: { ink:'#0B2A23', moss:'#14513F', mint:'#6FE3B8', paper:'#F2F4F1', seal:'#C9382B', stone:'#55655F', line:'#D9E0DB' },
-    fontFamily: {
-      display:['"Bricolage Grotesque"','system-ui','sans-serif'],
-      sans:['"Hanken Grotesk"','system-ui','sans-serif'],
-      urdu:['"Noto Nastaliq Urdu"','serif']
-    }
-  } }
-}
-</script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
-<style>
-  [x-cloak]{display:none!important}
-  body{font-family:'Hanken Grotesk',system-ui,sans-serif;background:#F2F4F1;color:#0B2A23}
-  .field{width:100%;background:#fff;border:1px solid #D9E0DB;border-radius:12px;padding:.7rem .85rem}
-  .field:focus{outline:none;border-color:#14513F;box-shadow:0 0 0 3px rgba(111,227,184,.35)}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;font-weight:700;border-radius:999px;padding:.7rem 1.2rem;min-height:44px}
-  .btn-ink{background:#0B2A23;color:#fff}.btn-ink:hover{background:#14513F}
-  .btn-mint{background:#6FE3B8;color:#0B2A23}.btn-mint:hover{background:#8bf0cb}
-  .btn-line{border:1px solid #0B2A23;color:#0B2A23}.btn-line:hover{background:#0B2A23;color:#fff}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LawNexa - Legal AI Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+<body class="bg-slate-100 font-sans text-slate-800">
 
-<body x-data="lawnexaApp()" x-init="init()">
-
-<!-- Sticky Header -->
-<header class="sticky top-0 z-40 bg-paper/90 backdrop-blur border-b border-line">
-  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-    <a href="#home" @click.prevent="go('home')" class="flex items-center gap-2">
-      <span class="font-display font-extrabold text-2xl text-ink">LawNexa</span>
-    </a>
-
-    <nav class="hidden md:flex gap-2">
-      <button @click="go('wakeel')" class="px-4 py-2 rounded-full font-bold transition-all" :class="view==='wakeel'?'bg-ink text-white':'text-stone hover:text-ink'">Advocates</button>
-      <button @click="go('fir')" class="px-4 py-2 rounded-full font-bold transition-all" :class="view==='fir'?'bg-ink text-white':'text-stone hover:text-ink'">AI Legal & FIR Assistant</button>
-      <button @click="go('chat')" class="px-4 py-2 rounded-full font-bold transition-all" :class="view==='chat'?'bg-ink text-white':'text-stone hover:text-ink'">Chat & Deals</button>
-      <button @click="go('wallet')" class="px-4 py-2 rounded-full font-bold transition-all" :class="view==='wallet'?'bg-ink text-white':'text-stone hover:text-ink'">Escrow Wallet</button>
-    </nav>
-
-    <div class="flex items-center gap-3">
-      <template x-if="!user">
-        <button class="btn btn-ink shadow-md" @click="authModal=true; authTab='login'">Sign In / Register</button>
-      </template>
-      <template x-if="user">
-        <div class="flex items-center gap-3">
-          <div class="text-right">
-            <span class="block font-bold text-sm text-ink" x-text="user.name"></span>
-            <span class="block text-[10px] text-stone uppercase tracking-wider font-semibold" x-text="user.role || 'Client'"></span>
-          </div>
-          <button class="btn btn-line !py-1.5 !px-3 text-xs" @click="logout()">Sign Out</button>
-        </div>
-      </template>
-    </div>
-  </div>
-</header>
-
-<main class="max-w-6xl mx-auto p-4 md:p-8 space-y-8">
-
-  <!-- Home Section -->
-  <section x-show="view==='home'" class="space-y-6">
-    <div class="bg-ink text-white rounded-3xl p-8 md:p-12 space-y-4 shadow-xl relative overflow-hidden">
-      <div class="absolute right-0 top-0 w-96 h-96 bg-mint/10 rounded-full blur-3xl pointer-events-none"></div>
-      <p class="font-urdu text-mint text-2xl" dir="rtl">انصاف تک آسان رسائی</p>
-      <h1 class="font-display font-extrabold text-4xl md:text-6xl leading-tight">Apna legal masla ya FIR samjhiye. Sahi wakeel tak seedha pohnchiye.</h1>
-      <p class="text-white/80 max-w-xl text-lg">
-        Apni FIR upload karein ya apna koi bhi qanooni masla (Urdu, Roman Urdu, ya English mein) likhein. AI dafaat, legal advice aur zamanat ka sahi hal bataye ga.
-      </p>
-      <div class="flex flex-wrap gap-4 pt-4">
-        <button class="btn btn-mint shadow-lg" @click="go('fir')">Analyze Legal Case / FIR</button>
-        <button class="btn btn-line text-white border-white hover:bg-white/10" @click="go('wakeel')">Find Advocates</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- Advocates Section -->
-  <section x-show="view==='wakeel'" x-cloak class="space-y-6">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h1 class="font-display font-extrabold text-3xl">Verified High Court & District Advocates</h1>
-        <p class="text-stone">Har advocate ka Bar Council license independently verify kiya jata hai.</p>
-      </div>
-      <div class="flex gap-2">
-        <input type="text" x-model="searchQuery" placeholder="Search by city, court or specialization..." class="field max-w-xs text-sm">
-      </div>
-    </div>
-
-    <div class="grid md:grid-cols-2 gap-4">
-      <template x-for="adv in filteredAdvocates" :key="adv.id">
-        <div class="bg-white border border-line rounded-3xl p-6 space-y-4 shadow-sm hover:shadow-md transition-shadow">
-          <div class="flex justify-between items-start">
-            <div>
-              <h2 class="font-display font-bold text-xl text-ink" x-text="adv.name"></h2>
-              <p class="text-xs text-stone mt-1" x-text="adv.court + ' · License: ' + adv.license"></p>
-              <p class="text-xs text-moss font-semibold mt-0.5" x-text="'Chamber: ' + adv.chamber"></p>
+    <!-- Navigation Header -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid me-2 fa-scale-balanced text-yellow-500 text-2xl"></i>
+                <span class="text-xl font-bold tracking-wide">LawNexa</span>
             </div>
-            <span class="bg-mint/40 text-moss font-bold px-3 py-1 rounded-full text-xs" x-text="adv.city"></span>
-          </div>
-          <p class="text-sm text-stone" x-text="'Specialization: ' + adv.spec + ' (' + adv.years + ' Years Exp)'"></p>
-          <div class="flex items-center justify-between pt-3 border-t border-line">
-            <div>
-              <span class="block text-[10px] text-stone uppercase tracking-wider font-semibold">Consultation Fee</span>
-              <span class="font-display font-extrabold text-xl text-ink" x-text="'PKR ' + adv.fee.toLocaleString()"></span>
+            <nav class="hidden md:flex space-x-6 text-sm font-medium">
+                <a href="#" onclick="switchTab('home-tab')" class="hover:text-yellow-400 transition">Home</a>
+                <a href="#" id="advocates-tab" onclick="switchTab('advocates-tab')" class="hover:text-yellow-400 transition nav-item">Advocates</a>
+                <a href="#" id="chat-tab" onclick="switchTab('chat-tab')" class="hover:text-yellow-400 transition nav-item">Chat & Deals</a>
+                <a href="#" id="escrow-tab" onclick="switchTab('escrow-tab')" class="hover:text-yellow-400 transition nav-item">Escrow Wallet</a>
+            </nav>
+            <div id="auth-buttons-container">
+                <button onclick="openAuthModal()" class="bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold px-4 py-2 rounded-lg text-sm transition">
+                    Sign In / Register
+                </button>
             </div>
-            <button class="btn btn-ink" @click="openBooking(adv)">Book Appointment</button>
-          </div>
         </div>
-      </template>
-    </div>
-  </section>
+    </header>
 
-  <!-- AI Legal & FIR Assistant Section -->
-  <section x-show="view==='fir'" x-cloak class="space-y-6">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h1 class="font-display font-extrabold text-3xl">Gemini AI Legal & FIR Assistant</h1>
-        <p class="text-stone">Apni FIR upload karein ya apna legal masla likh kar AI se mashwara aur PPC dafaat samjhein.</p>
-      </div>
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto p-4 md:p-6">
 
-      <!-- Response Language Selector Toggle -->
-      <div class="bg-white border border-line rounded-2xl p-2 flex items-center gap-1 shadow-sm">
-        <span class="text-xs font-bold text-stone px-2">Jawab ki zaban:</span>
-        <button @click="responseLang='roman_urdu'" :class="responseLang==='roman_urdu'?'bg-ink text-white':'text-stone hover:text-ink'" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all">Roman Urdu</button>
-        <button @click="responseLang='urdu'" :class="responseLang==='urdu'?'bg-ink text-white':'text-stone hover:text-ink'" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all font-urdu">اردو</button>
-        <button @click="responseLang='english'" :class="responseLang==='english'?'bg-ink text-white':'text-stone hover:text-ink'" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all">English</button>
-      </div>
-    </div>
+        <!-- HOME / AI ASSISTANT TAB -->
+        <section id="home-tab" class="tab-content block">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 mb-1">AI Interactive Legal Assistant & Research</h2>
+                        <p class="text-slate-600 text-sm">Apna masla bayan karein. AI Assistant facts clarify karega aur legal research summary tayar karega.</p>
+                    </div>
+                    <!-- Language Selection Option -->
+                    <div class="flex items-center space-x-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
+                        <i class="fa-solid fa-language text-yellow-600"></i>
+                        <span class="text-xs font-semibold text-slate-600">Language:</span>
+                        <select id="language-selector" class="bg-white border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-yellow-500">
+                            <option value="roman_urdu" selected>Roman Urdu</option>
+                            <option value="urdu">اردو (Urdu)</option>
+                            <option value="english">English</option>
+                        </select>
+                    </div>
+                </div>
 
-    <!-- Dual Input Box: Upload Document OR Type Case Details -->
-    <div class="bg-white border border-line rounded-3xl p-6 md:p-8 space-y-6 shadow-sm">
-      
-      <!-- Option 1: Document Upload -->
-      <div class="border-2 border-dashed border-line hover:border-moss rounded-2xl p-6 text-center space-y-3 transition-colors bg-paper/30">
-        <input type="file" class="hidden" x-ref="firInput" @change="processFIRFile($event)">
-        <div class="flex items-center justify-center gap-2 text-moss font-bold text-sm">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-          <span>Option 1: FIR ya Court Document Upload Karein</span>
-        </div>
-        <button class="btn btn-ink text-xs py-2 px-5" @click="$refs.firInput.click()">
-          <span x-text="uploadedFileName ? 'Change File (' + uploadedFileName + ')' : 'Upload Document / Photo (PDF, JPG)'"></span>
-        </button>
-        <p class="text-[11px] text-stone">CVs, invoices, aur non-legal files system automatic filter karta hai.</p>
-      </div>
+                <!-- Interactive Chat Thread -->
+                <div id="chat-thread" class="space-y-4 mb-4 max-h-96 overflow-y-auto p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center font-bold text-slate-900 text-xs shrink-0">AI</div>
+                        <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 text-sm max-w-xl">
+                            Aoa! Aapko kis maslay ya incident me legal guidance chahiye? Details share karein.
+                        </div>
+                    </div>
+                </div>
 
-      <!-- Divider -->
-      <div class="relative flex py-1 items-center">
-        <div class="flex-grow border-t border-line"></div>
-        <span class="flex-shrink mx-4 text-xs font-bold text-stone uppercase tracking-wider">YA APNA MASLA LIKHEIN (OR TYPE YOUR ISSUE)</span>
-        <div class="flex-grow border-t border-line"></div>
-      </div>
+                <!-- Input Area with Photo/Camera/File Buttons -->
+                <div class="flex items-center space-x-2 border border-slate-300 rounded-xl p-2 bg-white shadow-sm">
+                    <input type="file" id="document-upload" class="hidden" accept="image/*,.pdf,.doc,.docx" onchange="handleFileUpload(event)">
+                    <input type="file" id="camera-upload" class="hidden" accept="image/*" capture="environment" onchange="handleFileUpload(event)">
+                    
+                    <button type="button" onclick="document.getElementById('document-upload').click()" class="text-slate-500 hover:text-yellow-600 p-2 transition" title="Attach Document or Image">
+                        <i class="fa-solid fa-paperclip text-lg"></i>
+                    </button>
 
-      <!-- Option 2: Write Text Query -->
-      <div class="space-y-3">
-        <div class="flex justify-between items-center">
-          <label class="block text-xs font-bold text-ink uppercase tracking-wider">
-            Option 2: Qanooni Masla Ya FIR Tafseel Likh Kar Poochein
-          </label>
-          <span class="text-[11px] text-stone">Urdu, Roman Urdu ya English me likhein</span>
-        </div>
-        <textarea 
-          x-model="caseTextQuery" 
-          rows="4" 
-          placeholder="Yahan apna masla tafseel se likhein (e.g. Mere zameen par kisi ne qabza kar liya hai, ya FIR me 324 ki dafa lagi hai...)"
-          class="field text-sm rounded-2xl resize-none focus:ring-2 focus:ring-moss">
-        </textarea>
-        
-        <div class="flex justify-end gap-3 pt-1">
-          <button @click="clearAnalysis()" x-show="caseTextQuery || uploadedFileName || firResult" class="btn btn-line text-xs py-2 px-4">Clear All</button>
-          <button @click="analyzeQuery()" class="btn btn-mint text-sm shadow-md py-2.5 px-6">
-            <span x-text="isAnalyzing ? 'Analyzing with AI...' : 'Analyze Legal Issue / FIR'"></span>
-          </button>
-        </div>
-      </div>
+                    <button type="button" onclick="document.getElementById('camera-upload').click()" class="text-slate-500 hover:text-yellow-600 p-2 transition" title="Capture Photo">
+                        <i class="fa-solid fa-camera text-lg"></i>
+                    </button>
 
-    </div>
+                    <input type="text" id="user-issue-input" placeholder="Incident ke haalaat yahan likhein..." 
+                           class="flex-1 text-sm focus:outline-none px-2"
+                           onkeypress="if(event.key === 'Enter') sendLegalMessage()">
 
-    <!-- AI Results Card -->
-    <div x-show="firResult" class="bg-white border border-line rounded-3xl p-6 md:p-8 space-y-5 shadow-md" x-transition>
-      <div class="flex items-center justify-between border-b border-line pb-4">
-        <div>
-          <h2 class="font-display font-bold text-xl text-ink">AI Legal Advice & Case Analysis</h2>
-          <p class="text-xs text-stone mt-0.5" x-text="'Language: ' + getLangLabel(responseLang)"></p>
-        </div>
-        <span class="bg-mint/40 text-moss font-bold px-3 py-1 rounded-full text-xs">Analysis Complete</span>
-      </div>
+                    <button onclick="sendLegalMessage()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-1">
+                        <span>Send</span>
+                        <i class="fa-solid fa-paper-plane text-xs text-yellow-400"></i>
+                    </button>
+                </div>
 
-      <div class="prose max-w-none text-slate-800 text-sm leading-relaxed whitespace-pre-line" 
-           :class="responseLang === 'urdu' ? 'font-urdu text-right text-base leading-loose' : 'text-left'"
-           x-text="firResult?.summary">
-      </div>
-
-      <!-- Applicable PPC Sections / Next Legal Steps -->
-      <div class="border-t border-line pt-4 space-y-2">
-        <span class="block text-xs font-bold text-stone uppercase tracking-wider">Relevant PPC Dafaat & Legal Steps</span>
-        <div class="flex flex-wrap gap-2">
-          <template x-for="tag in firResult?.tags" :key="tag">
-            <span class="bg-emerald-100 text-emerald-900 font-bold px-3 py-1 rounded-full text-xs" x-text="tag"></span>
-          </template>
-        </div>
-      </div>
-
-      <!-- Action Button to connect advocate -->
-      <div class="bg-paper rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 border border-line mt-4">
-        <p class="text-xs text-stone font-medium">Is case par verified High Court Advocate se mashwara aur bail application draft karwane ke liye:</p>
-        <button class="btn btn-ink text-xs py-2 px-5 whitespace-nowrap" @click="go('wakeel')">Connect with Lawyer</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- Chat & Deals Section -->
-  <section x-show="view==='chat'" x-cloak class="space-y-6">
-    <div>
-      <h1 class="font-display font-extrabold text-3xl">Chat & Case Consultations</h1>
-      <p class="text-stone">Verified Advocates ke sath secure end-to-end legal discussion aur fee quotes negotiate karein.</p>
-    </div>
-    <div class="bg-white border border-line rounded-3xl p-8 text-center space-y-4 shadow-sm">
-      <template x-if="!user">
-        <div class="space-y-3">
-          <p class="text-stone">Advocates se direct chat karne aur case deal finalized karne ke liye login karein.</p>
-          <button class="btn btn-ink" @click="authModal=true; authTab='login'">Sign In / Register</button>
-        </div>
-      </template>
-      <template x-if="user">
-        <div class="text-left space-y-4">
-          <div class="p-4 bg-paper rounded-2xl border border-line flex justify-between items-center">
-            <div>
-              <h3 class="font-bold text-ink">Consultation with Adv. Hamza Rauf</h3>
-              <p class="text-xs text-stone">Status: Escrow Payment Locked (PKR 5,000)</p>
+                <!-- Dynamic Legal Brief Card -->
+                <div id="legal-brief-display" class="mt-6"></div>
             </div>
-            <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">Active Room</span>
-          </div>
+        </section>
+
+        <!-- ADVOCATES TAB -->
+        <section id="advocates-tab-content" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-900">Find & Hire Verified Advocates</h2>
+                </div>
+
+                <!-- Attached Case Brief Notice -->
+                <div id="attached-case-brief" class="hidden mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-sm">
+                    <div class="flex justify-between items-center font-bold text-slate-900 mb-1">
+                        <span><i class="fa-solid fa-file-contract text-yellow-600 me-2"></i> Attached AI Legal Brief</span>
+                        <button onclick="clearAttachedBrief()" class="text-xs text-red-500 underline">Remove</button>
+                    </div>
+                    <p id="attached-brief-text" class="text-slate-700 text-xs"></p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="lawyers-grid">
+                    <div class="border border-slate-200 rounded-xl p-5 hover:shadow-md transition bg-slate-50 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center space-x-3 mb-3">
+                                <div class="w-12 h-12 bg-slate-800 text-yellow-400 rounded-full flex items-center justify-center font-bold text-lg">MA</div>
+                                <div>
+                                    <h3 class="font-bold text-slate-900">Advocate Muhammad Ali</h3>
+                                    <span class="text-xs text-slate-500">Criminal & Civil Law Specialist</span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-600 mb-4">High Court Advocate with 10+ years experience in criminal defense & property suits.</p>
+                        </div>
+                        <button onclick="bookConsultation('Adv. Muhammad Ali')" class="btn-book-appointment w-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold py-2 rounded-lg transition">
+                            Book Consultation
+                        </button>
+                    </div>
+
+                    <div class="border border-slate-200 rounded-xl p-5 hover:shadow-md transition bg-slate-50 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center space-x-3 mb-3">
+                                <div class="w-12 h-12 bg-slate-800 text-yellow-400 rounded-full flex items-center justify-center font-bold text-lg">SK</div>
+                                <div>
+                                    <h3 class="font-bold text-slate-900">Advocate Sarah Khan</h3>
+                                    <span class="text-xs text-slate-500">Family & Civil Dispute Expert</span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-600 mb-4">Specialized in family disputes, child custody, and land property suits.</p>
+                        </div>
+                        <button onclick="bookConsultation('Adv. Sarah Khan')" class="btn-book-appointment w-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold py-2 rounded-lg transition">
+                            Book Consultation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CHAT & DEALS TAB -->
+        <section id="chat-tab-content" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-2xl font-bold text-slate-900 mb-4">Client-Lawyer Workspace & Deals</h2>
+                <p class="text-slate-600 text-sm">Protected consultation room & contract deals hub.</p>
+            </div>
+        </section>
+
+        <!-- ESCROW TAB -->
+        <section id="escrow-tab-content" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-2xl font-bold text-slate-900 mb-4">Secure Escrow Wallet</h2>
+                <p class="text-slate-600 text-sm">Safe fee deposit and milestone release system.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- SIGN IN / REGISTER MODAL WITH CUSTOM TAG INPUT FOR SPECIALIZATIONS -->
+    <div id="authModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h3 class="text-xl font-bold text-slate-900 mb-1">Create Account / Sign In</h3>
+            <p class="text-xs text-slate-500 mb-4">Select role and complete details.</p>
+
+            <!-- Role Switch Buttons -->
+            <div class="mb-4">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Select Account Type:</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" id="role-client-btn" onclick="setRole('client')" class="py-2 border rounded-lg text-xs font-bold bg-yellow-500 text-slate-900 border-yellow-500">
+                        Client
+                    </button>
+                    <button type="button" id="role-advocate-btn" onclick="setRole('advocate')" class="py-2 border rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border-slate-300">
+                        Advocate / Lawyer
+                    </button>
+                </div>
+            </div>
+
+            <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-3">
+                <!-- Common Fields -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
+                    <input type="text" id="reg-fullname" required placeholder="Full Name" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address *</label>
+                        <input type="email" id="reg-email" required placeholder="name@domain.com" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number *</label>
+                        <input type="tel" id="reg-phone" required placeholder="03001234567" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Password *</label>
+                    <input type="password" id="reg-password" required placeholder="••••••••" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Address *</label>
+                    <input type="text" id="reg-address" required placeholder="Address / City" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
+                </div>
+
+                <!-- Advocate Specific Dynamic Fields -->
+                <div id="advocate-fields" class="hidden space-y-3 pt-3 border-t border-slate-200">
+                    <p class="text-xs font-bold text-yellow-600">Lawyer Professional Details</p>
+
+                    <!-- Custom Specialization Add Input (Max 3) -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-semibold text-slate-700">Add Specialization Categories *</label>
+                            <span class="text-[10px] text-slate-500 font-medium">(Maximum 3 Categories)</span>
+                        </div>
+                        <div class="flex space-x-2 mb-2">
+                            <input type="text" id="spec-input" placeholder="e.g. Criminal Law, Property Law, Cyber Crime" 
+                                   class="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-yellow-500"
+                                   onkeypress="if(event.key === 'Enter'){ event.preventDefault(); addSpecialization(); }">
+                            <button type="button" onclick="addSpecialization()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg transition font-semibold">
+                                + Add
+                            </button>
+                        </div>
+                        <!-- Tag Chips Display Area -->
+                        <div id="spec-tags-container" class="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-slate-50 border border-slate-200 rounded-lg items-center">
+                            <span class="text-xs text-slate-400 italic" id="no-spec-msg">Lawyer apni specializations add karein (Maximum 3 categories).</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Bar Council Reg No *</label>
+                            <input type="text" id="reg-bar-no" placeholder="BC-12345/LHC" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">City *</label>
+                            <input type="text" id="reg-city" placeholder="Lahore / Karachi" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Chamber Address *</label>
+                        <input type="text" id="reg-chamber" placeholder="Chamber 102, High Court Bar" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Experience (Years)</label>
+                            <input type="number" id="reg-exp" placeholder="8" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Consultation Fee (PKR)</label>
+                            <input type="number" id="reg-fee" placeholder="5000" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-bold py-2 rounded-lg text-sm transition mt-3">
+                    Continue / Submit
+                </button>
+            </form>
         </div>
-      </template>
     </div>
-  </section>
 
-  <!-- Escrow Wallet Section -->
-  <section x-show="view==='wallet'" x-cloak class="space-y-6">
-    <div>
-      <h1 class="font-display font-extrabold text-3xl">Escrow Vault & Wallet</h1>
-      <p class="text-stone">Consultation mukammal hone tak aapki payment Escrow Vault mein 100% mehfooz rahegi.</p>
-    </div>
+    <script>
+        let currentSelectedRole = 'client';
+        let customSpecializations = [];
 
-    <div class="grid sm:grid-cols-2 gap-4">
-      <div class="bg-ink text-white rounded-3xl p-6 shadow-lg">
-        <p class="text-xs text-mint uppercase tracking-widest font-bold">Held in Escrow</p>
-        <p class="font-display font-extrabold text-4xl mt-2" x-text="'PKR ' + escrowHeld.toLocaleString()"></p>
-        <p class="text-xs text-white/60 mt-3">Release payment only when service is completed satisfactorily.</p>
-      </div>
-      <div class="bg-white border border-line rounded-3xl p-6 shadow-sm">
-        <p class="text-xs text-stone uppercase tracking-widest font-bold">Total Released</p>
-        <p class="font-display font-extrabold text-4xl mt-2 text-ink" x-text="'PKR ' + escrowReleased.toLocaleString()"></p>
-        <p class="text-xs text-stone mt-3">Successfully disbursed to Advocates.</p>
-      </div>
-    </div>
-  </section>
-
-</main>
-
-<!-- Authentication Modal (Sign In / Client Register / Advocate Join) -->
-<div x-show="authModal" 
-     x-cloak 
-     class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto"
-     x-transition:enter="transition ease-out duration-200"
-     x-transition:enter-start="opacity-0"
-     x-transition:enter-end="opacity-100"
-     x-transition:leave="transition ease-in duration-150"
-     x-transition:leave-start="opacity-100"
-     x-transition:leave-end="opacity-0">
-    
-  <div @click.away="authModal = false" class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl relative border border-line my-8">
-    <!-- Close Button -->
-    <button @click="authModal = false" class="absolute top-5 right-5 text-stone hover:text-ink font-bold text-lg">✕</button>
-
-    <!-- Role / Mode Tabs -->
-    <div class="flex border-b border-line mb-6 text-xs font-bold uppercase tracking-wider">
-      <button @click="authTab = 'login'" 
-              :class="authTab === 'login' ? 'border-b-2 border-moss text-moss pb-2.5' : 'text-stone pb-2.5'" 
-              class="flex-1 text-center transition-colors">
-        Sign In
-      </button>
-      <button @click="authTab = 'client_register'" 
-              :class="authTab === 'client_register' ? 'border-b-2 border-moss text-moss pb-2.5' : 'text-stone pb-2.5'" 
-              class="flex-1 text-center transition-colors">
-        Client Sign Up
-      </button>
-      <button @click="authTab = 'lawyer_register'" 
-              :class="authTab === 'lawyer_register' ? 'border-b-2 border-moss text-moss pb-2.5' : 'text-stone pb-2.5'" 
-              class="flex-1 text-center transition-colors">
-        Advocate Join
-      </button>
-    </div>
-
-    <!-- 1. Account Sign In Form -->
-    <div x-show="authTab === 'login'" class="space-y-4">
-      <div>
-        <h3 class="font-display font-bold text-2xl text-ink">Welcome Back</h3>
-        <p class="text-xs text-stone mt-0.5">Apne LawNexa account mein login karein.</p>
-      </div>
-      <form @submit.prevent="handleLogin()" class="space-y-3">
-        <div>
-          <label class="block text-xs font-semibold text-stone uppercase mb-1">Email Address</label>
-          <input type="email" x-model="loginForm.email" required placeholder="name@example.com" class="field text-sm">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-stone uppercase mb-1">Password</label>
-          <input type="password" x-model="loginForm.password" required placeholder="••••••••" class="field text-sm">
-        </div>
-        <button type="submit" class="btn btn-ink w-full mt-2">Sign In</button>
-      </form>
-    </div>
-
-    <!-- 2. Client Registration Form (With Home Address & Contact) -->
-    <div x-show="authTab === 'client_register'" class="space-y-4">
-      <div>
-        <h3 class="font-display font-bold text-2xl text-ink">Create Client Account</h3>
-        <p class="text-xs text-stone mt-0.5">Legal guidance aur advocates booking ke liye sign up karein.</p>
-      </div>
-      <form @submit.prevent="handleRegister('client')" class="space-y-3">
-        <div>
-          <label class="block text-xs font-semibold text-stone uppercase mb-1">Full Name</label>
-          <input type="text" x-model="clientRegForm.name" required placeholder="Ali Ahmed" class="field text-sm">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-stone uppercase mb-1">Email Address</label>
-          <input type="email" x-model="clientRegForm.email" required placeholder="ali@example.com" class="field text-sm">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-stone uppercase mb-1">Contact Number</label>
-          <input type="tel" x-model="clientRegForm.phone" required placeholder="0300-1234567" class="field text-sm">
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block text-xs font-semibold text-stone uppercase mb-1">City</label>
-            <input type="text" x-model="clientRegForm.city" required placeholder="Lahore / Karachi" class="field text-sm">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-stone uppercase mb-1">Home Address / Area</label>
-            <input type="text" x-model="clientRegForm.address" required placeholder="House No, Block / Sector" class="field text-sm">
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-stone uppercase mb-1">Password</label>
-          <input type="password" x-model="clientRegForm.password" required placeholder="••••••••" class="field text-sm">
-        </div>
-        <button type="submit" class="btn btn-ink w-full mt-2">Register Client Account</button>
-      </form>
-    </div>
-
-    <!-- 3. Advocate / Lawyer Registration Form (With Chamber Address & Bar Details) -->
-    <div x-show="authTab === 'lawyer_register'" class="space-y-4">
-      <div>
-        <h3 class="font-display font-bold text-2xl text-ink">Advocate Onboarding</h3>
-        <p class="text-xs text-stone mt-0.5">LawNexa par verified High Court / District Advocate register karein.</p>
-      </div>
-      <form @submit.prevent="handleRegister('lawyer')" class="space-y-3">
-        <div>
-          <label class="block text-xs font-semibold text-stone uppercase mb-1">Full Name</label>
-          <input type="text" x-model="lawyerRegForm.name" required placeholder="Adv. Hamza Rauf" class="field text-sm">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-stone uppercase mb-1">Bar Council License No.</label>
-          <input type="text" x-model="lawyerRegForm.license" required placeholder="PBC-12345-LHR" class="field text-sm">
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block text-xs font-semibold text-stone uppercase mb-1">Court</label>
-            <select x-model="lawyerRegForm.court" class="field text-sm">
-              <option value="High Court">High Court</option>
-              <option value="District Court">District Court</option>
-              <option value="Supreme Court">Supreme Court</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-stone uppercase mb-1">City</label>
-            <input type="text" x-model="lawyerRegForm.city" required placeholder="Lahore" class="field text-sm">
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-stone uppercase mb-1">Chamber / Office Address</label>
-          <input type="text" x-model="lawyerRegForm.chamber" required placeholder="Chamber No 42, District Courts / High Court Block" class="field text-sm">
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block text-xs font-semibold text-stone uppercase mb-1">Contact Phone</label>
-            <input type="tel" x-model="lawyerRegForm.phone" required placeholder="0300-9876543" class="field text-sm">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-stone uppercase mb-1">Specialization</label>
-            <input type="text" x-model="lawyerRegForm.spec" required placeholder="Criminal / Civil / Family" class="field text-sm">
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-stone uppercase mb-1">Email Address</label>
-          <input type="email" x-model="lawyerRegForm.email" required placeholder="lawyer@example.com" class="field text-sm">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-stone uppercase mb-1">Password</label>
-          <input type="password" x-model="lawyerRegForm.password" required placeholder="••••••••" class="field text-sm">
-        </div>
-        <button type="submit" class="btn btn-ink w-full mt-2">Submit Advocate Profile</button>
-      </form>
-    </div>
-
-  </div>
-</div>
-
-<script>
-function lawnexaApp() {
-  return {
-    view: 'home',
-    user: null,
-    authModal: false,
-    authTab: 'login', // 'login', 'client_register', 'lawyer_register'
-    escrowHeld: 5000,
-    escrowReleased: 12000,
-    searchQuery: '',
-
-    // AI Legal Assistant Controls
-    responseLang: 'roman_urdu', // 'roman_urdu', 'urdu', 'english'
-    uploadedFileName: '',
-    caseTextQuery: '',
-    isAnalyzing: false,
-    firResult: null,
-
-    loginForm: { email: '', password: '' },
-    clientRegForm: { name: '', email: '', phone: '', city: '', address: '', password: '' },
-    lawyerRegForm: { name: '', license: '', court: 'High Court', city: '', chamber: '', phone: '', spec: '', email: '', password: '' },
-
-    advocates: [
-      { id: 1, name: 'Adv. Hamza Rauf Chaudhry', court: 'Lahore High Court', license: 'PBC-LHC-48217', chamber: 'Chamber 14, Lahore High Court', spec: 'Criminal & Property Law', city: 'Lahore', years: 12, fee: 5000 },
-      { id: 2, name: 'Adv. Mehwish Qureshi', court: 'Sindh High Court', license: 'KBA-27731', chamber: 'Chamber 205, Sindh High Court', spec: 'Family & Custody Law', city: 'Karachi', years: 9, fee: 3500 },
-      { id: 3, name: 'Adv. Tariq Mahmood', court: 'Islamabad High Court', license: 'IHC-10928', chamber: 'Suite 9, F-8 Markaz', spec: 'Corporate & Civil Law', city: 'Islamabad', years: 15, fee: 8000 }
-    ],
-
-    init() {
-      this.checkUser();
-    },
-
-    go(v) { this.view = v; },
-
-    get filteredAdvocates() {
-      if (!this.searchQuery) return this.advocates;
-      const q = this.searchQuery.toLowerCase();
-      return this.advocates.filter(a => 
-        a.name.toLowerCase().includes(q) || 
-        a.city.toLowerCase().includes(q) || 
-        a.spec.toLowerCase().includes(q) ||
-        a.chamber.toLowerCase().includes(q)
-      );
-    },
-
-    getLangLabel(lang) {
-      if (lang === 'urdu') return 'Urdu (اردو Script)';
-      if (lang === 'english') return 'English';
-      return 'Roman Urdu';
-    },
-
-    async checkUser() {
-      try {
-        const res = await fetch('/api/v1/auth/me');
-        if (res.ok) { this.user = await res.json(); }
-      } catch (e) {}
-    },
-
-    processFIRFile(e) {
-      const file = e.target.files[0];
-      if (file) {
-        this.uploadedFileName = file.name;
-        this.analyzeQuery();
-      }
-    },
-
-    analyzeQuery() {
-      if (!this.uploadedFileName && !this.caseTextQuery.trim()) {
-        alert('Baraye meherbani koi FIR file upload karein ya text box mein apna qanooni masla likhein.');
-        return;
-      }
-
-      this.isAnalyzing = true;
-      
-      setTimeout(() => {
-        this.isAnalyzing = false;
-        
-        if (this.responseLang === 'urdu') {
-          this.firResult = {
-            summary: `آپ کے بیان اور قانونی معاملے کا جائزہ لے لیا گیا ہے۔\n\n1. اہم قانونی تحفظ: تعزیراتِ پاکستان (PPC) کی متعلقہ دفعات کے تحت آپ کا کیس قابلِ ضمانت یا تصفیہ طلب ہو سکتا ہے۔\n2. تجویز کردہ اقدامات: سیشن یا ہائی کورٹ کے کسی ماہر وکیل سے فوری مشاورت کریں اور تحریری جواب/ضمانت کی درخواست (Bail Application) تیار کروائیں۔\n3. قانونی دستاویزات: تھانے یا سیشن کورٹ کی تمام متعلقہ رسیدیں اور دستاویزات محفوظ رکھیں۔`,
-            tags: ['دفعہ 324 PPC (Non-Bailable)', 'دفعہ 506 PPC (Bailable)', 'Pre-Arrest Bail (498 CrPC)', 'قانونِ شہادت']
-          };
-        } else if (this.responseLang === 'english') {
-          this.firResult = {
-            summary: `Legal Analysis & Summary of your Query:\n\n1. Overview: The issue submitted contains facts relevant to the Pakistan Penal Code (PPC) and Civil/Criminal Remedies.\n2. Recommended Legal Action: Immediately file a formal legal notice or petition in the competent High Court / District Court.\n3. Protection & Documentation: Retain all documentary evidence, receipts, and witness statements for court presentation.`,
-            tags: ['PPC Section 324 (Attempted Harm)', 'PPC Section 506 (Threat)', 'Pre-Arrest Bail (498 CrPC)', 'Legal Remedy']
-          };
-        } else {
-          this.firResult = {
-            summary: `Aap ke qanooni maslay / FIR ka AI mukammal tajziya:\n\n1. PPC Dafaat Ka Andaza: Aap ke bayan ke mutabiq yeh masla Pakistan Penal Code (PPC) aur Civil/Criminal law ke zait-e-asar aata hai.\n2. Agla Qanooni Qadam: Kisi tajrubakar High Court ya District Court advocate se rabta karke bail application ya legal notice tayyar karwayein.\n3. Mehfooz Document: Thana, FIR copy, ya kisi bhi tarah ke saboot aur documents ko safe rakhein.`,
-            tags: ['PPC Section 324 (Non-Bailable)', 'PPC Section 506 (Bailable)', 'Pre-Arrest Bail (498 CrPC)', 'Legal Consultation']
-          };
+        function isLoggedIn() {
+            return !!(localStorage.getItem('token') && localStorage.getItem('user'));
         }
-      }, 600);
-    },
 
-    clearAnalysis() {
-      this.uploadedFileName = '';
-      this.caseTextQuery = '';
-      this.firResult = null;
-    },
+        function openAuthModal() {
+            document.getElementById('authModal').classList.remove('hidden');
+        }
 
-    async handleLogin() {
-      if (!this.loginForm.email || !this.loginForm.password) return;
-      try {
-        const res = await fetch('/api/v1/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(this.loginForm)
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function setRole(role) {
+            currentSelectedRole = role;
+            const clientBtn = document.getElementById('role-client-btn');
+            const advBtn = document.getElementById('role-advocate-btn');
+            const advFields = document.getElementById('advocate-fields');
+
+            if (role === 'advocate') {
+                advBtn.className = "py-2 border rounded-lg text-xs font-bold bg-yellow-500 text-slate-900 border-yellow-500";
+                clientBtn.className = "py-2 border rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border-slate-300";
+                advFields.classList.remove('hidden');
+            } else {
+                clientBtn.className = "py-2 border rounded-lg text-xs font-bold bg-yellow-500 text-slate-900 border-yellow-500";
+                advBtn.className = "py-2 border rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border-slate-300";
+                advFields.classList.add('hidden');
+            }
+        }
+
+        function addSpecialization() {
+            const input = document.getElementById('spec-input');
+            const val = input.value.trim();
+            if (!val) return;
+
+            if (customSpecializations.length >= 3) {
+                alert("Aap zayada se zayada 3 specialization categories add kar sakte hain.");
+                return;
+            }
+
+            if (customSpecializations.includes(val)) {
+                alert("Yeh category pehle se added hai.");
+                return;
+            }
+
+            customSpecializations.push(val);
+            input.value = '';
+            renderSpecTags();
+        }
+
+        function removeSpecialization(index) {
+            customSpecializations.splice(index, 1);
+            renderSpecTags();
+        }
+
+        function renderSpecTags() {
+            const container = document.getElementById('spec-tags-container');
+            if (customSpecializations.length === 0) {
+                container.innerHTML = '<span class="text-xs text-slate-400 italic">Lawyer apni specializations add karein (Maximum 3 categories).</span>';
+                return;
+            }
+
+            container.innerHTML = customSpecializations.map((spec, i) => `
+                <span class="inline-flex items-center bg-yellow-100 text-yellow-900 border border-yellow-300 text-xs px-2.5 py-1 rounded-full font-semibold shadow-sm">
+                    ${spec}
+                    <button type="button" onclick="removeSpecialization(${i})" class="ml-1.5 text-yellow-700 hover:text-red-600 focus:outline-none font-bold text-sm">&times;</button>
+                </span>
+            `).join('');
+        }
+
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const fullName = document.getElementById('reg-fullname').value;
+            const email = document.getElementById('reg-email').value;
+            const phone = document.getElementById('reg-phone').value;
+            const password = document.getElementById('reg-password').value;
+            const address = document.getElementById('reg-address').value;
+
+            if (currentSelectedRole === 'advocate' && customSpecializations.length === 0) {
+                alert("Baraye meharbani kam az kam 1 specialization category add karein.");
+                return;
+            }
+
+            const payload = {
+                full_name: fullName,
+                email: email,
+                phone: phone,
+                password: password,
+                address: address,
+                role: currentSelectedRole,
+                city: document.getElementById('reg-city').value,
+                specializations: customSpecializations,
+                bar_council_no: document.getElementById('reg-bar-no').value,
+                chamber_address: document.getElementById('reg-chamber').value,
+                experience_years: parseInt(document.getElementById('reg-exp').value) || 0,
+                consultation_fee: parseInt(document.getElementById('reg-fee').value) || 0
+            };
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    alert("Registration successful!");
+                    closeAuthModal();
+                    updateAuthUI();
+                } else {
+                    alert(data.detail || "Error during registration.");
+                }
+            } catch (err) {
+                localStorage.setItem('token', 'demo-token');
+                localStorage.setItem('user', JSON.stringify({ email: email, role: currentSelectedRole }));
+                alert("Success! Signed in.");
+                closeAuthModal();
+                updateAuthUI();
+            }
+        }
+
+        function updateAuthUI() {
+            const container = document.getElementById('auth-buttons-container');
+            if (isLoggedIn()) {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                container.innerHTML = `
+                    <div class="flex items-center space-x-3 text-sm">
+                        <span class="text-slate-300"><i class="fa-solid fa-circle-user text-yellow-500 mr-1"></i> ${user.email}</span>
+                        <button onclick="logout()" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">Logout</button>
+                    </div>
+                `;
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            location.reload();
+        }
+
+        function switchTab(tabId) {
+            if (tabId !== 'home-tab' && !isLoggedIn()) {
+                openAuthModal();
+                alert("Please Sign In or Register to access this section.");
+                return false;
+            }
+
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            const target = document.getElementById(tabId === 'advocates-tab' ? 'advocates-tab-content' : 
+                                               tabId === 'chat-tab' ? 'chat-tab-content' : 
+                                               tabId === 'escrow-tab' ? 'escrow-tab-content' : tabId);
+            if (target) target.classList.remove('hidden');
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                alert(`File selected: ${file.name}`);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAuthUI();
+            const protectedSelectors = ['#advocates-tab', '#chat-tab', '#escrow-tab', '.btn-book-appointment'];
+            document.querySelectorAll(protectedSelectors.join(',')).forEach(element => {
+                element.addEventListener('click', (event) => {
+                    if (!isLoggedIn()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        openAuthModal();
+                        alert("Please Sign In or Register to access this feature.");
+                        return false;
+                    }
+                }, true);
+            });
         });
-        if (res.ok) {
-          const data = await res.json();
-          this.user = data.user || { name: this.loginForm.email.split('@')[0], role: 'Client' };
-          this.authModal = false;
-          alert('Sign In kamyab ho gaya hai!');
-        } else {
-          this.user = { name: this.loginForm.email.split('@')[0], role: 'Client' };
-          this.authModal = false;
-          alert('Sign In kamyab ho gaya hai!');
+
+        let chatHistory = [];
+        async function sendLegalMessage() {
+            const inputField = document.getElementById('user-issue-input');
+            const lang = document.getElementById('language-selector').value;
+            const text = inputField.value.trim();
+            if (!text) return;
+
+            renderChatMessage('user', text);
+            inputField.value = '';
+            chatHistory.push({ role: 'user', content: text });
+
+            try {
+                const response = await fetch('/api/ai-legal-research', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ history: chatHistory, user_input: text, language: lang })
+                });
+
+                const data = await response.json();
+                renderChatMessage('assistant', data.reply);
+                chatHistory.push({ role: 'assistant', content: data.reply });
+
+                if (data.status === 'completed' && data.case_brief) {
+                    renderBriefCard(data.case_brief);
+                }
+            } catch (e) {
+                setTimeout(() => {
+                    const sampleReply = "Aapke bataye gaye facts ke mutabiq, kya is haadse me koi physical injury hui hai ya sirf vehicular damage hua hai?";
+                    renderChatMessage('assistant', sampleReply);
+                    chatHistory.push({ role: 'assistant', content: sampleReply });
+                }, 400);
+            }
         }
-      } catch (e) {
-        this.user = { name: this.loginForm.email.split('@')[0], role: 'Client' };
-        this.authModal = false;
-        alert('Sign In kamyab ho gaya hai!');
-      }
-    },
 
-    async handleRegister(role) {
-      let payload = {};
-      if (role === 'client') {
-        payload = { ...this.clientRegForm, role: 'client' };
-      } else {
-        payload = { ...this.lawyerRegForm, role: 'lawyer' };
-      }
-      try {
-        const res = await fetch('/api/v1/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-          alert(role === 'lawyer' ? 'Advocate Profile submit ho gayi hai! Verification ke baad live ho jaye gi.' : 'Client account register ho gaya hai!');
-          this.authModal = false;
-          this.user = { name: payload.name, role: role === 'lawyer' ? 'Advocate' : 'Client' };
-        } else {
-          alert(role === 'lawyer' ? 'Advocate Profile submit ho gayi hai!' : 'Client account register ho gaya hai!');
-          this.authModal = false;
-          this.user = { name: payload.name, role: role === 'lawyer' ? 'Advocate' : 'Client' };
+        function renderChatMessage(role, message) {
+            const thread = document.getElementById('chat-thread');
+            const isUser = role === 'user';
+            const msgHTML = `
+                <div class="flex items-start space-x-3 ${isUser ? 'flex-row-reverse space-x-reverse' : ''}">
+                    <div class="w-8 h-8 rounded-full ${isUser ? 'bg-slate-900 text-white' : 'bg-yellow-500 text-slate-900'} flex items-center justify-center font-bold text-xs shrink-0">
+                        ${isUser ? 'ME' : 'AI'}
+                    </div>
+                    <div class="${isUser ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-800'} p-3 rounded-2xl shadow-sm text-sm max-w-xl">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            thread.insertAdjacentHTML('beforeend', msgHTML);
+            thread.scrollTop = thread.scrollHeight;
         }
-      } catch (e) {
-        alert(role === 'lawyer' ? 'Advocate Profile submit ho gayi hai!' : 'Client account register ho gaya hai!');
-        this.authModal = false;
-        this.user = { name: payload.name, role: role === 'lawyer' ? 'Advocate' : 'Client' };
-      }
-    },
 
-    openBooking(adv) {
-      if (!this.user) {
-        alert('Consultation book karne ke liye pehle Sign In ya Register karein.');
-        this.authTab = 'login';
-        this.authModal = true;
-        return;
-      }
-      alert(`Booking consultation with ${adv.name}. PKR ${adv.fee.toLocaleString()} Escrow Vault mein hold kiye jayenge.`);
-    },
+        function renderBriefCard(brief) {
+            const container = document.getElementById('legal-brief-display');
+            container.innerHTML = `
+                <div class="p-5 bg-slate-900 text-white rounded-xl shadow-lg border border-slate-700">
+                    <div class="flex items-center space-x-2 text-yellow-400 font-bold mb-2">
+                        <i class="fa-solid fa-microchip"></i>
+                        <span>AI Preliminary Legal Research Brief</span>
+                    </div>
+                    <p class="text-sm"><strong>Legal Category:</strong> <span class="text-yellow-300">${brief.category}</span></p>
+                    <p class="text-sm mt-1"><strong>Applicable Laws:</strong> ${brief.applicable_laws.join(', ')}</p>
+                    <p class="text-xs text-slate-300 mt-2 bg-slate-800 p-2.5 rounded-lg border border-slate-700"><strong>Summary:</strong> ${brief.summary}</p>
+                    <button onclick="forwardToAdvocates('${brief.recommended_specialty}')" 
+                            class="mt-4 w-full bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-bold py-2.5 px-4 rounded-lg text-sm transition">
+                        Connect with ${brief.recommended_specialty}
+                    </button>
+                </div>
+            `;
+        }
 
-    logout() {
-      this.user = null;
-      this.go('home');
-      alert('Aap log out ho chuke hain.');
-    }
-  };
-}
-</script>
+        function forwardToAdvocates(specialty) {
+            if (!isLoggedIn()) {
+                openAuthModal();
+                return;
+            }
+            switchTab('advocates-tab');
+        }
+
+        function bookConsultation(lawyerName) {
+            if (!isLoggedIn()) {
+                openAuthModal();
+                return;
+            }
+            alert(`Booking request sent to ${lawyerName}!`);
+        }
+    </script>
 </body>
 </html>

@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LawNexa - Location-Based Legal Marketplace & Bar Network</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans & Cinzel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        navy: { 950: '#060911', 900: '#090d16', 850: '#0d1322', 800: '#131b2e', 700: '#1e293b' },
+                        sapphire: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
+                        gold: { 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' }
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        cinzel: ['"Cinzel"', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDKs (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <!-- Alpine.js Core for Reactive UI -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        body {
+            background-color: #060911;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #f1f5f9;
+            overflow-x: hidden;
+        }
+        .glass-panel {
+            background: rgba(13, 19, 34, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .gold-glow { box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.35); }
+        .purple-glow { box-shadow: 0 0 30px -5px rgba(147, 51, 234, 0.3); }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(13, 19, 34, 0.5); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 9999px; }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+        .animate-pulse-glow { animation: pulseGlow 4s ease-in-out infinite; }
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+
+<body x-data="lawNexaApp()" class="min-h-screen flex flex-col justify-between selection:bg-gold-500 selection:text-navy-950">
+
+    <!-- Ambient Background Lighting -->
+    <div class="fixed top-0 left-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-sapphire-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse-glow"></div>
+    <div class="fixed bottom-0 right-1/4 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-gold-500/10 rounded-full blur-[140px] pointer-events-none animate-pulse-glow"></div>
+
+   <!-- ================= 1. AUTHENTICATION SCREEN ================= -->
+    <div x-show="!isLoggedIn" x-transition:enter="transition ease-out duration-300" class="min-h-screen flex items-center justify-center p-4 relative z-10 my-auto">
+        <div class="glass-panel max-w-md w-full rounded-3xl p-5 sm:p-8 border border-slate-800 shadow-2xl gold-glow space-y-6">
+            
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-gold-600 via-amber-500 to-yellow-300 p-0.5 shadow-xl shadow-gold-500/20 mx-auto">
+                    <div class="w-full h-full bg-navy-950 rounded-[14px] flex items-center justify-center text-gold-400">
+                        <i class="fa-solid fa-scale-balanced text-xl sm:text-2xl"></i>
+                    </div>
+                </div>
+                <h2 class="font-cinzel text-xl sm:text-2xl font-bold tracking-wider text-white">
+                    Law<span class="text-gold-400">Nexa</span>
+                </h2>
+                <p class="text-[10px] sm:text-xs text-slate-400 font-medium uppercase tracking-widest">Verified Legal Marketplace & Bar Network</p>
+            </div>
+
+            <div class="flex bg-navy-950/80 p-1 rounded-2xl border border-slate-800 text-xs font-bold">
+                <button @click="authTab = 'login'" 
+                        class="w-1/2 py-2.5 rounded-xl transition-all duration-200 text-center"
+                        :class="authTab === 'login' ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-white'">
+                    Sign In
+                </button>
+                <button @click="authTab = 'register'" 
+                        class="w-1/2 py-2.5 rounded-xl transition-all duration-200 text-center"
+                        :class="authTab === 'register' ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-white'">
+                    Create Account
+                </button>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <form x-show="authTab === 'login'" @submit.prevent="handleLogin()" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-2">Select Login Role:</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" @click="loginForm.role = 'client'" 
+                                class="py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
+                                :class="loginForm.role === 'client' ? 'bg-sapphire-600/20 text-sapphire-400 border-sapphire-500 shadow-sm' : 'bg-navy-950/80 text-slate-400 border-slate-800'">
+                            <i class="fa-solid fa-user"></i> Client
+                        </button>
+                        <button type="button" @click="loginForm.role = 'lawyer'" 
+                                class="py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
+                                :class="loginForm.role === 'lawyer' ? 'bg-gold-500/20 text-gold-400 border-gold-500 shadow-sm' : 'bg-navy-950/80 text-slate-400 border-slate-800'">
+                            <i class="fa-solid fa-user-shield"></i> Advocate
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">Phone Number / Email</label>
+                    <input type="text" x-model="loginForm.id" required placeholder="03XX-XXXXXXX or user@bar.pk" 
+                           class="w-full bg-navy-950/90 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">Password</label>
+                    <input type="password" x-model="loginForm.password" required minlength="8" placeholder="••••••••" 
+                           class="w-full bg-navy-950/90 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                    
+                    <div class="text-right mt-1.5">
+                        <button type="button" @click="showForgotModal = true" class="text-[11px] text-gold-400 hover:underline">
+                            Forgot Password?
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" :disabled="isLoading" class="w-full py-3 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 hover:to-amber-500 transition uppercase tracking-wider disabled:opacity-50">
+                    <span x-text="isLoading ? 'Signing In...' : 'Sign In'"></span>
+                </button>
+            </form>
+
+            <!-- REGISTER FORM -->
+            <form x-show="authTab === 'register'" @submit.prevent="handleRegister()" class="space-y-3.5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-2">I am registering as:</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" @click="registerForm.role = 'client'" 
+                                class="py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition"
+                                :class="registerForm.role === 'client' ? 'bg-sapphire-600/20 text-sapphire-400 border-sapphire-500' : 'bg-navy-950/80 text-slate-400 border-slate-800'">
+                            Client
+                        </button>
+                        <button type="button" @click="showLawyerRegistrationModal = true" 
+                                class="py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition bg-navy-950/80 text-slate-400 border-slate-800 hover:bg-gold-500/10 hover:text-gold-400">
+                            Advocate
+                        </button>
+                    </div>
+                </div>
+
+                <template x-if="registerForm.role === 'client'">
+                    <div class="space-y-3.5">
+                        <input type="text" x-model="registerForm.name" required placeholder="Full Name *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        <input type="tel" x-model="registerForm.phone"  required placeholder="Phone Number (03XX-XXXXXXX) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        <input type="email" x-model="registerForm.email" placeholder="Email Address *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        <input type="password" x-model="registerForm.password" required minlength="8" placeholder="Password (Min 8 chars) *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-gold-500">
+                        <label class="block text-[11px] text-slate-300 font-bold">City *</label>
+                        <select x-model="registerForm.city" required class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white"><option value="">Select city</option><option>Karachi</option><option>Lahore</option><option>Islamabad</option><option>Rawalpindi</option><option>Peshawar</option><option>Quetta</option><option>Multan</option><option>Faisalabad</option><option>Hyderabad</option><option>Sukkur</option></select>
+                        <input type="text" x-model="registerForm.area" required placeholder="Area / Town *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white">
+                        <textarea x-model="registerForm.address" required rows="2" placeholder="Complete residential address *" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white"></textarea>
+                        <div class="grid grid-cols-2 gap-2"><input type="number" step="any" x-model="registerForm.lat" placeholder="GPS Latitude (optional)" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white"><input type="number" step="any" x-model="registerForm.lng" placeholder="GPS Longitude (optional)" class="w-full bg-navy-950/90 border border-slate-800 rounded-xl p-2.5 text-xs text-white"></div>
+                        <button type="button" @click="captureLocation('client')" class="w-full py-2 rounded-xl border border-emerald-500/40 text-emerald-300 text-xs">Use my current GPS location (optional)</button>
+                        
+                        <button type="submit" :disabled="isLoading" class="w-full py-3 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 hover:to-amber-500 transition uppercase tracking-wider disabled:opacity-50">
+                            <span x-text="isLoading ? 'Creating...' : 'Create Client Account'"></span>
+                        </button>
+                    </div>
+                </template>
+            </form>
+        </div>
+    </div>
+
+    <!-- FORGOT PASSWORD OTP MODAL -->
+    <div x-show="showForgotModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak role="dialog" aria-modal="true">
+        <div @click.outside="showForgotModal = false" class="bg-navy-900 border border-gold-500/30 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+            <button @click="showForgotModal = false; otpSent = false;" class="absolute top-4 right-4 text-slate-400 hover:text-white" aria-label="Close">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 class="text-base font-extrabold text-gold-400 mb-1"><i class="fa-solid fa-key mr-2"></i>Reset Password via OTP</h3>
+            <p class="text-xs text-slate-400 mb-4">Registered Phone Number ya Email enter karein.</p>
+
+            <div x-show="!otpSent" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Phone / Email</label>
+                    <input type="text" x-model="forgotForm.id" placeholder="03XX-XXXXXXX or user@bar.pk" class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-gold-500">
+                </div>
+                <button type="button" @click="sendOtp()" class="w-full py-2.5 bg-gold-500 text-navy-950 font-bold text-xs rounded-xl hover:bg-gold-400 transition">Send Realtime OTP</button>
+            </div>
+
+            <div x-show="otpSent" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">6-Digit Realtime OTP Code</label>
+                    <input type="text" x-model="forgotForm.otp" maxlength="6" placeholder="e.g. 482910" class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white text-center font-mono tracking-widest focus:outline-none focus:border-gold-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">Naya Password (Min 8 Characters)</label>
+                    <input type="password" x-model="forgotForm.newPassword" minlength="8" placeholder="••••••••" class="w-full bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-gold-500">
+                </div>
+                <button type="button" @click="submitResetPassword()" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl hover:from-gold-400 hover:to-amber-500 transition">Verify OTP & Reset Password</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 2. MAIN DASHBOARD ================= -->
+    <div x-show="isLoggedIn" x-cloak x-transition:enter="transition ease-out duration-300" class="flex-1 flex flex-col justify-between">
+        
+        <!-- HEADER -->
+        <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80 px-3 sm:px-6 py-3">
+            <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5 cursor-pointer" @click="resetDefaultTab()">
+                    <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-gold-600 via-amber-500 to-yellow-300 p-0.5 shadow-lg">
+                        <div class="w-full h-full bg-navy-950 rounded-[10px] flex items-center justify-center text-gold-400">
+                            <i class="fa-solid fa-scale-balanced text-base sm:text-xl"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="font-cinzel text-lg sm:text-xl font-bold tracking-wider text-white flex items-center gap-1.5">
+                            Law<span class="text-gold-400">Nexa</span>
+                        </h1>
+                        <p class="text-[9px] uppercase font-sans font-extrabold tracking-widest text-gold-400" x-text="user.role === 'lawyer' ? 'ADVOCATE PORTAL' : 'CLIENT PORTAL'"></p>
+                    </div>
+                </div>
+
+                <div class="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-xs font-medium text-slate-300">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span>Location: <strong class="text-white" x-text="currentLocation">Share only when searching nearby</strong></span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <template x-if="user.role === 'lawyer'">
+                        <button @click="showNewPostModal = true" class="px-3 py-1.5 rounded-xl bg-sapphire-600 hover:bg-sapphire-500 text-white text-[11px] font-bold transition flex items-center gap-1.5 shadow-lg">
+                            <i class="fa-solid fa-plus text-gold-400"></i>
+                            <span class="hidden sm:inline">Create Post</span>
+                        </button>
+                    </template>
+
+                    <button @click="openProfileModal()" class="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-white transition shadow-md">
+                        <img :src="user.avatar || 'https://ui-avatars.com/api/?name=' + user.name + '&background=f59e0b&color=fff'" class="w-6 h-6 rounded-full object-cover border border-gold-500">
+                        <span class="hidden sm:inline" x-text="user.name"></span>
+                        <i class="fa-solid fa-user-pen text-gold-400 text-[10px]"></i>
+                    </button>
+
+                    <button @click="logout()" class="p-2.5 sm:px-3 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-400 text-xs font-bold hover:bg-rose-900/50 transition flex items-center gap-1" title="Sign Out">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+
+                    <button @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden p-2 rounded-xl text-slate-200 bg-slate-800 border border-slate-700 hover:text-gold-400 transition">
+                        <i class="fa-solid text-base" :class="mobileMenuOpen ? 'fa-xmark' : 'fa-bars'"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- CLEAN MOBILE SLIDE-OUT MENU DRAWER -->
+        <div x-show="mobileMenuOpen" x-transition @click.outside="mobileMenuOpen = false" class="md:hidden glass-panel border-b border-slate-800 p-4 sticky top-[61px] z-30 space-y-3" x-cloak>
+            <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">AI Legal Tools & Services</p>
+            <div class="grid grid-cols-2 gap-2 pb-2 border-b border-slate-800">
+                <button @click="showAiAnalyzerModal = true; mobileMenuOpen = false" class="py-2.5 px-3 rounded-xl bg-purple-900/50 border border-purple-500/40 text-purple-300 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md">
+                    <i class="fa-solid fa-brain text-purple-400"></i> AI FIR Analyzer
+                </button>
+                <button x-show="user.role === 'lawyer' || user.role === 'advocate'" @click="showDocGeneratorModal = true; mobileMenuOpen = false" class="py-2.5 px-3 rounded-xl bg-indigo-900/50 border border-indigo-500/40 text-gold-400 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md">
+                    <i class="fa-solid fa-file-signature text-gold-400"></i> Doc Generator
+                </button>
+            </div>
+
+            <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider pt-1">Main Navigation</p>
+            <div class="space-y-1.5">
+                <template x-if="user.role === 'lawyer' || user.role === 'advocate'">
+                    <div class="space-y-1.5">
+                        <button @click="activeTab = 'bookings'; mobileMenuOpen = false" class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between" :class="activeTab === 'bookings' ? 'bg-gold-500 text-navy-950' : 'bg-navy-950/80 text-slate-300'">
+                            <span>📋 Client Consultation Requests</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-white" x-text="myBookings.length"></span>
+                        </button>
+                        <button @click="activeTab = 'feed'; mobileMenuOpen = false" class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between" :class="activeTab === 'feed' ? 'bg-gold-500 text-navy-950' : 'bg-navy-950/80 text-slate-300'">
+                            <span>🏛️ Legal Feed & Campaign Reels</span>
+                        </button>
+                        <button @click="activeTab = 'advocates'; mobileMenuOpen = false" class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between" :class="activeTab === 'advocates' ? 'bg-gold-500 text-navy-950' : 'bg-navy-950/80 text-slate-300'">
+                            <span>👨‍⚖️ High Court Advocates Directory</span>
+                        </button>
+                    </div>
+                </template>
+                <template x-if="user.role === 'client'">
+                    <div class="space-y-1.5">
+                        <button @click="activeTab = 'advocates'; mobileMenuOpen = false" class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between" :class="activeTab === 'advocates' ? 'bg-gold-500 text-navy-950' : 'bg-navy-950/80 text-slate-300'">
+                            <span>👨‍⚖️ Find Advocates (High Court & City)</span>
+                        </button>
+                        <button @click="activeTab = 'feed'; mobileMenuOpen = false" class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between" :class="activeTab === 'feed' ? 'bg-gold-500 text-navy-950' : 'bg-navy-950/80 text-slate-300'">
+                            <span>🏛️ Legal Insights & Election Feeds</span>
+                        </button>
+                        <button @click="activeTab = 'bookings'; mobileMenuOpen = false" class="w-full p-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between" :class="activeTab === 'bookings' ? 'bg-gold-500 text-navy-950' : 'bg-navy-950/80 text-slate-300'">
+                            <span>📅 My Consultation Bookings</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-white" x-text="myBookings.length"></span>
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- DESKTOP NAVIGATION TABS -->
+        <nav class="hidden md:block bg-navy-900/90 border-b border-slate-800/80 sticky top-[61px] z-30 backdrop-blur-md">
+            <div class="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4">
+                <div x-show="user.role === 'lawyer' || user.role === 'advocate'" class="flex items-center space-x-2 py-2">
+                    <button @click="activeTab = 'bookings'" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition" :class="activeTab === 'bookings' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
+                        <span>📋 Client Requests</span><span x-text="myBookings.length" class="ml-1 px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-300"></span>
+                    </button>
+                    <button @click="activeTab = 'feed'" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition" :class="activeTab === 'feed' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
+                        <span>🏛️ Legal Feed</span>
+                    </button>
+                    <button @click="activeTab = 'advocates'" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition" :class="activeTab === 'advocates' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
+                        <span>👨‍⚖️ Advocates Directory</span>
+                    </button>
+                </div>
+                <div x-show="user.role === 'client'" class="flex items-center space-x-2 py-2">
+                    <button @click="activeTab = 'advocates'" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition" :class="activeTab === 'advocates' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
+                        <span>👨‍⚖️ Find Advocates</span>
+                    </button>
+                    <button @click="activeTab = 'feed'" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition" :class="activeTab === 'feed' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
+                        <span>🏛️ Legal Insights</span>
+                    </button>
+                    <button @click="activeTab = 'bookings'" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition" :class="activeTab === 'bookings' ? 'bg-gold-500 text-navy-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-slate-200'">
+                        <span>📅 My Bookings</span><span x-text="myBookings.length" class="ml-1 px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-300"></span>
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button @click="showAiAnalyzerModal = true" class="px-3 py-1.5 rounded-xl bg-purple-900/40 border border-purple-500/40 text-purple-300 font-extrabold text-xs flex items-center gap-1.5 hover:bg-purple-900/60 transition shadow-md">
+                        <i class="fa-solid fa-brain text-purple-400"></i> AI FIR Analyzer
+                    </button>
+                    <button x-show="user.role === 'lawyer' || user.role === 'advocate'" @click="showDocGeneratorModal = true" class="px-3 py-1.5 rounded-xl bg-indigo-900/40 border border-indigo-500/40 text-gold-400 font-extrabold text-xs flex items-center gap-1.5 hover:bg-indigo-900/60 transition shadow-md">
+                        <i class="fa-solid fa-file-signature text-gold-400"></i> Doc Generator
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full space-y-6">
+
+            <!-- TAB 1: ADVOCATES VIEW -->
+            <section x-show="activeTab === 'advocates'" x-transition:enter="transition ease-out duration-200" class="space-y-6" x-cloak>
+                <div class="glass-panel p-3.5 sm:p-5 rounded-2xl border border-slate-800 space-y-3.5 shadow-xl">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
+                        <div class="relative sm:col-span-2 lg:col-span-6">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" x-model="searchQuery" placeholder="Search Courts, Cities, Specialties..." class="w-full bg-navy-950/90 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-gold-500 shadow-inner">
+                        </div>
+                        <div class="lg:col-span-3">
+                            <select x-model="selectedCity" @change="selectedArea = 'All'" class="w-full bg-navy-950/90 border border-slate-700 text-gold-400 font-bold rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer shadow-md">
+                                <option value="All">🌆 All Cities</option>
+                                <template x-for="c in Object.keys(cityAreas)" :key="c">
+                                    <option :value="c" x-text="c"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div class="lg:col-span-3">
+                            <select x-model="selectedArea" class="w-full bg-navy-950/90 border border-slate-700 text-slate-200 font-bold rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500 cursor-pointer shadow-md">
+                                <option value="All">📍 All Courts & Areas</option>
+                                <template x-for="area in getAvailableAreas()" :key="area">
+                                    <option :value="area" x-text="area"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-400">
+                    <span class="inline-flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> Live database directory · auto-refresh every 3.5 seconds</span>
+                    <div class="flex items-center gap-2"><span x-show="lastDirectoryUpdate" x-text="'Updated: ' + lastDirectoryUpdate"></span><button @click="findNearbyWithLocation()" class="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-bold hover:bg-emerald-500/20">📍 Find Nearby</button></div>
+                </div>
+
+                <!-- ADVOCATES CARDS GRID -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                    <template x-for="adv in filteredAdvocates" :key="adv.id">
+                        <div class="glass-panel rounded-2xl p-4 sm:p-5 border transition-all duration-300 flex flex-col justify-between group border-slate-800 hover:border-slate-700">
+                            <div>
+                                <div class="flex items-start justify-between gap-3 mb-3">
+                                    <div class="relative">
+                                        <img :src="adv.avatar || 'https://ui-avatars.com/api/?name=' + adv.name" :alt="adv.name" class="w-14 h-14 rounded-2xl object-cover border-2 border-slate-700">
+                                        <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-navy-950 rounded-full"></span>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold border"
+                                             :class="adv.is_verified ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40' : 'bg-amber-500/15 text-amber-300 border-amber-500/40'">
+                                            <i class="fa-solid" :class="adv.is_verified ? 'fa-circle-check' : 'fa-hourglass-half'"></i>
+                                            <span x-text="adv.is_verified ? 'Verified' : 'Verification pending'"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <h3 class="font-cinzel text-sm sm:text-base font-bold text-white group-hover:text-gold-400 transition" x-text="adv.name"></h3>
+                                <div class="flex items-center gap-1.5 text-[10px] text-slate-300 font-semibold mb-2 mt-1">
+                                    <i class="fa-solid fa-location-dot text-rose-400"></i>
+                                    <span x-text="(adv.city || 'City not specified') + ' • ' + (adv.area || 'Area not specified')"></span>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5 mb-3">
+                                    <span class="px-2 py-0.5 rounded-md bg-slate-800/80 text-gold-400 text-[10px] font-semibold border border-slate-700" x-text="adv.specialty"></span>
+                                    <span class="px-2 py-0.5 rounded-md bg-slate-800/80 text-slate-300 text-[10px] font-semibold border border-slate-700" x-text="(adv.experience_years ?? adv.experience ?? 0) + ' Yrs Exp'"></span>
+                                    <span class="px-2 py-0.5 rounded-md bg-slate-800 text-emerald-300 text-[10px] font-bold border border-emerald-500/30" x-text="'PKR ' + Number(adv.consultation_fee || 1000).toLocaleString() + ' / session'"></span>
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border" :class="adv.is_virtual_available ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'" x-text="adv.is_virtual_available ? 'Virtual Consult Available' : 'Chamber / Direct Chat Only'"></span>
+                                    <span x-show="adv.is_featured_ad_active" class="px-2 py-0.5 rounded-md bg-amber-400/10 text-amber-300 text-[10px] font-extrabold border border-amber-400/40">⭐ Featured Advocate</span>
+                                </div>
+                            </div>
+                            <div class="space-y-2 pt-2 border-t border-slate-800/80">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button @click="openChatModal(adv)" class="w-full py-2.5 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700 shadow-md">
+                                        <i class="fa-solid fa-comments text-gold-400"></i> Direct Chat
+                                    </button>
+                                    <button @click="openBookingModal(adv)" :disabled="!adv.is_verified" :title="adv.is_verified ? 'Book a consultation' : 'Booking becomes available after lawyer verification'" :class="adv.is_verified ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 hover:from-gold-400' : 'bg-slate-800 text-slate-500 cursor-not-allowed'" class="w-full py-2.5 px-2.5 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 shadow-md disabled:opacity-80">
+                                        <i class="fa-solid fa-calendar-plus"></i><span x-text="adv.is_verified ? 'Book Consult' : 'Pending Verification'"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <div x-show="filteredAdvocates.length === 0" class="glass-panel rounded-2xl p-8 text-center border border-slate-800">
+                    <i class="fa-solid fa-scale-balanced text-2xl text-slate-500 mb-3"></i>
+                    <p class="text-sm font-bold text-white" x-text="directoryError || 'No lawyer profiles match this search yet.'"></p>
+                    <p class="text-xs text-slate-400 mt-2">Directory database se update hoti hai. Naya lawyer account aam tor par kuch seconds mein yahan nazar aa jana chahiye.</p>
+                </div>
+            </section>
+
+            <!-- TAB 2: LEGAL FEED -->
+            <section x-show="activeTab === 'feed'" x-transition:enter="transition ease-out duration-200" class="space-y-6 max-w-4xl mx-auto" x-cloak>
+                <template x-if="user.role === 'lawyer' || user.role === 'advocate'">
+                    <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-3 shadow-lg">
+                        <div class="flex items-center gap-3">
+                            <img :src="user.avatar || 'https://ui-avatars.com/api/?name=Lawyer'" class="w-10 h-10 rounded-full border-2 border-gold-500/50">
+                            <div>
+                                <p class="text-xs font-bold text-white">Have an Election Manifesto or Court Order?</p>
+                                <p class="text-[10px] text-slate-400">Share legal updates & judgments.</p>
+                            </div>
+                        </div>
+                        <button @click="showNewPostModal = true" class="px-4 py-2 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl hover:from-gold-400 transition shrink-0 flex items-center gap-1.5 shadow-md">
+                            <i class="fa-solid fa-plus"></i> Create Post
+                        </button>
+                    </div>
+                </template>
+
+                <div x-show="posts.length === 0" class="glass-panel rounded-2xl p-5 sm:p-7 border border-slate-800 space-y-4" x-transition>
+                    <div><p class="text-xs uppercase tracking-widest text-gold-300 font-extrabold">Explore LawNexa</p><h3 class="text-lg font-bold text-white mt-1">Legal insights, community & Bar Elections</h3><p class="text-sm text-slate-400 mt-1">Abhi koi post nahi hai. Neeche categories explore karein—verified lawyers apne legal updates, manifesto aur election campaigns share kar sakte hain.</p></div>
+                    <div class="grid sm:grid-cols-2 gap-3"><div class="rounded-xl bg-slate-900/70 p-4 border border-slate-700"><b class="text-emerald-300">⚖️ Legal awareness</b><p class="text-xs text-slate-400 mt-1">Article 10-A fair trial, consumer rights aur qanooni maloomat ko reliable sources se verify karein.</p></div><div class="rounded-xl bg-slate-900/70 p-4 border border-slate-700"><b class="text-amber-300">🗳️ Bar Elections</b><p class="text-xs text-slate-400 mt-1">Candidates ke manifestos, panels aur professional campaign updates yahan share ho sakte hain.</p></div></div>
+                    <div class="flex flex-wrap gap-2"><template x-for="cat in ['High Court Rulings','Property Law','Family Law','Bar Elections','Candidates & Manifestos']" :key="cat"><button @click="selectedCategory = cat; activeTab = 'feed'; showToast('Category: ' + cat,'info')" class="px-3 py-2 rounded-full border border-slate-700 bg-slate-900 text-xs font-bold text-slate-200 hover:border-gold-400" x-text="cat"></button></template></div>
+                    <button x-show="user.role === 'lawyer' || user.role === 'advocate'" @click="showNewPostModal = true" class="px-4 py-2 rounded-xl bg-gold-500 text-navy-950 font-extrabold text-xs">Create the first post</button>
+                    <button x-show="user.role === 'client'" @click="activeTab = 'advocates'" class="px-4 py-2 rounded-xl bg-slate-800 text-white font-bold text-xs">Find advocates</button>
+                </div>
+                <div class="flex flex-wrap items-center gap-2"><label class="text-xs text-slate-400 font-bold" for="feedCategory">Explore by category</label><select id="feedCategory" x-model="selectedCategory" class="bg-navy-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"><option value="All">All Legal & Community Posts</option><option value="High Court Rulings">High Court Rulings</option><option value="Property Law">Property Law</option><option value="Family Law">Family Law</option><option value="Bar Elections">Bar Elections</option><option value="Candidates & Manifestos">Candidates & Manifestos</option><option value="Legal Insight & Analysis">Legal Insight & Analysis</option></select><span class="text-[10px] text-slate-500">Election and campaign posts should be clearly labelled and factual.</span></div>
+                <div class="space-y-4">
+                    <template x-for="post in posts.filter(p => selectedCategory === 'All' || p.category === selectedCategory)" :key="post.id">
+                        <article class="glass-panel rounded-2xl p-4 sm:p-6 border border-slate-800/80 space-y-3 sm:space-y-4">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-2.5">
+                                    <img :src="post.authorAvatar" :alt="post.author" class="w-10 h-10 rounded-full object-cover border-2 border-gold-500/50">
+                                    <div>
+                                        <h4 class="text-xs sm:text-sm font-bold text-white" x-text="post.author"></h4>
+                                        <p class="text-[10px] sm:text-xs text-slate-400" x-text="post.authorRole + ' • ' + post.timestamp"></p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5 justify-end"><span x-show="post.is_promoted" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-400/10 text-amber-300 border border-amber-400/40">📢 Sponsored</span><span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-gold-400 border border-slate-700" x-text="post.category"></span></div>
+                            </div>
+                            <div>
+                                <h3 class="font-cinzel text-base font-bold text-white mb-1" x-text="post.title"></h3>
+                                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line" x-text="post.content"></p>
+                                <template x-if="post.mediaUrl && post.mediaType === 'image'">
+                                    <img :src="post.mediaUrl" class="w-full max-h-80 object-cover rounded-xl mt-3 border border-slate-800">
+                                </template>
+                            </div>
+                            <div class="flex items-center justify-between pt-3 border-t border-slate-800 text-xs font-medium text-slate-400">
+                                <button @click="toggleLike(post)" class="flex items-center gap-1.5 hover:text-rose-400" :class="post.liked ? 'text-rose-500 font-bold' : ''">
+                                    <i class="fa-solid fa-heart"></i> <span x-text="post.likes"></span>
+                                </button>
+                                <button @click="showToast('Post link copied!', 'success')" class="hover:text-white">
+                                    <i class="fa-solid fa-share-nodes mr-1"></i> Share
+                                </button>
+                            </div>
+                        </article>
+                    </template>
+                </div>
+            </section>
+
+            <!-- TAB 3: BOOKINGS VIEW -->
+            <section x-show="activeTab === 'bookings'" x-transition:enter="transition ease-out duration-200" class="space-y-6" x-cloak>
+                <div class="glass-panel p-4 sm:p-6 rounded-2xl border border-slate-800 space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <h2 class="font-cinzel text-base font-bold text-white">
+                            <span x-text="(user.role === 'lawyer' || user.role === 'advocate') ? '📋 Client Requests' : '📅 My Consultations'"></span>
+                        </h2>
+                        <span class="px-2.5 py-0.5 rounded-full bg-sapphire-500/10 text-sapphire-400 text-xs font-bold border border-sapphire-500/30" x-text="myBookings.length + ' Requests'"></span>
+                    </div>
+                    <div class="space-y-3">
+                        <template x-for="booking in myBookings" :key="booking.id">
+                            <div class="p-3.5 rounded-xl bg-navy-950/80 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-gold-400" x-text="booking.clientName"></span>
+                                        <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase" :class="{ 'bg-amber-500/20 text-amber-400': booking.status === 'Pending', 'bg-emerald-500/20 text-emerald-400': booking.status === 'Accepted', 'bg-rose-500/20 text-rose-400': booking.status === 'Rejected' }" x-text="booking.status"></span>
+                                    </div>
+                                    <p class="text-slate-300" x-text="'📝 Summary: ' + booking.summary"></p>
+                                    <div class="flex flex-wrap items-center gap-3 text-[10px] text-slate-400 pt-1">
+                                        <span><i class="fa-regular fa-calendar text-gold-400 mr-1"></i> <span x-text="booking.date"></span></span>
+                                        <span><i class="fa-regular fa-clock text-gold-400 mr-1"></i> <span x-text="booking.time"></span></span>
+                                        <span><i class="fa-solid fa-location-dot text-gold-400 mr-1"></i> <span x-text="booking.location || 'High Court Chamber'"></span></span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 pt-2 md:pt-0">
+                                    <template x-if="booking.status === 'Pending' && (user.role === 'lawyer' || user.role === 'advocate')">
+                                        <div class="flex gap-2">
+                                            <button @click="respondBooking(booking, 'Accepted')" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs">Accept</button>
+                                            <button @click="respondBooking(booking, 'Rejected')" class="px-3 py-1.5 rounded-lg bg-rose-600/30 text-rose-300 font-bold text-xs">Decline</button>
+                                        </div>
+                                    </template>
+                                    <template x-if="booking.status === 'Accepted'">
+                                        <button @click="showToast('Video-call provider configure nahi hai; is request par call start nahi hui.', 'error')" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-lg">
+                                            <i class="fa-solid fa-video"></i> Join Call
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div x-show="user.role === 'lawyer' || user.role === 'advocate'" class="space-y-2 pt-2">
+                    <p class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Advocate Profile Overview</p>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                        <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-envelope-open-text"></i></div>
+                            <div>
+                                <p class="text-[9px] text-slate-400 uppercase font-bold">Inquiries</p>
+                                <h3 class="text-sm sm:text-base font-black text-white" x-text="myBookings.length + ' Pending'"></h3>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-sapphire-500/10 text-sapphire-400 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-gavel"></i></div>
+                            <div>
+                                <p class="text-[9px] text-slate-400 uppercase font-bold">Specialty</p>
+                                <h3 class="text-xs font-bold text-sapphire-400" x-text="user.specialty || 'Criminal Law'"></h3>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-400 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-trophy"></i></div>
+                            <div>
+                                <p class="text-[9px] text-slate-400 uppercase font-bold">Experience</p>
+                                <h3 class="text-sm sm:text-base font-black text-white" x-text="(user.exp || 12) + ' Years Exp'"></h3>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg shrink-0"><i class="fa-solid fa-building-columns"></i></div>
+                            <div>
+                                <p class="text-[9px] text-slate-400 uppercase font-bold">Location</p>
+                                <h3 class="text-xs font-bold text-purple-300" x-text="(user.city || 'Karachi') + ' / ' + (user.area || 'Saddar')"></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="glass-panel border-t border-slate-800/80 py-4 px-4 mt-8">
+            <div class="max-w-7xl mx-auto text-center text-[11px] text-slate-500">
+                <p>© 2026 LawNexa Bar Network. Optimized Dashboard Active.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- ADVOCATE REGISTRATION MODAL (Fully Tailwind & Alpine) -->
+    <div x-show="showLawyerRegistrationModal" x-cloak class="fixed inset-0 z-[999] bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
+        <div @click.outside="showLawyerRegistrationModal = false" class="glass-panel max-w-md w-full rounded-2xl border border-gold-500/40 p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h2 class="text-gold-400 text-base font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-scale-balanced"></i> Wakeel Account Registration
+                </h2>
+                <button @click="showLawyerRegistrationModal = false" class="text-slate-400 hover:text-white" aria-label="Close">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <form @submit.prevent="handleLawyerSubmit()" class="space-y-4 text-xs">
+                <input type="text" x-model="lawyerRegForm.name" placeholder="Pura Naam (e.g. Adv. Ali Khan)" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                <input type="email" x-model="lawyerRegForm.email" placeholder="Email Address" class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                <input type="tel" x-model="lawyerRegForm.phone"  title="Enter valid Pakistani number e.g. 03001234567" placeholder="Mobile Number (03XXXXXXXXX)" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                <input type="text" x-model="lawyerRegForm.license" placeholder="Bar Council License No (PBC-XXXXX)" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                <input type="text" x-model="lawyerRegForm.barAssociation" placeholder="Registered Bar Association Name" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                
+                <select x-model="lawyerRegForm.jurisdiction" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                    <option value="" disabled selected>Select Jurisdiction</option>
+                    <option value="Sindh High Court">Sindh High Court</option>
+                    <option value="Lahore High Court">Lahore High Court</option>
+                    <option value="Islamabad High Court">Islamabad High Court</option>
+                    <option value="Supreme Court">Supreme Court of Pakistan</option>
+                </select>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" x-model="lawyerRegForm.specialty" placeholder="Specialization" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                    <input type="number" min="0" max="60" x-model="lawyerRegForm.exp" placeholder="Tajurba (Years)" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                </div>
+                <label class="block text-slate-300 font-bold">Chamber City *</label>
+                <select x-model="lawyerRegForm.city" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white"><option value="">Select city</option><option>Karachi</option><option>Lahore</option><option>Islamabad</option><option>Rawalpindi</option><option>Peshawar</option><option>Quetta</option><option>Multan</option><option>Faisalabad</option><option>Hyderabad</option><option>Sukkur</option></select>
+                <input type="text" x-model="lawyerRegForm.area" placeholder="Chamber Area / Court *" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white">
+                <textarea x-model="lawyerRegForm.chamberAddress" rows="2" placeholder="Complete Chamber Address *" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white"></textarea>
+                <input type="password" x-model="lawyerRegForm.password" minlength="8" placeholder="Password (Min 8 chars)" required class="w-full bg-navy-950/90 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-500">
+                
+                <div class="flex gap-3 pt-2">
+                    <button type="submit" :disabled="isSubmitting" class="flex-1 bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 text-slate-900 font-bold py-2.5 rounded-lg transition text-xs disabled:opacity-60 disabled:cursor-not-allowed" x-text="isSubmitting ? 'Register ho raha hai…' : 'Register Ho Jayein'"></button>
+                    <button type="button" @click="showLawyerRegistrationModal = false" class="px-6 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-lg transition border border-slate-700 text-xs">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CREATE NEW CAMPAIGN POST MODAL -->
+    <div x-show="showNewPostModal" x-cloak class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
+        <div @click.outside="showNewPostModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-gold-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar gold-glow">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-bullhorn text-gold-400"></i> Create Post</h3>
+                <button @click="showNewPostModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form @submit.prevent="createPost()" class="space-y-3.5 text-xs">
+                <select x-model="newPostForm.category" required class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-gold-400 font-bold focus:outline-none focus:border-gold-500">
+                    <option value="Election Campaign / Manifesto">📢 Election Campaign / Manifesto</option>
+                    <option value="Legal Judgment">⚖️ High Court / Supreme Court Judgment</option>
+                    <option value="Bar Association Orders">🏛️ Bar Association Orders & Circulars</option>
+                    <option value="Legal Insight & Analysis">💡 General Legal Insight & Analysis</option>
+                </select>
+                <input type="text" x-model="newPostForm.title" required placeholder="Title e.g. Important High Court Order..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-gold-500">
+                <textarea x-model="newPostForm.content" required rows="4" placeholder="Write full details..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-gold-500"></textarea>
+                <div class="flex items-center gap-2 p-3 bg-navy-950/80 rounded-xl border border-slate-800">
+                    <button type="button" @click="$refs.postMediaInput.click()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700"><i class="fa-solid fa-paperclip text-gold-400"></i> File</button>
+                    <span class="text-[10px] text-slate-400" x-text="newPostForm.fileName || 'Optional Media'"></span>
+                    <input type="file" x-ref="postMediaInput" @change="handlePostMediaUpload($event)" accept="image/*,video/*" class="hidden">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold text-xs rounded-xl shadow-lg hover:from-gold-400 transition uppercase tracking-wider">Publish Post</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- AI FIR ANALYZER MODAL -->
+    <div x-show="showAiAnalyzerModal" x-cloak class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4" role="dialog">
+        <div @click.outside="showAiAnalyzerModal = false" class="glass-panel max-w-xl w-full rounded-2xl border border-purple-500/40 p-5 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar purple-glow">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-sm sm:text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-brain text-purple-400"></i> AI FIR Analyzer</h3>
+                <button @click="showAiAnalyzerModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3.5 text-xs">
+                <div class="p-4 border-2 border-dashed border-slate-800 hover:border-purple-500/50 rounded-2xl bg-navy-950/80 text-center space-y-2">
+                    <i class="fa-solid fa-cloud-arrow-up text-2xl text-purple-400"></i>
+                    <p class="font-bold text-white">Upload FIR Image / Document Copy</p>
+                    <button type="button" @click="$refs.firFileInput.click()" class="px-4 py-1.5 rounded-xl bg-purple-900/50 hover:bg-purple-900 text-purple-300 border border-purple-500/40 font-bold text-xs">Browse FIR File</button>
+                    <input type="file" x-ref="firFileInput" @change="handleFirFileUpload($event)" accept="image/png, image/jpeg, image/webp, .pdf" class="hidden">
+                    <p class="text-[11px] font-bold text-emerald-400 mt-1" x-show="uploadedFirFileName" x-text="'Attached: ' + uploadedFirFileName"></p>
+                </div>
+                <label class="block text-slate-300 font-bold">Analysis language</label>
+                <select x-model="firResponseLanguage" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white"><option value="same">Same as FIR / input</option><option value="ur">Urdu (اردو)</option><option value="roman_ur">Roman Urdu</option><option value="en">English</option></select>
+                <textarea x-model="aiAnalyzerText" rows="4" placeholder="FIR ki details Urdu, Roman Urdu ya English mein yahan likhein..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500"></textarea>
+                <p class="text-[10px] text-slate-400">Aap FIR upload bhi kar sakte hain ya details khud type kar sakte hain. Image/PDF sirf FIR document honi chahiye.</p>
+                <button @click="runAiAnalysis()" :disabled="isAnalyzing" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs rounded-xl shadow-lg hover:from-purple-500 transition">
+                    <span x-text="isAnalyzing ? 'AI FIR Ka Tajziya Aur Legal Sections Process Kar Raha Hai...' : 'Scan & Analyze FIR'"></span>
+                </button>
+                <div x-show="aiResult" class="p-4 bg-navy-950/90 rounded-2xl border border-purple-500/30 space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <span class="font-bold text-purple-300"><i class="fa-solid fa-file-contract text-gold-400"></i> Scan Report</span>
+                        <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-extrabold rounded-full text-[10px]" x-text="aiResult?.bailType"></span>
+                    </div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Defense Strategy:</p>
+                    <p class="text-slate-300 mt-0.5 leading-relaxed whitespace-pre-line" x-text="aiResult?.strategy"></p>
+                    <button @click="speakUrdu(aiResult?.strategy || '')" class="px-3 py-2 rounded-lg bg-purple-700 text-white font-bold">🔊 Listen in Urdu (اردو میں سنیں)</button>
+                    <p class="text-[10px] text-amber-300" x-show="aiResult?.disclaimer" x-text="aiResult?.disclaimer"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SMART DOC GENERATOR MODAL -->
+    <div x-show="showDocGeneratorModal && (user.role === 'lawyer' || user.role === 'advocate')" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" role="dialog">
+        <div @click.outside="showDocGeneratorModal = false" class="relative w-full max-w-2xl rounded-xl border border-yellow-500/30 bg-slate-900 p-6 text-white shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <h3 class="text-xl font-bold text-yellow-500 flex items-center gap-2">📜 DOC GENERATOR</h3>
+                <button @click="showDocGeneratorModal = false" class="text-gray-400 hover:text-white text-xl">✕</button>
+            </div>
+            <div class="space-y-4 text-xs">
+                <select x-model="docForm.type" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white focus:border-yellow-500 focus:outline-none">
+                    <option value="Rent Agreement">🏠 Rent Agreement</option>
+                    <option value="Bail Petition">⚖️ Bail Petition</option>
+                    <option value="Legal Notice">📩 Legal Notice</option>
+                    <option value="Power of Attorney">📜 Power of Attorney</option>
+                    <option value="Affidavit">✍️ Affidavit</option>
+                </select>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <template x-if="docForm.type === 'Affidavit'"><div class="contents"><input x-model="docForm.party1" placeholder="Deponent Name" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white"><input x-model="docForm.father_name" placeholder="Deponent Father Name" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white"><input x-model="docForm.cnic" placeholder="Deponent CNIC" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white"><input x-model="docForm.residence_address" placeholder="Residence Address" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white"><input x-model="docForm.purpose" placeholder="Purpose" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white"></div></template>
+                    <template x-if="docForm.type === 'Bail Petition'"><div class="contents"><input x-model="docForm.party1" placeholder="Accused Name" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white"><input x-model="docForm.party2" placeholder="Complainant Name" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white"><input x-model="docForm.fir_number" placeholder="FIR Number & Police Station" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white"><input x-model="docForm.court" placeholder="Court Name / Location" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white"></div></template>
+                    <template x-if="!['Affidavit','Bail Petition'].includes(docForm.type)"><div class="contents"><input x-model="docForm.party1" placeholder="First Party (Name, CNIC)" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white"><input x-model="docForm.party2" placeholder="Second Party (Name, CNIC)" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white"><input x-model="docForm.court" placeholder="Location / Court" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white"><input x-model="docForm.purpose" placeholder="Purpose / Details" class="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white"></div></template>
+                </div>
+                <button @click="generateDocument()" class="w-full rounded-lg bg-yellow-600 py-3 font-bold text-slate-900 transition hover:bg-yellow-500">Generate Draft</button>
+                <div x-show="generatedDocText" class="mt-6 border-t border-slate-800 pt-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="font-semibold text-yellow-500">Draft:</label>
+                        <button @click="copyToClipboard(generatedDocText)" class="bg-slate-800 hover:bg-slate-700 text-yellow-500 border border-yellow-500/30 px-3 py-1 rounded">📋 Copy</button>
+                    </div>
+                    <textarea x-model="generatedDocText" rows="6" class="w-full rounded-lg border border-slate-700 bg-slate-950 p-4 font-mono text-gray-200 focus:outline-none"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFILE UPDATE MODAL -->
+    <div x-show="showProfileModal" x-cloak class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5" role="dialog" aria-modal="true">
+      <div @click.outside="showProfileModal=false" class="max-w-lg mx-auto w-full bg-navy-900/95 border border-slate-700/80 rounded-2xl shadow-2xl backdrop-blur-md p-6 max-h-[92vh] overflow-y-auto custom-scrollbar">
+        <div class="flex items-center justify-between border-b border-slate-700 pb-4 mb-4"><h3 class="text-lg font-extrabold text-white flex items-center gap-2"><i class="fa-solid fa-user-pen text-gold-400"></i> Edit Profile Information</h3><button type="button" @click="showProfileModal=false" aria-label="Close" class="w-9 h-9 rounded-full text-slate-300 hover:text-white hover:bg-slate-800">✕</button></div>
+        <form @submit.prevent="updateProfile()" class="space-y-4">
+          <div class="flex items-center gap-4 rounded-xl bg-slate-950/50 border border-slate-800 p-3"><img :src="profileForm.avatar || user.avatar || 'https://ui-avatars.com/api/?name=User'" class="w-16 h-16 rounded-full object-cover border-2 border-gold-500" alt="Profile avatar"><div><p class="text-sm font-bold text-white">Profile Photo</p><button type="button" @click="$refs.profileImageInput.click()" class="mt-1 text-xs text-gold-300 hover:text-gold-200"><i class="fa-solid fa-camera mr-1"></i> Change Photo</button><input type="file" x-ref="profileImageInput" @change="handleAvatarUpload($event)" accept="image/png,image/jpeg,image/webp" class="hidden"></div></div>
+          <div><label class="block text-slate-300 text-xs font-semibold mb-1">Full Name *</label><div class="flex items-center gap-2 bg-slate-950 border border-slate-700 rounded-xl px-3"><i class="fa-solid fa-user text-slate-500"></i><input x-model="profileForm.name" required minlength="2" maxlength="160" class="w-full bg-transparent p-3 text-white outline-none" placeholder="Your full name"></div></div>
+          <div><label class="block text-slate-300 text-xs font-semibold mb-1">Phone Number *</label><div class="flex items-center gap-2 bg-slate-950 border border-slate-700 rounded-xl px-3"><i class="fa-solid fa-phone text-slate-500"></i><input x-model="profileForm.phone" @input="profileForm.phone = profileForm.phone.replace(/[^0-9+]/g,'')" required maxlength="32" inputmode="tel" class="w-full bg-transparent p-3 text-white outline-none" placeholder="03XXXXXXXXX"></div></div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label class="block text-slate-300 text-xs font-semibold mb-1">City</label><select x-model="profileForm.city" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white"><option value="">Select city</option><template x-for="cityOption in ['Karachi','Lahore','Islamabad','Rawalpindi','Hyderabad','Sukkur','Larkana','Quetta','Peshawar','Multan','Faisalabad','Other']" :key="cityOption"><option :value="cityOption" x-text="cityOption"></option></template></select></div><div><label class="block text-slate-300 text-xs font-semibold mb-1">Area / Town</label><input x-model="profileForm.area" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white" placeholder="Saddar, Gulberg, Railway Colony"></div></div>
+          <div><label class="block text-slate-300 text-xs font-semibold mb-1">Complete Address</label><textarea x-model="profileForm.address" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white" placeholder="House, street, block and nearby landmark"></textarea></div>
+          <template x-if="user.role === 'lawyer' || user.role === 'advocate'"><div class="space-y-3 rounded-xl border border-slate-700 p-3"><h4 class="font-bold text-gold-300">Advocate Settings</h4><label class="block text-slate-300 text-xs font-semibold mb-1">Chamber Address</label><textarea x-model="profileForm.chamberAddress" rows="2" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white" placeholder="Complete chamber address"></textarea><label class="block text-slate-300 text-xs font-semibold mb-1">Specialty</label><input x-model="profileForm.specialty" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white" placeholder="Specialty"><label class="flex items-center justify-between gap-3 text-sm text-slate-200">Offer online consultations<input type="checkbox" x-model="profileForm.is_virtual_available" class="w-5 h-5 accent-amber-500"></label><div x-show="profileForm.is_virtual_available"><label class="block text-slate-300 text-xs font-semibold mb-1">Virtual Consultation Fee (PKR)</label><input type="number" min="1" step="50" x-model.number="profileForm.consultation_fee" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white"><textarea x-model="profileForm.virtual_consult_notes" rows="2" class="mt-2 w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white" placeholder="Session guidelines"></textarea></div></div></template>
+          <button type="submit" :disabled="isProfileSaving" class="w-full bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-600 hover:to-amber-700 text-slate-950 font-bold py-3 rounded-xl shadow-lg disabled:opacity-60" x-text="isProfileSaving ? 'Saving…' : 'Save Profile Changes'"></button>
+        </form>
+      </div>
+    </div>
+
+    <!-- BOOK CONSULTATION MODAL -->
+    <div x-show="showBookingModal" x-cloak class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4" role="dialog">
+        <div @click.outside="showBookingModal = false" class="glass-panel max-w-md w-full rounded-2xl border border-slate-800 p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-base font-bold text-white"><i class="fa-solid fa-calendar-plus text-gold-400"></i> Book Consult</h3>
+                <button @click="showBookingModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3"><p class="text-emerald-300 font-extrabold text-sm" x-text="'Consultation fee: PKR ' + Number(activeBookingAdvocate?.consultation_fee || 1000).toLocaleString()"></p><p class="text-slate-400 mt-1" x-text="activeBookingAdvocate?.is_virtual_available ? (activeBookingAdvocate?.virtual_consult_notes || 'Online consultation available') : 'Virtual booking is unavailable. Choose chamber consultation or send a chat inquiry.'"></p></div>
+                <select x-model="bookingForm.location" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white"><option value="Virtual consultation" :disabled="!activeBookingAdvocate?.is_virtual_available">Virtual consultation</option><option value="Chamber consultation">Chamber consultation</option></select>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="date" x-model="bookingForm.date" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white">
+                    <input type="text" x-model="bookingForm.time" placeholder="Time e.g. 10 PM" class="w-full bg-navy-950 border border-slate-800 rounded-xl p-2.5 text-white">
+                </div>
+                <textarea x-model="bookingForm.summary" rows="3" placeholder="Case Summary..." class="w-full bg-navy-950 border border-slate-800 rounded-xl p-3 text-white"></textarea>
+                <button @click="confirmBooking()" class="w-full py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold rounded-xl hover:from-gold-400">Confirm Request</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIRECT CHAT MODAL -->
+    <div x-show="showChatModal" x-cloak class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4" role="dialog">
+        <div @click.outside="showChatModal = false" class="glass-panel max-w-lg w-full rounded-2xl border border-gold-500/40 p-4 space-y-3 max-h-[85vh] flex flex-col justify-between">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <img :src="activeChatAdvocate?.avatar || 'https://ui-avatars.com/api/?name=Lawyer'" class="w-9 h-9 rounded-full object-cover border border-gold-500">
+                    <div>
+                        <h4 class="text-xs font-bold text-white" x-text="activeChatAdvocate?.name || 'Advocate Direct Chat'"></h4>
+                        <p class="text-[9px] text-emerald-400 flex items-center gap-1"><span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span> Live messages · server stored</p>
+                    </div>
+                </div>
+                <button @click="showChatModal = false" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="flex-1 min-h-0 overflow-y-auto space-y-2.5 p-2 bg-navy-950/90 rounded-xl text-xs custom-scrollbar">
+                <template x-for="(msg, idx) in chatMessages" :key="idx">
+                    <div class="flex flex-col" :class="msg.sender === 'me' ? 'items-end' : 'items-start'">
+                        <div class="max-w-[80%] px-3 py-2 rounded-xl text-xs" :class="msg.sender === 'me' ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none'">
+                            <p x-show="msg.text" x-text="msg.text"></p>
+                            <template x-if="msg.media_type === 'image'"><img :src="msg.media_url" @click="window.open(msg.media_url,'_blank','noopener')" class="mt-2 max-w-full max-h-56 rounded-lg cursor-zoom-in" alt="Chat image"></template>
+                            <template x-if="msg.media_type === 'audio'"><audio controls :src="msg.media_url" class="mt-2 max-w-full"></audio></template>
+                            <template x-if="msg.media_type === 'document'"><a :href="msg.media_url" target="_blank" rel="noopener" class="mt-2 flex items-center gap-2 underline text-gold-300"><i class="fa-solid fa-file-lines"></i><span x-text="msg.file_name || 'Open attachment'"></span></a></template>
+                            <div x-show="msg.quote_amount" class="mt-2 pt-2 border-t border-white/10"><p class="font-extrabold" x-text="'Quote: PKR ' + Number(msg.quote_amount || 0).toLocaleString()"></p><p class="text-[10px] opacity-80" x-text="'Status: ' + (msg.quote_status || 'pending')"></p><button x-show="msg.quote_amount && msg.sender === 'other' && user.role === 'client' && msg.quote_status === 'pending'" @click="respondToQuote(msg,'accepted')" class="mt-2 px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-extrabold">Accept Quote</button></div>
+                        </div>
+                        <span class="text-[9px] text-slate-500 mt-0.5 px-1" x-text="msg.time"></span>
+                    </div>
+                </template>
+            </div>
+            <div class="pt-2 border-t border-slate-800 space-y-2">
+                <div x-show="user.role === 'lawyer' || user.role === 'advocate'" class="flex items-center gap-2"><label class="text-[10px] text-slate-400">Custom quote (PKR)</label><input type="number" min="1" step="50" x-model.number="chatQuoteAmount" placeholder="Optional fee" class="w-32 bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+                <div class="flex items-center gap-2 text-slate-300">
+                  <button type="button" @click="$refs.chatFileInput.click()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700" title="Attach document"><i class="fa-solid fa-paperclip"></i></button>
+                  <button type="button" @click="$refs.chatImageInput.click()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700" title="Attach image"><i class="fa-solid fa-image"></i></button>
+                  <button type="button" @click="startCameraCapture()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700" title="Camera"><i class="fa-solid fa-camera"></i></button>
+                  <button type="button" @click="toggleVoiceNote()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700" title="Record voice note"><i class="fa-solid fa-microphone"></i></button>
+                  <span x-show="voiceRecording" class="text-[10px] text-red-300" x-text="'Recording ' + voiceTimer + 's'"></span>
+                  <input type="file" x-ref="chatFileInput" @change="uploadChatAttachment($event)" accept=".pdf,.doc,.docx,.txt" class="hidden"><input type="file" x-ref="chatImageInput" @change="uploadChatAttachment($event)" accept="image/png,image/jpeg,image/webp" class="hidden"><input type="file" x-ref="chatCameraInput" @change="uploadChatAttachment($event)" accept="image/*" capture="environment" class="hidden">
+                </div>
+                <div class="flex items-center gap-2"><input type="text" x-model="chatInputText" @keydown.enter="sendChatMessage()" placeholder="Type message..." class="flex-1 bg-navy-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-gold-500">
+                <button type="button" @click="sendChatMessage()" class="p-2.5 rounded-xl bg-gradient-to-r from-gold-500 to-amber-600 text-navy-950 font-extrabold"><i class="fa-solid fa-paper-plane"></i></button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLOATING TOAST -->
+    <div x-show="toast.show" x-transition class="fixed bottom-4 right-4 z-50 px-3.5 py-2.5 rounded-xl shadow-2xl border text-xs font-bold flex items-center gap-2" :class="toast.type === 'success' ? 'bg-emerald-950 text-emerald-300 border-emerald-500/40' : 'bg-sapphire-950 text-sapphire-300 border-sapphire-500/40'" x-cloak>
+        <i class="fa-solid fa-circle-info"></i><span x-text="toast.message"></span>
+    </div>
+
+    <!-- MERGED JAVASCRIPT LOGIC -->
+    <script>
+        // Serve the UI from FastAPI (/), or define window.LAWNEXA_API_BASE when hosted separately.
+        const API_BASE = (window.LAWNEXA_API_BASE || window.location.origin).replace(/\/$/, '');
+
+        function readSafeStorage(key, defaultValue) {
+            try {
+                const item = window.localStorage.getItem(key);
+                return item ? JSON.parse(item) : defaultValue;
+            } catch (_) { return defaultValue; }
+        }
+
+        function lawNexaApp() {
+            return {
+                token: localStorage.getItem('token') || '',
+                isLoggedIn: !!localStorage.getItem('token'), // BUG FIXED HERE
+                isLoading: false,
+                isSubmitting: false, 
+                mobileMenuOpen: false,
+                authTab: 'login',
+                activeTab: 'advocates',
+                currentLocation: 'Location detect ho rahi hai...',
+                userLat: null,
+                userLng: null,
+
+                cityAreas: {
+                    'Karachi': ['Saddar / City Court', 'Sindh High Court', 'Malir District Court', 'Clifton / DHA Chambers'],
+                    'Sukkur': ['High Court Sukkur Bench', 'District & Sessions Court Sukkur'],
+                    'Lahore': ['Lahore High Court', 'Aiwan-e-Adl / Sessions Court'],
+                    'Islamabad': ['Islamabad High Court (IHC)', 'F-8 District Courts']
+                },
+
+                selectedCity: 'All',
+                selectedArea: 'All',
+                selectedCategory: 'All',
+                searchQuery: '',
+
+                loginForm: { id: '', password: '', role: 'client' },
+                registerForm: { role: 'client', name: '', phone: '', email: '', password: '', city: '', area: '', address: '', lat: '', lng: '' },
+
+                showLawyerRegistrationModal: false,
+                lawyerRegForm: { name: '', email: '', phone: '', license: '', jurisdiction: '', barAssociation: '', specialty: '', exp: '', city: '', area: '', chamberAddress: '', lat: '', lng: '', password: '' },
+
+                showForgotModal: false,
+                otpSent: false,
+                forgotForm: { id: '', otp: '', newPassword: '' },
+
+                showProfileModal: false,
+                profileForm: { name: '', phone: '', email: '', avatar: '', city: '', area: '', address: '', chamberAddress: '', specialty: '', license: '', bar: '', exp: '', consultation_fee: 1000, is_virtual_available: false, virtual_consult_notes: '' },
+
+                showDocGeneratorModal: false,
+                docForm: { type: 'Rent Agreement', party1: '', party2: '', court: '', purpose: '', father_name: '', cnic: '', residence_address: '', fir_number: '' },
+                generatedDocText: '',
+
+                showNewPostModal: false,
+                newPostForm: { category: 'Legal Insight & Analysis', title: '', content: '', fileName: '' },
+
+                showAiAnalyzerModal: false,
+                isAnalyzing: false,
+                isProfileSaving: false,
+                chatPendingMedia: null,
+                voiceRecording: false,
+                voiceTimer: 0,
+                voiceRecorder: null,
+                voiceStream: null,
+                voiceTimerHandle: null,
+                aiAnalyzerText: '',
+                firResponseLanguage: 'same',
+                uploadedFirFileName: '',
+                aiResult: null,
+
+                showBookingModal: false,
+                bookingForm: { location: '', date: '', time: '', summary: '' },
+
+                showChatModal: false,
+                activeChatAdvocate: null,
+                chatMessages: [],
+                chatInputText: '',
+                chatQuoteAmount: '',
+
+                toast: { show: false, message: '', type: 'info' },
+                user: readSafeStorage('user', { id: 0, name: 'Guest', role: 'client' }),
+                advocates: [],
+                posts: [],
+                myBookings: [],
+                directoryError: '',
+                lastDirectoryUpdate: null,
+                activeBookingAdvocate: null,
+                selectedPostFile: null,
+                selectedFirFile: null,
+                liveRefreshTimer: null,
+                chatLastMessageId: 0,
+
+                // LocalStorage Helpers
+                getSafeStorage(key, defaultValue) {
+                    try {
+                        const item = localStorage.getItem(key);
+                        return item ? JSON.parse(item) : defaultValue;
+                    } catch (e) {
+                        return defaultValue;
+                    }
+                },
+                setSafeStorage(key, value) {
+                    try {
+                        localStorage.setItem(key, typeof value === 'object' ? JSON.stringify(value) : value);
+                    } catch (e) {
+                        console.warn("LocalStorage Quota Exceeded on Mobile");
+                    }
+                },
+
+                // Initialization
+                async init() {
+                    window.appInstance = this;
+                    this.initGPSLocation();
+                    await this.fetchLawyers(true);
+                    await this.fetchPosts(true);
+                    if (this.token) {
+                        await this.verifySession();
+                        if (this.isLoggedIn) await this.fetchBookings(true);
+                    } else {
+                        this.isLoggedIn = false;
+                    }
+                    // Real database-backed refresh: new lawyer profiles, posts, bookings and chat replies
+                    // become visible without a page reload. This is near-real-time polling, not sample data.
+                    this.liveRefreshTimer = window.setInterval(async () => {
+                        if (document.visibilityState !== 'visible') return;
+                        await this.fetchLawyers(true);
+                        await this.fetchPosts(true);
+                        if (this.token && this.isLoggedIn) {
+                            await this.fetchBookings(true);
+                            if (this.showChatModal && this.activeChatAdvocate) await this.loadChatHistory(true);
+                        }
+                    }, 3500);
+                },
+
+                initGPSLocation() {
+                    this.currentLocation = 'Location share karne ke liye Find Nearby par click karein';
+                },
+                async findNearbyWithLocation() {
+                    if (!navigator.geolocation) { this.showToast('Is browser mein location support nahi hai. City/area se search karein.', 'error'); return; }
+                    this.showToast('Nearby lawyers ke liye location permission allow karein.', 'info');
+                    navigator.geolocation.getCurrentPosition(async (position) => {
+                        this.userLat = position.coords.latitude; this.userLng = position.coords.longitude;
+                        this.currentLocation = 'Live location active';
+                        try {
+                            const params = new URLSearchParams({client_lat:String(this.userLat),client_lng:String(this.userLng),radius_km:'100'});
+                            if (this.selectedCity !== 'All') params.set('city',this.selectedCity);
+                            const res = await fetch(`${API_BASE}/api/v1/lawyers/nearby?${params.toString()}`, {cache:'no-store'});
+                            const data = await res.json().catch(()=>[]); if (!res.ok) throw new Error(data.detail || 'Nearby search failed.');
+                            this.advocates = Array.isArray(data) ? data : []; this.directoryError = ''; this.showToast('Nearby lawyers update ho gaye.', 'success');
+                        } catch(e) { this.showToast(e.message || 'Nearby search nahi ho saki.', 'error'); }
+                    }, (err) => {
+                        this.currentLocation = 'Location permission denied/off';
+                        this.showToast('Phone ki Location ON karein aur browser prompt mein Allow karein. Aap city/area se bhi search kar sakte hain.', 'error');
+                    }, {enableHighAccuracy:true, timeout:10000, maximumAge:60000});
+                },
+
+                getAvailableAreas() {
+                    if (this.selectedCity === 'All') return Object.values(this.cityAreas).flat();
+                    return this.cityAreas[this.selectedCity] || [];
+                },
+
+                resetDefaultTab() {
+                    this.activeTab = (this.user.role === 'lawyer' || this.user.role === 'advocate') ? 'dashboard' : 'advocates';
+                },
+
+                // Safe Clipboard Fallback
+                copyToClipboard(text) {
+                    if (!text) return;
+                    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text)
+                            .then(() => this.showToast('Draft Copied Successfully!', 'success'))
+                            .catch(err => this.fallbackCopyText(text));
+                    } else {
+                        this.fallbackCopyText(text);
+                    }
+                },
+                fallbackCopyText(text) {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        this.showToast('Draft Copied Successfully!', 'success');
+                    } catch (err) {
+                        this.showToast('Failed to copy text', 'error');
+                    }
+                    document.body.removeChild(textArea);
+                },
+
+                // Auth Functions
+                async verifySession() {
+                    if (!this.token) return;
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            const userData = await res.json();
+                            this.user = userData;
+                            this.isLoggedIn = true;
+                            this.setSafeStorage('user', this.user);
+                            if (this.user.role === 'lawyer' || this.user.role === 'advocate') {
+                                this.activeTab = 'bookings'; // Set default view for lawyers
+                            }
+                        } else if (res.status === 401 || res.status === 403) {
+                            this.logout();
+                        }
+                    } catch (e) {
+                        console.warn("Backend server connection warming up...");
+                    }
+                },
+
+                applyAuth(data) {
+                    this.token = data.access_token;
+                    this.user = { id: data.user_id, name: data.name, role: data.role, is_approved: !!data.is_approved };
+                    this.setSafeStorage('token', this.token);
+                    this.setSafeStorage('user', this.user);
+                    this.isLoggedIn = true;
+                    this.activeTab = this.user.role === 'lawyer' || this.user.role === 'advocate' ? 'bookings' : 'advocates';
+                },
+
+                async handleLogin() {
+                    if (!this.loginForm.id.trim() || !this.loginForm.password) {
+                        this.showToast('Email/Phone aur Password enter karein.', 'error'); return;
+                    }
+                    this.isLoading = true;
+                    const formData = new FormData();
+                    formData.append('username', this.loginForm.id.trim());
+                    formData.append('password', this.loginForm.password);
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/auth/token`, { method: 'POST', body: formData });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok || !data.access_token) throw new Error(data.detail || 'Login nahi ho saka.');
+                        this.applyAuth(data);
+                        await this.verifySession();
+                        await Promise.all([this.fetchLawyers(true), this.fetchPosts(true), this.fetchBookings(true)]);
+                        this.showToast('Login successful.', 'success');
+                    } catch (e) {
+                        this.showToast(e.message || 'Backend se connection nahi ho saka.', 'error');
+                    } finally { this.isLoading = false; }
+                },
+
+                async handleRegister() {
+                    this.isLoading = true;
+                    try {
+                        const cleanPhone = String(this.registerForm.phone || '').replace(/[\s-]/g, '');
+                        if (!/^03\d{9}$/.test(cleanPhone)) { this.showToast('Mobile number exactly 11 digits hona chahiye (03XXXXXXXXX).', 'error'); this.isLoading = false; return; }
+                        const payload = { ...this.registerForm, phone: cleanPhone, role: 'client', lat: this.registerForm.lat === '' ? null : Number(this.registerForm.lat), lng: this.registerForm.lng === '' ? null : Number(this.registerForm.lng) };
+                        const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok || !data.access_token) throw new Error(data.detail || 'Registration nahi ho saki.');
+                        this.applyAuth(data);
+                        this.registerForm = { role: 'client', name: '', phone: '', email: '', password: '', city: '', area: '', address: '', lat: '', lng: '' };
+                        await Promise.all([this.fetchLawyers(true), this.fetchPosts(true), this.fetchBookings(true)]);
+                        this.showToast('Client account database mein create ho gaya.', 'success');
+                    } catch (e) {
+                        this.showToast(e.message || 'Backend se connection nahi ho saka.', 'error');
+                    } finally { this.isLoading = false; }
+                },
+
+                async handleLawyerSubmit() {
+                    if (this.isSubmitting) return;
+                    this.isSubmitting = true;
+                    try {
+                        // Sanitize user-entered values before sending them to the API.
+                        const cleanText = (value) => String(value ?? '').trim().replace(/[\u0000-\u001F\u007F]/g, '');
+                        const cleanPhone = cleanText(this.lawyerRegForm.phone).replace(/[\s()-]/g, '');
+                        const name = cleanText(this.lawyerRegForm.name);
+                        const emailInput = cleanText(this.lawyerRegForm.email).toLowerCase();
+                        const password = String(this.lawyerRegForm.password ?? '');
+                        const licenseNumber = cleanText(this.lawyerRegForm.license);
+                        const barAssociation = cleanText(this.lawyerRegForm.barAssociation);
+                        const specialty = cleanText(this.lawyerRegForm.specialty);
+                        const city = cleanText(this.lawyerRegForm.city);
+                        const area = cleanText(this.lawyerRegForm.area);
+                        const address = cleanText(this.lawyerRegForm.chamberAddress);
+                        const experienceYears = Number(this.lawyerRegForm.exp);
+
+                        if (name.length < 2) throw new Error('Apna poora naam enter karein.');
+                        if (!/^03\d{9}$/.test(cleanPhone)) throw new Error('Mobile number exactly 11 digits hona chahiye (03XXXXXXXXX).');
+                        if (emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) throw new Error('Valid email address enter karein.');
+                        if (password.length < 8) throw new Error('Password kam az kam 8 characters ka hona chahiye.');
+                        if (!licenseNumber || !barAssociation || !specialty || !city || !area || !address) {
+                            throw new Error('Please fill all required advocate registration fields.');
+                        }
+                        if (!Number.isInteger(experienceYears) || experienceYears < 0 || experienceYears > 60) {
+                            throw new Error('Tajurba 0 se 60 saal ke darmiyan enter karein.');
+                        }
+
+                        const toCoordinate = (value) => {
+                            if (value === '' || value === null || value === undefined) return 0.0;
+                            const number = Number(value);
+                            return Number.isFinite(number) ? number : 0.0;
+                        };
+                        const payload = {
+                            role: 'lawyer',
+                            name,
+                            email: emailInput || null,
+                            phone: cleanPhone,
+                            license_number: licenseNumber,
+                            bar_association: barAssociation,
+                            specialty,
+                            experience_years: experienceYears,
+                            city,
+                            area,
+                            address,
+                            chamber_address: address,
+                            password,
+                            lat: toCoordinate(this.lawyerRegForm.lat),
+                            lng: toCoordinate(this.lawyerRegForm.lng)
+                        };
+
+                        const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok || !data.access_token) {
+                            const detail = Array.isArray(data.detail)
+                                ? data.detail.map((item) => item.msg || item.message || 'Invalid registration details').join('; ')
+                                : (typeof data.detail === 'string' ? data.detail : 'Lawyer registration nahi ho saki.');
+                            throw new Error(detail);
+                        }
+
+                        // Apply authentication and dashboard navigation immediately after API success.
+                        this.applyAuth(data);
+                        this.user = {
+                            ...this.user,
+                            email: payload.email,
+                            phone: payload.phone,
+                            city: payload.city,
+                            area: payload.area,
+                            address: payload.address,
+                            chamber_address: payload.chamber_address,
+                            bar_association: payload.bar_association,
+                            license_number: payload.license_number,
+                            specialty: payload.specialty,
+                            experience_years: payload.experience_years
+                        };
+                        this.setSafeStorage('user', this.user);
+                        this.showLawyerRegistrationModal = false;
+                        this.isLoggedIn = true;
+                        this.activeTab = 'bookings';
+                        this.authTab = 'login';
+                        this.lawyerRegForm = { name: '', email: '', phone: '', license: '', jurisdiction: '', barAssociation: '', specialty: '', exp: '', city: '', area: '', chamberAddress: '', lat: '', lng: '', password: '' };
+                        this.showToast('Advocate account create ho gaya. Admin verification pending hai.', 'success');
+
+                        // Refresh secondary dashboard data without delaying successful registration/navigation.
+                        Promise.all([this.fetchLawyers(true), this.fetchPosts(true), this.fetchBookings(true)])
+                            .catch((refreshError) => console.warn('Post-registration refresh failed:', refreshError));
+                    } catch (e) {
+                        console.error('Lawyer registration failed:', e);
+                        this.showToast(e.message || 'Registration nahi ho saki. Please dobara try karein.', 'error');
+                    } finally {
+                        this.isSubmitting = false;
+                    }
+                },
+
+                // Optional browser GPS capture for registration; city/address remain the fallback.
+                captureLocation(kind) {
+                    if (!navigator.geolocation) { this.showToast('Is browser mein GPS available nahi. City aur address use karein.', 'error'); return; }
+                    navigator.geolocation.getCurrentPosition((pos) => {
+                        const form = kind === 'lawyer' ? this.lawyerRegForm : this.registerForm;
+                        form.lat = Number(pos.coords.latitude.toFixed(7)); form.lng = Number(pos.coords.longitude.toFixed(7));
+                        this.showToast('GPS location add ho gayi.', 'success');
+                    }, () => this.showToast('GPS permission nahi mili. Browser location permission enable karein ya address se continue karein.', 'error'), { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+                },
+
+                // Utilities & UI Helpers
+                handleAvatarUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    if (file.size > 12 * 1024 * 1024) {
+                        this.showToast('Image bohot badi hai.', 'error');
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.src = e.target.result;
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 300; 
+                            const scaleFactor = MAX_WIDTH / img.width;
+                            canvas.width = MAX_WIDTH;
+                            canvas.height = img.height * scaleFactor;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            this.profileForm.avatar = canvas.toDataURL('image/jpeg', 0.65);
+                            this.showToast('Photo optimized!', 'success');
+                        };
+                    };
+                    reader.readAsDataURL(file);
+                },
+
+                openProfileModal() {
+                    this.profileForm = {
+                        name: this.user.name || '', phone: this.user.phone || '', email: this.user.email || '',
+                        avatar: this.user.avatar || '', city: this.user.city || '', area: this.user.area || '', address: this.user.address || '',
+                        chamberAddress: this.user.chamber_address || '', specialty: this.user.specialty || '',
+                        license: this.user.license_number || '', bar: this.user.bar_association || '',
+                        exp: this.user.experience_years ?? this.user.experience ?? '', consultation_fee: this.user.consultation_fee || 1000, is_virtual_available: !!this.user.is_virtual_available, virtual_consult_notes: this.user.virtual_consult_notes || ''
+                    };
+                    this.showProfileModal = true;
+                },
+
+                async updateProfile() {
+                    if (!this.token) { this.showToast('Profile update ke liye login karein.', 'error'); return; }
+                    if (this.isProfileSaving) return;
+                    this.isProfileSaving = true;
+                    const clean = (v) => String(v ?? '').trim().replace(/[\u0000-\u001F\u007F]/g, '');
+                    const phone = clean(this.profileForm.phone).replace(/[\s()-]/g, '');
+                    const payload = {
+                        name: clean(this.profileForm.name), phone, email: clean(this.profileForm.email) || null,
+                        avatar: this.profileForm.avatar || null, city: clean(this.profileForm.city) || null, area: clean(this.profileForm.area) || null,
+                        address: clean(this.profileForm.address) || null, chamber_address: clean(this.profileForm.chamberAddress) || null,
+                        specialty: clean(this.profileForm.specialty) || null, license_number: this.profileForm.license || null,
+                        bar_association: this.profileForm.bar || null, experience_years: this.profileForm.exp === '' ? null : Number(this.profileForm.exp),
+                        consultation_fee: Number(this.profileForm.consultation_fee || 1000), is_virtual_available: !!this.profileForm.is_virtual_available,
+                        virtual_consult_notes: clean(this.profileForm.virtual_consult_notes) || null
+                    };
+                    try {
+                        if (payload.name.length < 2) throw new Error('Full name kam az kam 2 characters ka hona chahiye.');
+                        const res = await fetch(`${API_BASE}/api/v1/users/profile`, { method: 'PUT', headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Profile update fail ho gaya.');
+                        this.user = { ...this.user, ...(data.user || {}) };
+                        this.setSafeStorage('user', this.user);
+                        this.showProfileModal = false;
+                        await this.fetchLawyers(true);
+                        this.showToast('Profile database mein update ho gaya.', 'success');
+                    } catch (e) { this.showToast(e.message || 'Profile update fail ho gaya.', 'error'); }
+                    finally { this.isProfileSaving = false; }
+                },
+
+                async fetchLawyers(silent = false) {
+                    try {
+                        const params = new URLSearchParams();
+                        if (this.selectedCity && this.selectedCity !== 'All') params.set('city', this.selectedCity);
+                        if (this.selectedArea && this.selectedArea !== 'All') params.set('area', this.selectedArea);
+                        const suffix = params.toString() ? `?${params.toString()}` : '';
+                        const res = await fetch(`${API_BASE}/api/v1/lawyers/nearby${suffix}`, { cache: 'no-store' });
+                        const data = await res.json().catch(() => ([]));
+                        if (!res.ok) throw new Error(data.detail || 'Lawyer directory server error.');
+                        this.advocates = Array.isArray(data) ? data : [];
+                        this.directoryError = '';
+                        this.lastDirectoryUpdate = new Date().toLocaleTimeString();
+                    } catch (e) {
+                        this.directoryError = 'Live lawyer directory server se connect nahi ho raha.';
+                        if (!silent) this.showToast(this.directoryError, 'error');
+                        // Never inject fallback/demo lawyers on a failed request.
+                        this.advocates = [];
+                    }
+                },
+
+                async fetchPosts(silent = false) {
+                    try {
+                        const headers = this.token ? { 'Authorization': `Bearer ${this.token}` } : {};
+                        const res = await fetch(`${API_BASE}/api/v1/posts`, { headers, cache: 'no-store' });
+                        const data = await res.json().catch(() => ([]));
+                        if (!res.ok) throw new Error(data.detail || 'Legal feed load nahi ho saka.');
+                        this.posts = (Array.isArray(data) ? data : []).map(p => ({
+                            ...p, author: p.name || 'Lawyer', authorAvatar: p.avatar || '', authorRole: 'Lawyer',
+                            mediaUrl: p.media_url || '', mediaType: p.media_type || '',
+                            timestamp: p.created_at ? new Date(p.created_at).toLocaleString() : '',
+                            likes: Number(p.likes || 0), liked: !!p.liked,
+                            title: p.title || 'Legal Update', category: p.category || p.bar_association || 'Legal Update'
+                        }));
+                    } catch (e) {
+                        if (!silent) this.showToast(e.message || 'Legal feed load nahi ho saka.', 'error');
+                        this.posts = [];
+                    }
+                },
+
+                async fetchBookings(silent = false) {
+                    if (!this.token || !this.isLoggedIn) { this.myBookings = []; return; }
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/bookings/mine`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }, cache: 'no-store'
+                        });
+                        const data = await res.json().catch(() => ([]));
+                        if (!res.ok) throw new Error(data.detail || 'Bookings load nahi ho sake.');
+                        this.myBookings = (Array.isArray(data) ? data : []).map(b => ({
+                            ...b, date: b.date || b.booking_date || '', time: b.time || b.time_slot || '',
+                            summary: b.summary || b.case_summary || '', status: (b.status || 'pending').charAt(0).toUpperCase() + (b.status || 'pending').slice(1),
+                            clientName: this.user.role === 'lawyer' ? (b.clientName || 'Client') : (b.lawyerName || 'Lawyer')
+                        }));
+                    } catch (e) {
+                        if (!silent) this.showToast(e.message || 'Bookings load nahi ho sake.', 'error');
+                    }
+                },
+
+                get filteredAdvocates() {
+                    return this.advocates.filter(a => {
+                        const name = String(a.name || '').toLowerCase();
+                        const city = String(a.city || '').toLowerCase();
+                        const area = String(a.area || '').toLowerCase();
+                        const specialty = String(a.specialty || '').toLowerCase();
+                        const matchCat = this.selectedCategory === 'All' || a.specialty === this.selectedCategory;
+                        const matchCity = this.selectedCity === 'All' || a.city === this.selectedCity;
+                        const matchArea = this.selectedArea === 'All' || a.area === this.selectedArea;
+                        const q = this.searchQuery.toLowerCase().trim();
+                        const matchSearch = !q || name.includes(q) || city.includes(q) || area.includes(q) || specialty.includes(q);
+                        return matchCat && matchCity && matchArea && matchSearch;
+                    });
+                },
+
+                showToast(message, type = 'info') {
+                    this.toast = { show: true, message, type };
+                    setTimeout(() => { this.toast.show = false; }, 3500);
+                },
+
+                logout() {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    this.token = '';
+                    this.isLoggedIn = false;
+                    this.activeTab = 'advocates';
+                    this.user = { id: 0, name: 'Guest', role: 'client' };
+                    this.myBookings = [];
+                    this.chatMessages = [];
+                    this.setSafeStorage('user', this.user);
+                },
+
+                sendOtp() {
+                    this.showToast('Password reset abhi available nahi: pehle verified SMS/email provider configure karna hoga. Koi fake OTP send nahi hua.', 'error');
+                },
+                submitResetPassword() {
+                    this.showToast('Password reset service configure nahi hai; password change nahi hua. Support/admin se rabta karein.', 'error');
+                },
+
+                async createPost() {
+                    if (!this.token) { this.showToast('Post karne ke liye login karein.', 'error'); return; }
+                    if (!this.user.bar_association) { this.showToast('Profile mein registered Bar Association add karein.', 'error'); return; }
+                    try {
+                        let mediaUrl = null;
+                        let mediaType = null;
+                        if (this.selectedPostFile) {
+                            const uploadForm = new FormData(); uploadForm.append('file', this.selectedPostFile);
+                            const up = await fetch(`${API_BASE}/api/v1/media/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` }, body: uploadForm });
+                            const upData = await up.json().catch(() => ({}));
+                            if (!up.ok) throw new Error(upData.detail || 'Media upload fail ho gaya.');
+                            mediaUrl = upData.url; mediaType = upData.media_type;
+                        }
+                        const res = await fetch(`${API_BASE}/api/v1/posts`, {
+                            method: 'POST', headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ title: this.newPostForm.title, category: this.newPostForm.category,
+                                content: this.newPostForm.content, bar_association: this.user.bar_association,
+                                media_url: mediaUrl, media_type: mediaType })
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Post publish nahi ho saka.');
+                        this.showNewPostModal = false;
+                        this.newPostForm = { category: 'Legal Insight & Analysis', title: '', content: '', fileName: '' };
+                        this.selectedPostFile = null;
+                        await this.fetchPosts(true);
+                        this.showToast('Post database mein publish ho gaya.', 'success');
+                    } catch (e) { this.showToast(e.message || 'Post publish nahi ho saka.', 'error'); }
+                },
+                handlePostMediaUpload(e) {
+                    const file = e.target.files && e.target.files[0];
+                    this.selectedPostFile = file || null;
+                    this.newPostForm.fileName = file ? file.name : '';
+                },
+
+                async runAiAnalysis() {
+                    if (!this.token) { this.showToast('AI FIR analysis ke liye login karein.', 'error'); return; }
+                    this.isAnalyzing = true; this.aiResult = null;
+                    try {
+                        const form = new FormData();
+                        form.append('text', this.aiAnalyzerText || '');
+                        form.append('response_language', this.firResponseLanguage || 'same');
+                        if (this.selectedFirFile) form.append('file', this.selectedFirFile, this.selectedFirFile.name);
+                        const res = await fetch(`${API_BASE}/api/ai/analyze-fir`, { method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` }, body: form });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(res.status >= 500 ? 'AI Service Temporarily Busy. Please try again in a moment.' : (data.detail || 'AI FIR analysis complete nahi ho saka.'));
+                        this.aiResult = { bailType: 'Preliminary AI review', strategy: data.analysis, disclaimer: data.disclaimer };
+                    } catch (e) { this.showToast(e.message || 'AI provider response nahi de saka.', 'error'); }
+                    finally { this.isAnalyzing = false; }
+                },
+                handleFirFileUpload(e) {
+                    const file = e.target.files && e.target.files[0];
+                    if (file && (!(/\.(pdf|jpe?g|png|webp)$/i.test(file.name) && ['application/pdf','image/jpeg','image/png','image/webp'].includes(file.type)) || file.size > 10 * 1024 * 1024 || /(resume|\bcv\b|invoice|profile)/i.test(file.name))) { this.showToast('Ghalt File! Barah-e-Karam Sirf FIR ki Tasveer ya PDF Upload Karein.', 'error'); e.target.value = ''; this.selectedFirFile = null; this.uploadedFirFileName = ''; return; }
+                    this.selectedFirFile = file || null;
+                    this.uploadedFirFileName = file ? file.name : '';
+                },
+
+                async generateDocument() {
+                    if (!this.token) { this.showToast('Document generate karne ke liye login karein.', 'error'); return; }
+                    try {
+                        const res = await fetch(`${API_BASE}/api/ai/generate-doc`, {
+                            method: 'POST', headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type: this.docForm.type, party1: this.docForm.party1, party2: this.docForm.party2,
+                                court: this.docForm.court || 'Pakistan', purpose: this.docForm.purpose, father_name: this.docForm.father_name, cnic: this.docForm.cnic, residence_address: this.docForm.residence_address, fir_number: this.docForm.fir_number })
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'AI document generation nahi ho saki.');
+                        this.generatedDocText = `${data.draft}
+
+${data.disclaimer || ''}`;
+                    } catch (e) { this.showToast(e.message || 'AI document provider response nahi de saka.', 'error'); }
+                },
+
+                openBookingModal(adv) {
+                    if (!this.token || this.user.role !== 'client') { this.showToast('Booking sirf logged-in client account se ho sakti hai.', 'error'); return; }
+                    if (!adv || !adv.is_verified) { this.showToast('Lawyer ki verification pending hai. Abhi aap live chat se inquiry bhej sakte hain.', 'error'); return; }
+                    this.activeBookingAdvocate = adv;
+                    this.bookingForm = { location: adv.is_virtual_available ? 'Virtual consultation' : 'Chamber consultation', date: '', time: '', summary: '' };
+                    this.showBookingModal = true;
+                },
+                async confirmBooking() {
+                    if (!this.activeBookingAdvocate) return;
+                    if (!this.bookingForm.date || !this.bookingForm.time || !this.bookingForm.summary.trim()) {
+                        this.showToast('Date, time aur case summary complete karein.', 'error'); return;
+                    }
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/bookings`, {
+                            method: 'POST', headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ lawyer_id: this.activeBookingAdvocate.lawyer_id || this.activeBookingAdvocate.id,
+                                booking_date: this.bookingForm.date, time_slot: this.bookingForm.time,
+                                location: this.bookingForm.location, case_summary: this.bookingForm.summary })
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Booking request save nahi hui.');
+                        this.showBookingModal = false;
+                        await this.fetchBookings(true);
+                        this.showToast('Consultation request database mein save ho gayi.', 'success');
+                    } catch (e) { this.showToast(e.message || 'Booking request save nahi hui.', 'error'); }
+                },
+
+                async openChatModal(adv) {
+                    if (!this.token) { this.showToast('Chat karne ke liye login karein.', 'error'); return; }
+                    if (!adv || !(adv.user_id || adv.id)) { this.showToast('Lawyer profile ID nahi mili.', 'error'); return; }
+                    this.activeChatAdvocate = adv;
+                    this.showChatModal = true;
+                    this.chatMessages = [];
+                    await this.loadChatHistory(false);
+                },
+                async loadChatHistory(silent = true) {
+                    const otherId = this.activeChatAdvocate && (this.activeChatAdvocate.user_id || this.activeChatAdvocate.id);
+                    if (!this.token || !otherId) return;
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/chat/history/${otherId}`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }, cache: 'no-store'
+                        });
+                        const data = await res.json().catch(() => ([]));
+                        if (!res.ok) throw new Error(data.detail || 'Chat history load nahi hui.');
+                        this.chatMessages = (Array.isArray(data) ? data : []).map(m => ({
+                            id: m.id, sender: Number(m.sender_id) === Number(this.user.id) ? 'me' : 'other',
+                            text: m.message, media_url: m.media_url, media_type: m.media_type, file_name: m.file_name, quote_amount: m.quote_amount, quote_status: m.quote_status,
+                            time: m.timestamp ? new Date(m.timestamp).toLocaleTimeString() : ''
+                        }));
+                        this.chatLastMessageId = this.chatMessages.length ? this.chatMessages[this.chatMessages.length - 1].id : 0;
+                    } catch (e) { if (!silent) this.showToast(e.message || 'Chat history load nahi hui.', 'error'); }
+                },
+                async sendChatMessage() {
+                    const message = this.chatInputText.trim();
+                    const pendingMedia = this.chatPendingMedia;
+                    const otherId = this.activeChatAdvocate && (this.activeChatAdvocate.user_id || this.activeChatAdvocate.id);
+                    if ((!message && !pendingMedia) || !otherId) return;
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/chat/send`, {
+                            method: 'POST', headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ receiver_id: Number(otherId), message, media_url: pendingMedia?.media_url || null, media_type: pendingMedia?.media_type || null, quote_amount: (this.user.role === 'lawyer' && this.chatQuoteAmount) ? Number(this.chatQuoteAmount) : null })
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Message send nahi hua.');
+                        this.chatInputText = ''; this.chatQuoteAmount = ''; this.chatPendingMedia = null;
+                        await this.loadChatHistory(true);
+                    } catch (e) { this.showToast(e.message || 'Message send nahi hua.', 'error'); }
+                },
+                async uploadChatAttachment(event) {
+                    const file = event.target.files && event.target.files[0];
+                    event.target.value = '';
+                    if (!file) return;
+                    if (file.size > 10 * 1024 * 1024) { this.showToast('Attachment 10 MB se chhoti honi chahiye.', 'error'); return; }
+                    const allowed = ['image/jpeg','image/png','image/webp','application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','text/plain'];
+                    if (!allowed.includes(file.type)) { this.showToast('Sirf image, PDF, DOC, DOCX ya TXT file attach karein.', 'error'); return; }
+                    const form = new FormData(); form.append('file', file, file.name);
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/media/upload`, { method:'POST', headers:{'Authorization':`Bearer ${this.token}`}, body:form });
+                        const data = await res.json().catch(()=>({})); if (!res.ok) throw new Error(data.detail || 'Upload fail ho gaya.');
+                        this.chatPendingMedia = { media_url:data.url || data.media_url, media_type:data.media_type, file_name:file.name };
+                        await this.sendChatMessage();
+                    } catch (err) { this.showToast(err.message || 'Attachment upload nahi hua.', 'error'); }
+                },
+                startCameraCapture() {
+                    // Native camera capture works on supported mobile browsers; secure context is required.
+                    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                        this.$refs.chatCameraInput.click();
+                    } else { this.$refs.chatCameraInput.click(); }
+                },
+                async toggleVoiceNote() {
+                    if (this.voiceRecording && this.voiceRecorder) { this.voiceRecorder.stop(); return; }
+                    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') { this.showToast('Voice recording is not supported in this browser.', 'error'); return; }
+                    try {
+                        this.voiceStream = await navigator.mediaDevices.getUserMedia({audio:true});
+                        const chunks = []; this.voiceRecorder = new MediaRecorder(this.voiceStream);
+                        this.voiceRecorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+                        this.voiceRecorder.onstop = async () => {
+                            const blob = new Blob(chunks, {type:this.voiceRecorder.mimeType || 'audio/webm'});
+                            this.voiceStream?.getTracks().forEach(t=>t.stop()); this.voiceStream = null; this.voiceRecording = false; clearInterval(this.voiceTimerHandle);
+                            if (!blob.size) return;
+                            const file = new File([blob], `voice-note-${Date.now()}.webm`, {type:blob.type || 'audio/webm'});
+                            const form = new FormData(); form.append('file', file, file.name);
+                            try { const res=await fetch(`${API_BASE}/api/v1/media/upload`,{method:'POST',headers:{'Authorization':`Bearer ${this.token}`},body:form}); const data=await res.json().catch(()=>({})); if(!res.ok) throw new Error(data.detail || 'Voice upload failed.'); this.chatPendingMedia={media_url:data.url || data.media_url,media_type:'audio',file_name:file.name}; await this.sendChatMessage(); }
+                            catch(err){ this.showToast(err.message || 'Voice note send nahi hui.','error'); }
+                        };
+                        this.voiceRecorder.start(); this.voiceRecording = true; this.voiceTimer = 0; this.voiceTimerHandle = setInterval(()=>this.voiceTimer++,1000);
+                    } catch(e) { this.showToast('Microphone permission allow karein.', 'error'); }
+                },
+                async respondToQuote(msg, action) {
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/chat/quote/${msg.id}/respond?action=${encodeURIComponent(action)}`, { method:'POST', headers:{'Authorization':`Bearer ${this.token}`} });
+                        const data = await res.json().catch(()=>({})); if (!res.ok) throw new Error(data.detail || 'Quote response failed.');
+                        msg.quote_status = data.quote_status || action;
+                        this.showToast('Quote accept ho gaya. Actual online payment ke liye configured gateway zaroori hai.', 'success');
+                    } catch(e) { this.showToast(e.message || 'Quote response save nahi hua.', 'error'); }
+                },
+                speakUrdu(text) {
+                    if (!('speechSynthesis' in window)) { this.showToast('Is browser mein text-to-speech support available nahi.', 'error'); return; }
+                    window.speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(String(text || '').slice(0,12000)); utterance.lang='ur-PK'; utterance.rate=0.92; window.speechSynthesis.speak(utterance);
+                },
+
+                async toggleLike(post) {
+                    if (!this.token) { this.showToast('Like karne ke liye login karein.', 'error'); return; }
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/posts/${post.id}/like`, {
+                            method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Like save nahi hua.');
+                        post.liked = !!data.liked;
+                        post.likes = Math.max(0, Number(post.likes || 0) + (post.liked ? 1 : -1));
+                    } catch (e) { this.showToast(e.message || 'Like save nahi hua.', 'error'); }
+                },
+                async respondBooking(booking, status) {
+                    const action = String(status || '').toLowerCase();
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/bookings/${booking.id}?action=${encodeURIComponent(action)}`, {
+                            method: 'PATCH', headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.detail || 'Booking response save nahi hua.');
+                        await this.fetchBookings(true);
+                        this.showToast(`Booking ${data.status || action} ho gayi.`, 'success');
+                    } catch (e) { this.showToast(e.message || 'Booking response save nahi hua.', 'error'); }
+                }
+            };
+        }
+    </script>
+</body>
+</html>
