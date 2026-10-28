@@ -15,14 +15,27 @@ from passlib.context import CryptContext
 
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+try:
+    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+except ValueError as exc:
+    raise RuntimeError("ACCESS_TOKEN_EXPIRE_MINUTES must be a positive integer.") from exc
+
+if ACCESS_TOKEN_EXPIRE_MINUTES < 1 or ACCESS_TOKEN_EXPIRE_MINUTES > 525600:
+    raise RuntimeError("ACCESS_TOKEN_EXPIRE_MINUTES must be between 1 and 525600.")
 
 _IS_PRODUCTION = (
-    os.getenv("ENVIRONMENT", "").lower() == "production"
-    or os.getenv("RENDER", "").lower() == "true"
+    os.getenv("ENVIRONMENT", "").strip().lower() in {"production", "staging"}
+    or os.getenv("RENDER", "").strip().lower() == "true"
 )
 
 SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+
+if _IS_PRODUCTION and (
+    not SECRET_KEY
+    or SECRET_KEY.startswith("<")
+    or any(marker in SECRET_KEY.lower() for marker in ("replace-me", "replace_with", "change_me", "placeholder"))
+):
+    raise RuntimeError("Set a unique, non-placeholder SECRET_KEY in deployed environments.")
 
 if not SECRET_KEY:
     if _IS_PRODUCTION:
@@ -59,6 +72,8 @@ def get_password_hash(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against a supported bcrypt hash."""
     if not isinstance(plain_password, str):
+        return False
+    if len(plain_password.encode("utf-8")) > 72:
         return False
     if not isinstance(hashed_password, str) or not hashed_password:
         return False

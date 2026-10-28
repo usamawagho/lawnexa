@@ -57,23 +57,23 @@
         <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.total_clients"></p>
       </div>
       <div class="panel p-5">
-        <p class="text-sm text-slate-400">Verified Advocates</p>
-        <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.total_lawyers"></p>
+        <p class="text-sm text-slate-400">Registered Advocates</p>
+        <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.total_advocates"></p>
       </div>
       <div class="panel p-5">
-        <p class="text-sm text-slate-400">Pending Bar Verifications</p>
-        <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.pending_lawyers"></p>
+        <p class="text-sm text-slate-400">Pending Advocate Accounts</p>
+        <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.pending_advocates"></p>
       </div>
       <div class="panel p-5">
-        <p class="text-sm text-slate-400">Escrow Vault Balance</p>
-        <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.escrow_balance"></p>
+        <p class="text-sm text-slate-400">Total Appointments</p>
+        <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.total_appointments"></p>
       </div>
     </div>
 
     <section class="panel p-5 space-y-4">
       <div>
-        <h2 class="text-lg font-bold">Pending Advocate Verifications</h2>
-        <p class="text-sm text-slate-400">Approve only after verifying credentials against official Bar Council registers.</p>
+        <h2 class="text-lg font-bold">Pending Advocate Accounts</h2>
+        <p class="text-sm text-slate-400">Account approval is separate from license verification. Verify advocate credentials before allowing public directory access.</p>
       </div>
 
       <div class="overflow-x-auto">
@@ -83,25 +83,61 @@
               <th class="p-3">Name</th>
               <th class="p-3">Bar License No.</th>
               <th class="p-3">Bar Association</th>
-              <th class="p-3">Jurisdiction</th>
+              <th class="p-3">City</th>
               <th class="p-3">Actions</th>
             </tr>
           </thead>
           <tbody>
             <template x-for="lawyer in pendingLawyers" :key="lawyer.id">
               <tr class="border-t border-slate-800">
-                <td class="p-3 font-semibold" x-text="lawyer.name"></td>
-                <td class="p-3 font-mono text-amber-300" x-text="lawyer.license_number || 'Not Provided'"></td>
+                <td class="p-3 font-semibold" x-text="lawyer.full_name"></td>
+                <td class="p-3 font-mono text-amber-300" x-text="lawyer.bar_council_no || 'Not Provided'"></td>
                 <td class="p-3" x-text="lawyer.bar_association || '—'"></td>
-                <td class="p-3" x-text="lawyer.jurisdiction || 'High Court'"></td>
+                <td class="p-3" x-text="lawyer.city || 'Not provided'"></td>
                 <td class="p-3 space-x-2">
-                  <button class="btn bg-emerald-700" @click="reviewLawyer(lawyer.id, 'approve')">Approve Advocate</button>
+                  <button class="btn bg-emerald-700" @click="reviewLawyer(lawyer.id, 'approve')">Approve Account</button>
                   <button class="btn bg-rose-700" @click="reviewLawyer(lawyer.id, 'reject')">Reject Application</button>
                 </td>
               </tr>
             </template>
             <tr x-show="pendingLawyers.length === 0">
-              <td colspan="5" class="p-5 text-center text-slate-400">No pending advocate verification requests found.</td>
+              <td colspan="5" class="p-5 text-center text-slate-400">No pending advocate account requests found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel p-5 space-y-4">
+      <div>
+        <h2 class="text-lg font-bold">Approved — Awaiting License Verification</h2>
+        <p class="text-sm text-slate-400">Only verify after checking the advocate's Bar Council credentials and identity through a trusted official source. Account approval alone does not publish a profile.</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs uppercase text-slate-400 bg-slate-800">
+            <tr>
+              <th class="p-3">Name</th>
+              <th class="p-3">Bar License No.</th>
+              <th class="p-3">Bar Association</th>
+              <th class="p-3">City</th>
+              <th class="p-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="lawyer in unverifiedLawyers" :key="lawyer.id">
+              <tr class="border-t border-slate-800">
+                <td class="p-3 font-semibold" x-text="lawyer.full_name"></td>
+                <td class="p-3 font-mono text-amber-300" x-text="lawyer.bar_council_no || 'Not Provided'"></td>
+                <td class="p-3" x-text="lawyer.bar_association || '—'"></td>
+                <td class="p-3" x-text="lawyer.city || 'Not provided'"></td>
+                <td class="p-3">
+                  <button class="btn bg-emerald-700" @click="verifyLawyer(lawyer.id)" :disabled="!lawyer.bar_council_no">Verify License & Publish</button>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="unverifiedLawyers.length === 0">
+              <td colspan="5" class="p-5 text-center text-slate-400">No approved advocates awaiting verification.</td>
             </tr>
           </tbody>
         </table>
@@ -118,63 +154,120 @@ function adminPortal() {
     authenticated: false,
     email: '',
     password: '',
-    stats: { total_clients: 0, total_lawyers: 0, pending_lawyers: 0, escrow_balance: 'PKR 0.00' },
+    token: sessionStorage.getItem('lawnexa_admin_token') || '',
+    stats: {
+      total_users: 0,
+      total_clients: 0,
+      total_advocates: 0,
+      pending_advocates: 0,
+      total_appointments: 0,
+      pending_appointments: 0
+    },
     pendingLawyers: [],
+    unverifiedLawyers: [],
+
+    authHeaders() {
+      return this.token ? { Authorization: `Bearer ${this.token}` } : {};
+    },
 
     async init() {
+      if (!this.token) return;
       try {
-        const res = await fetch('/api/v1/auth/me');
-        if (res.ok) {
-          const user = await res.json();
-          if (user.role === 'admin') {
-            this.authenticated = true;
-            await this.refreshAll();
-          }
-        }
-      } catch (e) {}
+        const res = await fetch('/api/profile', { headers: this.authHeaders() });
+        if (!res.ok) throw new Error('Session expired');
+        const user = await res.json();
+        if (user.role !== 'admin') throw new Error('Admin privileges required');
+        this.authenticated = true;
+        await this.refreshAll();
+      } catch (error) {
+        this.logout(false);
+      }
     },
 
     async login() {
-      const form = new URLSearchParams();
-      form.set('username', this.email);
-      form.set('password', this.password);
-
-      const res = await fetch('/api/v1/auth/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: form
-      });
-
-      if (res.ok) {
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: this.email.trim().toLowerCase(), password: this.password })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.token || !data.user || data.user.role !== 'admin') {
+          alert(data.detail || 'Authentication failed. An administrator account is required.');
+          return;
+        }
+        this.token = data.token;
+        sessionStorage.setItem('lawnexa_admin_token', this.token);
+        this.password = '';
         this.authenticated = true;
         await this.refreshAll();
-      } else {
-        alert('Authentication failed. Admin privileges required.');
+      } catch (error) {
+        alert('Could not connect to the LawNexa API. Please try again.');
       }
     },
 
     async refreshAll() {
-      const overviewRes = await fetch('/api/v1/admin/overview');
-      if (overviewRes.ok) {
-        this.stats = await overviewRes.json();
-      }
+      const headers = this.authHeaders();
+      try {
+        const overviewRes = await fetch('/api/admin/dashboard', { headers });
+        if (!overviewRes.ok) throw new Error('Dashboard data could not be loaded.');
+        this.stats = { ...this.stats, ...(await overviewRes.json()) };
 
-      const pendingRes = await fetch('/api/v1/admin/lawyers/pending');
-      if (pendingRes.ok) {
+        const pendingRes = await fetch('/api/admin/advocates/pending', { headers });
+        if (!pendingRes.ok) throw new Error('Pending advocate accounts could not be loaded.');
         this.pendingLawyers = await pendingRes.json();
+
+        const unverifiedRes = await fetch('/api/admin/advocates/unverified', { headers });
+        if (!unverifiedRes.ok) throw new Error('Unverified advocate profiles could not be loaded.');
+        this.unverifiedLawyers = await unverifiedRes.json();
+      } catch (error) {
+        alert(error.message || 'Admin data could not be refreshed.');
       }
     },
 
     async reviewLawyer(id, action) {
-      const res = await fetch(`/api/v1/admin/lawyers/${id}/${action}`, { method: 'POST' });
-      if (res.ok) {
+      const supportedActions = new Set(['approve', 'reject']);
+      if (!supportedActions.has(action)) return;
+      try {
+        const res = await fetch(`/api/admin/advocates/${encodeURIComponent(id)}/${action}`, {
+          method: 'PATCH',
+          headers: this.authHeaders()
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data.detail || 'The advocate account could not be updated.');
+          return;
+        }
         await this.refreshAll();
+      } catch (error) {
+        alert('Could not connect to the LawNexa API. Please try again.');
       }
     },
 
-    logout() {
+    async verifyLawyer(id) {
+      if (!window.confirm('Have you checked this advocate’s license against a trusted official source? Only continue after verification.')) return;
+      try {
+        const res = await fetch(`/api/admin/advocates/${encodeURIComponent(id)}/verify`, {
+          method: 'PATCH',
+          headers: this.authHeaders()
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data.detail || 'The advocate could not be verified.');
+          return;
+        }
+        await this.refreshAll();
+      } catch (error) {
+        alert('Could not connect to the LawNexa API. Please try again.');
+      }
+    },
+
+    logout(reload = true) {
       this.authenticated = false;
-      window.location.reload();
+      this.token = '';
+      this.password = '';
+      sessionStorage.removeItem('lawnexa_admin_token');
+      if (reload) window.location.reload();
     }
   };
 }

@@ -246,7 +246,7 @@
                             <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
                             AI Legal Research Engine (Pakistan Law)
                         </div>
-                        <h2 id="ai-workspace-heading" class="text-xl sm:text-2xl font-bold text-slate-900 mb-1">AI Interactive Legal Assistant</h2>
+                        <h2 id="ai-workspace-heading" class="text-xl sm:text-2xl font-bold text-slate-900 mb-1">Legal Assistant Preview — not connected to verified sources</h2>
                         <p id="ai-workspace-subheading" class="text-slate-600 text-xs sm:text-sm">Apna masla sadah alfaz mein bayan karein. AI Assistant Pakistani Laws ke mutabiq legal guidance aur case brief tayar karega.</p>
                     </div>
                     <div class="flex items-center space-x-2 bg-slate-50 p-2 rounded-xl border border-slate-200 shrink-0">
@@ -570,14 +570,14 @@
                 <span>24/7 Legal Emergency</span>
             </div>
             <h3 class="text-xl font-black text-white mb-1">Emergency Legal Assistance</h3>
-            <p class="text-xs text-slate-400 mb-4">Instant connection with police emergency & High Court advocate on-call panel.</p>
+            <p class="text-xs text-slate-400 mb-4">This page can open the police helpline, but LawNexa does not currently dispatch alerts to advocates. For immediate danger call 15.</p>
 
             <div class="space-y-3">
                 <a href="tel:15" class="w-full bg-red-600 hover:bg-red-700 text-white font-extrabold py-3 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-lg">
                     <i class="fa-solid fa-phone text-base"></i> Call Police Emergency Helpline (15)
                 </a>
-                <button onclick="showToast('Emergency SOS signal broadcasted to nearest High Court Advocate on-call panel!', 'info'); closeSosModal();" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow">
-                    <i class="fa-solid fa-bell text-base"></i> Alert Nearest Duty Advocate Panel
+                <button onclick="showToast('LawNexa advocate emergency dispatch is not connected. For immediate danger call Police 15.', 'error');" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow">
+                    <i class="fa-solid fa-bell text-base"></i> Check Emergency Availability
                 </button>
             </div>
         </div>
@@ -683,7 +683,7 @@
     <div id="activeCallOverlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex flex-col items-center justify-between p-8 text-white no-print">
         <div class="text-center mt-6">
             <span id="call-type-badge" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Voice Call</span>
-            <h3 id="call-lawyer-title" class="text-2xl font-bold mt-4">Advocate Muhammad Ali</h3>
+            <h3 id="call-lawyer-title" class="text-2xl font-bold mt-4">Selected Advocate</h3>
             <p id="call-status-timer" class="text-emerald-400 text-sm font-semibold mt-1">Connecting...</p>
         </div>
 
@@ -855,6 +855,11 @@
                     </div>
 
                     <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Bar Association</label>
+                        <input type="text" id="reg-bar-association" placeholder="e.g. Karachi Bar Association" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-600">
+                    </div>
+
+                    <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Chamber Address *</label>
                         <input type="text" id="reg-chamber" placeholder="Chamber 102, High Court Bar" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-600">
                     </div>
@@ -915,7 +920,7 @@
                                 <div class="text-xs font-bold text-slate-900 flex items-center gap-1">
                                     <i class="fa-solid fa-video text-blue-600"></i> Virtual Call
                                 </div>
-                                <div class="text-[10px] text-emerald-700 font-bold">Upfront Escrow Fee</div>
+                                <div class="text-[10px] text-emerald-700 font-bold">Payment not enabled</div>
                             </div>
                         </label>
                     </div>
@@ -941,7 +946,7 @@
 
                 <div id="virtual-fields" class="hidden space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                     <p class="text-[11px] text-emerald-800 font-bold bg-emerald-50 p-2 rounded-lg border border-emerald-200">
-                        <i class="fa-solid fa-shield-halved text-emerald-600 mr-1"></i> Fee will be held in Escrow & automatically released after session completion.
+                        <i class="fa-solid fa-shield-halved text-emerald-600 mr-1"></i> Appointment requests are saved in LawNexa; payment and escrow are not enabled yet.
                     </p>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1.5">Select Virtual Mode:</label>
@@ -1064,117 +1069,182 @@
         let editProfileImageBase64 = '';
         let activeChatLawyer = '';
         let chatAttachmentData = null;
+        let latestGeneratedDocument = null;
+
+        // Security helpers: never interpolate user-controlled text into HTML without escaping.
+        function escapeHTML(value) {
+            return String(value ?? '').replace(/[&<>\"']/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;'
+            })[char]);
+        }
+
+        // Safe argument for the existing inline click handlers: JSON encodes JS strings,
+        // then HTML encoding protects the surrounding attribute.
+        function jsArg(value) {
+            return escapeHTML(JSON.stringify(String(value ?? '')));
+        }
+
+        function safeMediaSource(value, allowVideo = false) {
+            const raw = String(value ?? '').trim();
+            if (!raw || raw.length > 6 * 1024 * 1024) return '';
+
+            // Only allow base64 raster images and selected video formats; SVG/data HTML are blocked.
+            const allowedDataMime = allowVideo
+                ? '(?:image/(?:png|jpeg|gif|webp)|video/(?:mp4|webm))'
+                : 'image/(?:png|jpeg|gif|webp)';
+            const dataPattern = new RegExp('^data:' + allowedDataMime + ';base64,[A-Za-z0-9+/=]+$', 'i');
+            if (/^data:/i.test(raw)) return dataPattern.test(raw) ? raw : '';
+
+            try {
+                const parsed = new URL(raw, window.location.href);
+                if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return '';
+                if (window.location.protocol === 'https:' && parsed.protocol === 'http:') return '';
+                return parsed.href;
+            } catch {
+                return '';
+            }
+        }
+
+        function readLocalState(key, fallback) {
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) return fallback;
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(fallback)) return Array.isArray(parsed) ? parsed : fallback;
+                if (fallback && typeof fallback === 'object') {
+                    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : fallback;
+                }
+                return parsed;
+            } catch (error) {
+                console.warn(`Ignoring invalid local state for ${key}.`, error);
+                return fallback;
+            }
+        }
+
+        function finiteNumber(value, fallback = 0) {
+            const number = Number(value);
+            return Number.isFinite(number) ? number : fallback;
+        }
+
+        function resolveApiBase(locationInfo) {
+            const hostname = String(locationInfo?.hostname || '').toLowerCase();
+            const protocol = locationInfo?.protocol === 'https:' ? 'https:' : 'http:';
+            const port = String(locationInfo?.port || '');
+            const origin = String(locationInfo?.origin || '');
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                // The API serves its own frontend on ports 8000/8002. Live Server/Vite
+                // commonly serves only the HTML on 5500/3000, so call the API on 8002.
+                if (port === '8000' || port === '8002') return origin;
+                return `${protocol}//${hostname}:8002`;
+            }
+            return 'https://lawnexa.onrender.com';
+        }
+
+        async function apiRequest(path, options = {}) {
+            const headers = { 'Accept': 'application/json', ...(options.headers || {}) };
+            if (options.body !== undefined && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+            const token = sessionStorage.getItem('token');
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            const response = await fetch(`${resolveApiBase(window.location)}${path}`, { ...options, headers });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const detail = result.detail;
+                const message = Array.isArray(detail) ? detail.map(item => item.msg || 'Invalid request').join(', ') : (detail || `Request failed (${response.status})`);
+                throw new Error(message);
+            }
+            return result;
+        }
+
+        async function loadVerifiedLawyers() {
+            try {
+                const rows = await apiRequest('/api/lawyers');
+                lawyers = (Array.isArray(rows) ? rows : []).map(item => ({
+                    id: Number(item.id), userId: Number(item.user_id), name: String(item.name || 'Advocate'),
+                    specialty: (Array.isArray(item.specializations) && item.specializations[0]) || item.specialty || 'General Practice',
+                    specialtyBadge: (Array.isArray(item.specializations) && item.specializations.join(', ')) || item.specialty || 'General Practice',
+                    chamber: item.chamber_address || item.address || '', city: item.city || '',
+                    fee: Math.max(0, finiteNumber(item.consultation_fee, 0)), exp: Math.max(0, finiteNumber(item.experience_years, 0)),
+                    isFeatured: false, isVerified: item.is_verified === true,
+                    avatar: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+                    desc: `${item.experience_years ?? 'Experience not provided'} years experience${item.bar_association ? ` · ${item.bar_association}` : ''}`
+                }));
+                lawyerDirectoryLoadError = false;
+            } catch (error) {
+                lawyers = []; lawyerDirectoryLoadError = true;
+                console.error('Verified lawyer directory failed to load:', error);
+            }
+            renderLawyersGrid();
+        }
+
+        async function loadMyAppointments() {
+            if (!isLoggedIn()) return;
+            try {
+                const rows = await apiRequest('/api/appointments');
+                const labels = { pending: 'Pending Confirmation', confirmed: 'Confirmed', completed: 'Completed', cancelled: 'Cancelled', rejected: 'Rejected' };
+                bookings = (Array.isArray(rows) ? rows : []).map(row => ({
+                    id: String(row.id), clientName: row.client_name || 'Client', clientPhone: row.client_email || 'Not provided',
+                    lawyerName: row.lawyer_name || 'Advocate', lawyerId: row.lawyer_id,
+                    type: row.meeting_type === 'virtual' ? 'virtual' : 'physical', mode: row.meeting_mode || 'chamber',
+                    fee: Math.max(0, finiteNumber(row.consultation_fee, 0)), date: row.booking_date || '', time: row.time_slot || '',
+                    createdAt: row.created_at || '', notes: row.case_summary || '',
+                    status: labels[String(row.status || '').toLowerCase()] || String(row.status || 'Pending Confirmation'),
+                    rawStatus: String(row.status || 'pending').toLowerCase()
+                }));
+                renderMyBookings(); renderClientRequests();
+            } catch (error) {
+                console.error('Appointment list failed to load:', error);
+                showToast(`Appointments server se load nahi huin: ${error.message}`, 'error');
+            }
+        }
 
         let activeCallTimerInterval = null;
         let activeCallSeconds = 0;
 
-        let lawyerWalletBalance = 45000;
-        let clientWalletBalance = 5000;
 
         // Remove legacy demo tokens. Real sessions must use a JWT returned by the API.
-        const storedTokenAtStartup = localStorage.getItem('token') || '';
-        if (
-            storedTokenAtStartup === 'active_lawyer_token' ||
-            storedTokenAtStartup.startsWith('local_jwt_token_')
-        ) {
+        let storedTokenAtStartup = sessionStorage.getItem('token') || '';
+        if (!storedTokenAtStartup) {
+            const legacyToken = localStorage.getItem('token') || '';
+            if (legacyToken && legacyToken !== 'active_lawyer_token' && !legacyToken.startsWith('local_jwt_token_')) {
+                // One-time migration from persistent storage to a tab-scoped session.
+                sessionStorage.setItem('token', legacyToken);
+                storedTokenAtStartup = legacyToken;
+            }
+        }
+        // Never keep a long-lived token in persistent browser storage.
+        localStorage.removeItem('token');
+        if (storedTokenAtStartup === 'active_lawyer_token' || storedTokenAtStartup.startsWith('local_jwt_token_')) {
+            sessionStorage.removeItem('token');
             localStorage.removeItem('token');
             localStorage.removeItem('user');
         }
 
-        let lawyers = JSON.parse(localStorage.getItem('lawyers')) || [
-            {
-                id: 'lawyer_1',
-                name: 'Advocate Muhammad Ali',
-                specialty: 'Criminal Law',
-                specialtyBadge: 'High Court Criminal & Civil Specialist',
-                chamber: 'Room 102, High Court Bar, Karachi',
-                city: 'Karachi',
-                fee: 5000,
-                exp: 10,
-                isFeatured: true,
-                avatar: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-                desc: 'Senior High Court Advocate with 10+ years experience in criminal defense, bail petitions & property litigation.'
-            },
-            {
-                id: 'lawyer_2',
-                name: 'Advocate Sarah Khan',
-                specialty: 'Family Law',
-                specialtyBadge: 'Family & Civil Litigation Expert',
-                chamber: 'Chamber 45, City Court Bar, Lahore',
-                city: 'Lahore',
-                fee: 4000,
-                exp: 8,
-                isFeatured: false,
-                avatar: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-                desc: 'Specialized advocate in family laws, child custody, divorce proceedings, and property inheritance suits.'
-            }
-        ];
+        // Server-backed collections. Old localStorage demo seeds are not loaded.
+        let lawyers = [];
+        let bookings = [];
+        let feedPosts = [];
+        let lawyerDirectoryLoadError = false;
+        let activeBookingLawyerId = null;
+        let caseCitationsDB = [];
 
-        let bookings = JSON.parse(localStorage.getItem('bookings')) || [
-            {
-                id: 'b_101',
-                clientName: 'Usman Tariq',
-                clientPhone: '0300-1122334',
-                lawyerName: 'Advocate Muhammad Ali',
-                type: 'virtual',
-                mode: 'video_call',
-                fee: 5000,
-                date: '2026-10-28',
-                time: '18:00',
-                createdAt: Date.now() - (2 * 3600 * 1000),
-                notes: 'Property dispute guidance required via video session.',
-                status: 'In Escrow Hold'
-            }
-        ];
-
-        let feedPosts = JSON.parse(localStorage.getItem('feedPosts')) || [
-            {
-                id: 1,
-                author: "Advocate Muhammad Ali",
-                title: "Candidate for President - High Court Bar Association 2026",
-                avatar: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-                category: "Bar Campaign",
-                isAd: true,
-                categoryClass: "bg-amber-500 text-slate-950 font-black border-amber-600 shadow-sm",
-                timestamp: "Sponsored Election Ad",
-                text: "🗳️ BAR ELECTION CAMPAIGN 2026: Official Manifesto - Implementation of Digital Law Library, Chambers Health Insurance & Instant Escrow Fee Security for All Learned Advocates. Vote for Progress!",
-                likes: 124,
-                liked: false,
-                comments: ["Full support from Karachi Bar!", "Strong candidate."]
-            },
-            {
-                id: 2,
-                author: "Advocate Sarah Khan",
-                title: "High Court Bar Member",
-                avatar: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-                category: "Peer Legal Debate",
-                categoryClass: "bg-purple-100 text-purple-900 border-purple-300 font-extrabold",
-                timestamp: "2 hours ago",
-                text: "Debate Question: Kya Section 489-F PPC ke tehat cheque bounce cases mein automatic arrest waivability ki legal amendment honi chahiye?",
-                votes: { for: 18, against: 7, userVoted: null },
-                likes: 34,
-                liked: false,
-                comments: ["Haq mein hoon.", "Mukhalifat mein hoon."]
-            }
-        ];
-
-        let caseCitationsDB = [
-            { citation: "PLD 2023 SC 142", section: "PPC Section 489-F", summary: "Dishonored cheques mens rea and proof of financial liability requirement." },
-            { citation: "2024 MLD 88 Lahore", section: "Cr.P.C. Sec 561-A", summary: "Quashment of frivolous FIRs and high court inherent jurisdiction." },
-            { citation: "2022 SCMR 510", section: "Cr.P.C. Sec 497/498", summary: "Post-arrest bail guidelines in non-prohibitory offences." }
-        ];
-
-        let chats = JSON.parse(localStorage.getItem('chats')) || {};
+        let chats = readLocalState('chats', {});
 
         function saveStateToLocalStorage() {
-            localStorage.setItem('lawyers', JSON.stringify(lawyers));
-            localStorage.setItem('bookings', JSON.stringify(bookings));
-            localStorage.setItem('feedPosts', JSON.stringify(feedPosts));
-            localStorage.setItem('chats', JSON.stringify(chats));
+            try {
+                localStorage.setItem('lawyers', JSON.stringify(lawyers));
+                localStorage.setItem('bookings', JSON.stringify(bookings));
+                localStorage.setItem('feedPosts', JSON.stringify(feedPosts));
+                localStorage.setItem('chats', JSON.stringify(chats));
+                return true;
+            } catch (error) {
+                console.error('LawNexa local demo storage is full or unavailable.', error);
+                showToast('Browser storage full/unavailable hai. Purane demo media clear karein; important data abhi server par save nahi hota.', 'error');
+                return false;
+            }
         }
 
         function isLoggedIn() {
-            return !!(localStorage.getItem('token') && localStorage.getItem('user'));
+            return !!(sessionStorage.getItem('token') && localStorage.getItem('user'));
         }
 
         function toggleMobileDrawer() {
@@ -1238,19 +1308,9 @@
         function closeCitationModal() { document.getElementById('citationModal').classList.add('hidden'); }
 
         function searchCitations() {
-            const query = (document.getElementById('citation-search-input')?.value || '').toLowerCase();
             const list = document.getElementById('citations-list');
-            const filtered = caseCitationsDB.filter(c => c.citation.toLowerCase().includes(query) || c.section.toLowerCase().includes(query) || c.summary.toLowerCase().includes(query));
-
-            list.innerHTML = filtered.map(c => `
-                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <div class="flex justify-between text-xs font-bold text-slate-900">
-                        <span class="text-purple-700">${c.citation}</span>
-                        <span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-[10px]">${c.section}</span>
-                    </div>
-                    <p class="text-[11px] text-slate-600 mt-1">${c.summary}</p>
-                </div>
-            `).join('');
+            if (!list) return;
+            list.innerHTML = `<div class="p-4 rounded-xl border border-amber-200 bg-amber-50 text-sm text-amber-950"><strong>Verified case-law source is not connected.</strong><p class="mt-1">No sample citations are shown because they have not been checked against an authoritative current source.</p></div>`;
         }
 
         function openSosModal() { document.getElementById('sosModal').classList.remove('hidden'); }
@@ -1259,50 +1319,18 @@
         function openAdPromotionModal() { document.getElementById('adPromotionModal').classList.remove('hidden'); }
         function closeAdPromotionModal() { document.getElementById('adPromotionModal').classList.add('hidden'); }
 
-        function purchaseAdPackage(packageName) {
+        function purchaseAdPackage() {
             closeAdPromotionModal();
-            showToast(`${packageName} package initiated! Redirecting to payment gateway...`, "info");
+            showToast('Advertising payments abhi connected nahi hain. Koi payment initiate ya charge nahi hua.', 'info');
         }
 
-        // --- WALLET LOGIC ---
-        function openWalletModal(action = 'deposit') {
-            document.getElementById('wallet-action-type').value = action;
-            document.getElementById('wallet-modal-mode-label').innerText = action === 'deposit' ? 'Add Wallet Deposit' : 'Withdraw Wallet Funds';
-            document.getElementById('wallet-modal-title').innerText = action === 'deposit' ? 'Deposit Funds to Wallet' : 'Withdraw Funds to Bank / Mobile Account';
-            document.getElementById('wallet-submit-btn').innerText = action === 'deposit' ? 'Process Deposit' : 'Request Withdrawal';
-            document.getElementById('walletModal').classList.remove('hidden');
-        }
-
-        function closeWalletModal() { document.getElementById('walletModal').classList.add('hidden'); }
-
+        // Wallet/escrow is deliberately disabled until gateway, signed webhooks and ledger exist.
+        function openWalletModal() { showToast('Wallet/payment gateway abhi enabled nahi hai. Koi funds process nahi hue.', 'error'); }
+        function closeWalletModal() { document.getElementById('walletModal')?.classList.add('hidden'); }
         function handleWalletTransaction(e) {
-            e.preventDefault();
-            const action = document.getElementById('wallet-action-type').value;
-            const method = document.querySelector('input[name="payment_method"]:checked').value;
-            const accNo = document.getElementById('wallet-account-no').value;
-            const amount = parseInt(document.getElementById('wallet-amount').value) || 0;
-
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const isLawyer = user.role === 'advocate';
-
-            if (action === 'deposit') {
-                if (isLawyer) lawyerWalletBalance += amount;
-                else clientWalletBalance += amount;
-                showToast(`PKR ${amount.toLocaleString()} deposited via ${method}!`, 'success');
-            } else {
-                if (isLawyer) {
-                    if (amount > lawyerWalletBalance) { showToast('Insufficient wallet balance!', 'error'); return; }
-                    lawyerWalletBalance -= amount;
-                } else {
-                    if (amount > clientWalletBalance) { showToast('Insufficient wallet balance!', 'error'); return; }
-                    clientWalletBalance -= amount;
-                }
-                showToast(`Withdrawal of PKR ${amount.toLocaleString()} sent to ${method} (${accNo})!`, 'success');
-            }
-
+            if (e) e.preventDefault();
             closeWalletModal();
-            renderEscrowTab();
-            updateAuthUI();
+            showToast('Payment gateway configured nahi hai. Deposit/withdrawal process nahi hui.', 'error');
         }
 
         // --- AUTH & ROLE SWITCHING UI ---
@@ -1389,7 +1417,7 @@
             }
             container.innerHTML = customSpecializations.map((spec, i) => `
                 <span class="inline-flex items-center bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs px-2.5 py-1 rounded-full font-semibold">
-                    ${spec}
+                    ${escapeHTML(spec)}
                     <button type="button" onclick="removeSpecialization(${i})" class="ml-1.5 text-emerald-700 hover:text-red-600 font-bold text-sm">&times;</button>
                 </span>
             `).join('');
@@ -1416,6 +1444,7 @@
 
                 if (currentSelectedRole === 'advocate') {
                     payload.bar_council_no = document.getElementById('reg-bar-no').value.trim() || null;
+                    payload.bar_association = document.getElementById('reg-bar-association').value.trim() || null;
                     payload.chamber_address = document.getElementById('reg-chamber').value.trim() || null;
                     const expValue = document.getElementById('reg-exp').value;
                     const feeValue = document.getElementById('reg-fee').value;
@@ -1425,7 +1454,7 @@
                 }
             }
 
-            const apiBase = 'https://lawnexa.onrender.com';
+            const apiBase = resolveApiBase(window.location);
             const originalText = submitBtn.innerText;
             submitBtn.disabled = true;
             submitBtn.innerText = 'Connecting...';
@@ -1464,30 +1493,19 @@
                     specializations: result.user.specializations || payload.specializations || []
                 };
 
-                localStorage.setItem('token', result.token);
+                sessionStorage.setItem('token', result.token);
                 localStorage.setItem('user', JSON.stringify(userObj));
 
-                if (isRegister && userObj.role === 'advocate') {
-                    const newLawyer = {
-                        id: 'lawyer_' + Date.now(),
-                        name: 'Advocate ' + userObj.full_name,
-                        specialty: userObj.specializations[0] || 'Criminal Law',
-                        specialtyBadge: userObj.specializations.join(', ') || 'General Practice',
-                        chamber: userObj.chamber || '',
-                        city: userObj.city || 'Karachi',
-                        fee: userObj.fee || 0,
-                        exp: userObj.exp || 0,
-                        isFeatured: false,
-                        avatar: userObj.profile_image,
-                        desc: `Advocate practicing in ${userObj.city || 'Pakistan'}.`
-                    };
-                    lawyers.unshift(newLawyer);
-                    saveStateToLocalStorage();
-                }
+                // Advocate accounts are never inserted into the public directory by the browser.
+                // Publication requires admin approval and manual license verification.
 
                 closeAuthModal();
                 updateAuthUI();
-                showToast(isRegister ? 'Account created successfully!' : 'Welcome back, ' + userObj.full_name, 'success');
+                void loadVerifiedLawyers();
+                void loadMyAppointments();
+                showToast(isRegister && userObj.role === 'advocate'
+                    ? 'Account created. Public directory mein aane se pehle admin approval aur license verification zaroori hai.'
+                    : (isRegister ? 'Account created successfully!' : 'Welcome back, ' + userObj.full_name), 'success');
 
             } catch (error) {
                 clearTimeout(timeoutId);
@@ -1507,7 +1525,7 @@
             const drawerUserCard = document.getElementById('drawer-user-card');
             const kpiContainer = document.getElementById('lawyer-practice-kpis');
 
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const user = readLocalState('user', {});
             const isLawyer = user.role === 'advocate';
 
             const aiBadge = document.getElementById('ai-mode-badge');
@@ -1516,9 +1534,9 @@
             const chatThread = document.getElementById('chat-thread');
 
             if (isLawyer) {
-                if (aiBadge) aiBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-purple-600 animate-pulse"></span> Advocate Mode: Technical Legal Research Engine`;
-                if (aiHeading) aiHeading.innerText = "Advocate AI Legal Research Workspace";
-                if (aiSubheading) aiSubheading.innerText = "Technical Section retrieval, Supreme Court / High Court Case Law search (PLD/SCMR), aur Court Draft suggestions.";
+                if (aiBadge) aiBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-purple-600 animate-pulse"></span> Advocate Mode: Legal Research Preview (not source-verified)`;
+                if (aiHeading) aiHeading.innerText = "Advocate Legal Research Preview";
+                if (aiSubheading) aiSubheading.innerText = "Verified legal-source retrieval is not connected yet. Do not rely on generated answers or citations.";
                 if (chatThread) {
                     chatThread.innerHTML = `
                         <div class="flex items-start space-x-3">
@@ -1530,9 +1548,9 @@
                     `;
                 }
             } else {
-                if (aiBadge) aiBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span> Citizen Mode: Simple Legal Advisory`;
+                if (aiBadge) aiBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span> Citizen Mode: Legal Assistant Preview (not source-verified)`;
                 if (aiHeading) aiHeading.innerText = "AI Interactive Legal Assistant";
-                if (aiSubheading) aiSubheading.innerText = "Apna masla sadah alfaz mein bayan karein. AI Assistant guidance aur legal advocate recommend karega.";
+                if (aiSubheading) aiSubheading.innerText = "Use this as a UI preview only. No source-verified legal advice is currently provided.";
                 if (chatThread) {
                     chatThread.innerHTML = `
                         <div class="flex items-start space-x-3">
@@ -1548,13 +1566,13 @@
             if (isLoggedIn()) {
                 const roleLabel = isLawyer ? 'Advocate' : 'Client';
                 const roleBadgeBg = isLawyer ? 'bg-yellow-500 text-slate-900' : 'bg-emerald-600 text-white';
-                const avatarImg = user.profile_image || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-                const displayEmail = user.full_name || user.email;
+                const avatarImg = safeMediaSource(user.profile_image) || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+                const displayEmail = escapeHTML(user.full_name || user.email || 'User');
 
                 if (drawerUserCard) {
                     drawerUserCard.innerHTML = `
                         <div class="flex items-center space-x-3">
-                            <img src="${avatarImg}" class="w-10 h-10 rounded-full object-cover border-2 border-yellow-400">
+                            <img src="${escapeHTML(avatarImg)}" class="w-10 h-10 rounded-full object-cover border-2 border-yellow-400">
                             <div class="overflow-hidden">
                                 <h4 class="font-bold text-sm text-white truncate">${displayEmail}</h4>
                                 <span class="text-[9px] font-black px-2 py-0.5 rounded ${roleBadgeBg} uppercase inline-block">${roleLabel}</span>
@@ -1572,7 +1590,7 @@
                         kpiContainer.classList.remove('hidden');
                         kpiContainer.classList.add('grid');
                         const dashBal = document.getElementById('dash-lawyer-balance');
-                        if(dashBal) dashBal.innerText = lawyerWalletBalance.toLocaleString();
+                        if (dashBal) dashBal.innerText = 'Not enabled';
                     } else {
                         kpiContainer.classList.add('hidden');
                         kpiContainer.classList.remove('grid');
@@ -1621,7 +1639,7 @@
                 container.innerHTML = `
                     <div class="flex items-center space-x-2 text-xs">
                         <div class="flex items-center space-x-1.5 bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-700 shadow-sm max-w-[180px]">
-                            <img id="header-avatar" src="${avatarImg}" class="w-5 h-5 rounded-full object-cover border border-yellow-400 shrink-0">
+                            <img id="header-avatar" src="${escapeHTML(avatarImg)}" class="w-5 h-5 rounded-full object-cover border border-yellow-400 shrink-0">
                             <span class="text-slate-200 font-semibold truncate text-[11px]">${displayEmail}</span>
                             <span class="text-[9px] font-black px-1.5 py-0.5 rounded ${roleBadgeBg} shrink-0">${roleLabel}</span>
                         </div>
@@ -1667,6 +1685,7 @@
         }
 
         function logout() {
+            sessionStorage.removeItem('token');
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             updateAuthUI();
@@ -1702,124 +1721,40 @@
             }
         }
 
-        // --- CANCELLATION & ESCROW ---
+        async function changeAppointmentStatus(bookingId, status, successMessage) {
+            try {
+                await apiRequest(`/api/appointments/${encodeURIComponent(bookingId)}/status`, { method:'PATCH', body:JSON.stringify({status}) });
+                await loadMyAppointments();
+                showToast(successMessage, 'success');
+            } catch (error) { showToast(`Appointment status change nahi hua: ${error.message}`, 'error'); }
+        }
         function cancelBookingByClient(bookingId) {
-            const booking = bookings.find(b => b.id === bookingId);
-            if (booking && (booking.status === 'In Escrow Hold' || booking.status === 'Pending Confirmation')) {
-                booking.status = 'Cancelled & Refunded';
-                clientWalletBalance += (booking.fee || 5000);
-                saveStateToLocalStorage();
-                renderMyBookings();
-                showToast(`Booking cancelled! PKR ${(booking.fee || 5000).toLocaleString()} refunded to your wallet.`, "info");
-            }
+            const booking=bookings.find(item=>String(item.id)===String(bookingId));
+            if (!booking || !['Pending Confirmation','Confirmed'].includes(booking.status)) return;
+            void changeAppointmentStatus(bookingId,'cancelled','Appointment cancel ho gayi. Koi refund issue nahi hua kyunki payments enabled nahi hain.');
         }
-
         function cancelBookingByLawyer(bookingId) {
-            const booking = bookings.find(b => b.id === bookingId);
-            if (booking) {
-                booking.status = 'Cancelled & Refunded by Lawyer';
-                clientWalletBalance += (booking.fee || 5000);
-                saveStateToLocalStorage();
-                renderClientRequests();
-                renderMyBookings();
-                showToast(`Session cancelled! Fee PKR ${(booking.fee || 5000).toLocaleString()} refunded back to client.`, "info");
-            }
+            const booking=bookings.find(item=>String(item.id)===String(bookingId));
+            if (!booking || !['Pending Confirmation','Confirmed'].includes(booking.status)) return;
+            void changeAppointmentStatus(bookingId,'cancelled','Appointment cancel ho gayi. Koi payment/refund process nahi hua.');
         }
-
         function completeSessionAndReleaseEscrow(bookingId) {
-            const booking = bookings.find(b => b.id === bookingId);
-            if (booking) {
-                booking.status = 'Completed & Escrow Released';
-                lawyerWalletBalance += (booking.fee || 5000);
-                saveStateToLocalStorage();
-                renderMyBookings();
-                renderClientRequests();
-                updateAuthUI();
-                showToast(`Session completed! PKR ${(booking.fee || 5000).toLocaleString()} released to advocate.`, "success");
-            }
+            const booking=bookings.find(item=>String(item.id)===String(bookingId));
+            if (!booking || booking.status!=='Confirmed') return;
+            void changeAppointmentStatus(bookingId,'completed','Appointment completed mark ho gayi. Payment/escrow release feature enabled nahi hai.');
         }
 
         // --- ESCROW RENDER ---
         function renderEscrowTab() {
             const wrapper = document.getElementById('escrow-dynamic-wrapper');
             if (!wrapper) return;
-
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const isLawyer = user.role === 'advocate';
-
-            if (isLawyer) {
-                wrapper.innerHTML = `
-                    <div class="flex items-center justify-between border-b border-slate-200 pb-4 mb-6">
-                        <div>
-                            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
-                                <i class="fa-solid fa-shield-halved text-emerald-700"></i> Advocate Wallet & Earnings Hub
-                            </h2>
-                            <p class="text-slate-600 text-xs">Deposit for election ads or withdraw consultation earnings to your bank account.</p>
-                        </div>
-                        <div class="bg-slate-900 text-yellow-400 p-3 rounded-xl font-bold text-xs flex items-center gap-2 border border-slate-800">
-                            <i class="fa-solid fa-wallet text-sm"></i>
-                            <span>Wallet Balance: PKR <span id="wallet-balance">${lawyerWalletBalance.toLocaleString()}</span></span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <div class="text-xs font-semibold text-slate-500">In Escrow Hold (Pending Sessions)</div>
-                            <div class="text-xl font-black text-slate-900 mt-1">PKR 5,000</div>
-                            <div class="text-[10px] text-amber-600 mt-1 font-semibold"><i class="fa-solid fa-lock mr-1"></i> Auto-Releases Upon Session Finish</div>
-                        </div>
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <div class="text-xs font-semibold text-slate-500">Available Wallet Balance</div>
-                            <div class="text-xl font-black text-emerald-600 mt-1">PKR ${lawyerWalletBalance.toLocaleString()}</div>
-                            <div class="text-[10px] text-emerald-600 mt-1 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i> Ready for Withdrawal or Ad Spend</div>
-                        </div>
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-center gap-2">
-                            <button onclick="openWalletModal('withdraw')" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 px-3 rounded-xl text-xs transition shadow flex items-center justify-center gap-1.5">
-                                <i class="fa-solid fa-building-columns text-yellow-400"></i> Withdraw Earnings
-                            </button>
-                            <button onclick="openWalletModal('deposit')" class="bg-slate-900 hover:bg-slate-800 text-yellow-400 font-bold py-2 px-3 rounded-xl text-xs transition border border-slate-700 flex items-center justify-center gap-1.5">
-                                <i class="fa-solid fa-plus-circle"></i> Deposit Funds for Ads
-                            </button>
-                        </div>
-                    </div>
-                `;
-            } else {
-                wrapper.innerHTML = `
-                    <div class="flex items-center justify-between border-b border-slate-200 pb-4 mb-6">
-                        <div>
-                            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
-                                <i class="fa-solid fa-wallet text-emerald-700"></i> Client Payment & Refund Wallet
-                            </h2>
-                            <p class="text-slate-600 text-xs">Manage funds, deposit session fee, or withdraw booking refunds to EasyPaisa, JazzCash, or Bank.</p>
-                        </div>
-                        <div class="bg-slate-900 text-yellow-400 p-3 rounded-xl font-bold text-xs flex items-center gap-2 border border-slate-800">
-                            <i class="fa-solid fa-wallet text-sm"></i>
-                            <span>Wallet Balance: PKR ${clientWalletBalance.toLocaleString()}</span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <div class="text-xs font-semibold text-slate-500">Available Wallet / Refund Balance</div>
-                            <div class="text-xl font-black text-emerald-600 mt-1">PKR ${clientWalletBalance.toLocaleString()}</div>
-                            <div class="text-[10px] text-emerald-600 mt-1 font-semibold"><i class="fa-solid fa-shield-halved mr-1"></i> Protected Under Escrow Refund Guarantee</div>
-                        </div>
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <div class="text-xs font-semibold text-slate-500">Total Spent on Consultations</div>
-                            <div class="text-xl font-black text-slate-800 mt-1">PKR 12,000</div>
-                            <div class="text-[10px] text-slate-500 mt-1 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i> Completed Online Sessions</div>
-                        </div>
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-center gap-2">
-                            <button onclick="openWalletModal('deposit')" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 px-3 rounded-xl text-xs transition shadow flex items-center justify-center gap-1.5">
-                                <i class="fa-solid fa-plus-circle text-yellow-400"></i> Add Funds / Deposit
-                            </button>
-                            <button onclick="openWalletModal('withdraw')" class="bg-slate-900 hover:bg-slate-800 text-yellow-400 font-bold py-2 px-3 rounded-xl text-xs transition border border-slate-700 flex items-center justify-center gap-1.5">
-                                <i class="fa-solid fa-arrow-down-left"></i> Withdraw Refund Balance
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }
+            wrapper.innerHTML = `
+                <section class="max-w-3xl mx-auto p-6 sm:p-8 bg-white rounded-2xl border border-amber-200 shadow-sm">
+                    <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-wallet"></i></div>
+                    <h2 class="text-xl font-bold text-slate-900 mb-2">Payments & Wallet</h2>
+                    <p class="text-sm text-slate-600 leading-relaxed">Wallet balances, deposits, withdrawals, payment collection, refunds and escrow are not enabled yet. No money is held or transferred by LawNexa at this stage.</p>
+                    <p class="text-xs text-slate-500 mt-3">This section will be enabled after payment-provider integration, signed webhook verification, reconciliation and transaction-ledger tests.</p>
+                </section>`;
         }
 
         // --- ADVOCATES GRID ---
@@ -1829,213 +1764,174 @@
 
             const searchQuery = (document.getElementById('lawyer-search-input')?.value || '').toLowerCase();
             const filterSpec = document.getElementById('lawyer-specialty-filter')?.value || 'all';
+            const sortedLawyers = [...lawyers].filter(item => item && typeof item === 'object')
+                .sort((a, b) => (Boolean(b.isFeatured) ? 1 : 0) - (Boolean(a.isFeatured) ? 1 : 0));
 
-            const sortedLawyers = [...lawyers].sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
-
-            const filtered = sortedLawyers.filter(l => {
-                const matchesSearch = l.name.toLowerCase().includes(searchQuery) || l.city.toLowerCase().includes(searchQuery) || l.chamber.toLowerCase().includes(searchQuery);
-                const matchesSpec = filterSpec === 'all' || l.specialty.toLowerCase().includes(filterSpec.toLowerCase());
+            const filtered = sortedLawyers.filter(lawyer => {
+                const name = String(lawyer.name || 'Advocate');
+                const city = String(lawyer.city || '');
+                const chamber = String(lawyer.chamber || '');
+                const specialty = String(lawyer.specialty || '');
+                const matchesSearch = name.toLowerCase().includes(searchQuery) || city.toLowerCase().includes(searchQuery) || chamber.toLowerCase().includes(searchQuery);
+                const matchesSpec = filterSpec === 'all' || specialty.toLowerCase().includes(filterSpec.toLowerCase());
                 return matchesSearch && matchesSpec;
             });
 
             if (filtered.length === 0) {
-                grid.innerHTML = `<div class="col-span-full text-center py-8 text-slate-500 text-sm">Koi advocate nahi mila. Search query tabdeel karein.</div>`;
+                grid.innerHTML = `<div class="col-span-full text-center py-8 text-slate-500 text-sm">${lawyerDirectoryLoadError ? 'Verified advocate directory server se load nahi ho saki. Connection check karke retry karein.' : 'Abhi koi approved aur license-verified advocate directory mein available nahi hai.'}</div>`;
                 return;
             }
 
-            grid.innerHTML = filtered.map(lawyer => `
-                <div class="border rounded-2xl p-4 sm:p-5 hover:shadow-xl transition bg-white flex flex-col justify-between relative ${lawyer.isFeatured ? 'border-2 border-yellow-500 shadow-md border-t-4 border-t-yellow-500' : 'border-slate-200 border-t-4 border-t-emerald-700'}">
-                    ${lawyer.isFeatured ? `
+            grid.innerHTML = filtered.map((lawyer, index) => {
+                const isFeatured = Boolean(lawyer.isFeatured);
+                const name = String(lawyer.name || 'Advocate');
+                const specialty = String(lawyer.specialtyBadge || lawyer.specialty || 'General Practice');
+                const description = String(lawyer.desc || 'Profile details not provided.');
+                const chamber = String(lawyer.chamber || 'Chamber details not provided');
+                const avatar = safeMediaSource(lawyer.avatar) || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+                const fee = Math.max(0, finiteNumber(lawyer.fee, 5000));
+                return `
+                <div class="border rounded-2xl p-4 sm:p-5 hover:shadow-xl transition bg-white flex flex-col justify-between relative ${isFeatured ? 'border-2 border-yellow-500 shadow-md border-t-4 border-t-yellow-500' : 'border-slate-200 border-t-4 border-t-emerald-700'}">
+                    ${isFeatured ? `
                         <span class="absolute -top-3 right-4 bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow">
                             ⭐ Featured Advocate
                         </span>
                     ` : ''}
                     <div>
                         <div class="flex items-center space-x-3 mb-3">
-                            <img src="${lawyer.avatar}" class="w-12 h-12 rounded-full object-cover border-2 ${lawyer.isFeatured ? 'border-yellow-500' : 'border-emerald-600'} shadow-sm shrink-0">
+                            <img src="${escapeHTML(avatar)}" alt="Advocate profile" loading="lazy" referrerpolicy="no-referrer" class="w-12 h-12 rounded-full object-cover border-2 ${isFeatured ? 'border-yellow-500' : 'border-emerald-600'} shadow-sm shrink-0">
                             <div>
-                                <h3 class="font-bold text-slate-900 text-base">${lawyer.name}</h3>
-                                <span class="text-xs text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">${lawyer.specialtyBadge || lawyer.specialty}</span>
+                                <h3 class="font-bold text-slate-900 text-base">${escapeHTML(name)}</h3>
+                                <span class="text-xs text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">${escapeHTML(specialty)}</span>
                             </div>
                         </div>
-                        <p class="text-xs text-slate-600 mb-3 leading-relaxed">${lawyer.desc}</p>
+                        <p class="text-xs text-slate-600 mb-3 leading-relaxed">${escapeHTML(description)}</p>
                         <div class="text-[11px] text-slate-600 space-y-1 mb-4 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                            <div><i class="fa-solid fa-location-dot text-emerald-700 mr-1.5"></i><strong>Chamber:</strong> ${lawyer.chamber}</div>
-                            <div><i class="fa-solid fa-video text-blue-600 mr-1.5"></i><strong>Virtual Call Fee:</strong> PKR ${lawyer.fee.toLocaleString()}</div>
+                            <div><i class="fa-solid fa-location-dot text-emerald-700 mr-1.5"></i><strong>Chamber:</strong> ${escapeHTML(chamber)}</div>
+                            <div><i class="fa-solid fa-video text-blue-600 mr-1.5"></i><strong>Consultation Fee (not paid online):</strong> PKR ${fee.toLocaleString()}</div>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-                        <button onclick="openDirectMessage('${lawyer.name}')" class="bg-slate-900 hover:bg-slate-800 text-yellow-400 text-xs font-bold py-2 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
-                            <i class="fa-solid fa-paper-plane text-xs"></i>
-                            <span>Direct Message</span>
+                        <button data-lawyer-index="${index}" data-lawyer-action="message" class="lawyer-action bg-slate-900 hover:bg-slate-800 text-yellow-400 text-xs font-bold py-2 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-paper-plane text-xs"></i><span>Message Preview</span>
                         </button>
-                        <button onclick="openBookingModal('${lawyer.name}', '${lawyer.chamber}', ${lawyer.fee})" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold py-2 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
-                            <i class="fa-solid fa-calendar-check text-xs text-yellow-400"></i>
-                            <span>Book Visit</span>
+                        <button data-lawyer-index="${index}" data-lawyer-action="book" class="lawyer-action bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold py-2 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-calendar-check text-xs text-yellow-400"></i><span>Book Visit</span>
                         </button>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
+
+            // Bind actions as DOM listeners; no user-controlled strings are compiled as inline JavaScript.
+            grid.querySelectorAll('.lawyer-action').forEach(button => {
+                button.addEventListener('click', () => {
+                    const item = filtered[Number(button.dataset.lawyerIndex)];
+                    if (!item) return;
+                    if (button.dataset.lawyerAction === 'message') {
+                        openDirectMessage(String(item.name || 'Advocate'));
+                    } else {
+                        openBookingModal(String(item.name || 'Advocate'), String(item.chamber || ''), Math.max(0, finiteNumber(item.fee, 0)), item.id);
+                    }
+                });
+            });
         }
 
         // --- BOOKING LOGIC ---
-        function openBookingModal(lawyerName, chamberAddress, fee = 5000) {
-            if (!isLoggedIn()) {
-                openAuthModal();
-                return;
+        function openBookingModal(lawyerName, chamberAddress, fee = 0, lawyerId = null) {
+            if (!isLoggedIn()) { openAuthModal(); return; }
+            if (readLocalState('user', {}).role !== 'client') {
+                showToast('Appointment sirf client account se create ho sakti hai.', 'error'); return;
             }
+            activeBookingLawyerId = Number(lawyerId || lawyers.find(item => item.name === lawyerName)?.id || 0) || null;
+            if (!activeBookingLawyerId) { showToast('Verified advocate ID missing hai. Directory dobara load karein.', 'error'); return; }
             document.getElementById('booking-lawyer-name').value = lawyerName;
             document.getElementById('booking-lawyer-fee').value = fee;
             document.getElementById('booking-lawyer-title').innerText = `Book Consultation with ${lawyerName}`;
             document.getElementById('booking-chamber-address').value = chamberAddress || '';
-            
+            const today = new Date();
+            const minDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+            ['booking-physical-date', 'booking-virtual-date'].forEach(id => { const field=document.getElementById(id); field.min=minDate; field.value=''; });
+            ['booking-physical-time', 'booking-virtual-time'].forEach(id => document.getElementById(id).value='');
             toggleMeetingTypeFields('physical');
             document.getElementById('bookingModal').classList.remove('hidden');
         }
-
         function closeBookingModal() { document.getElementById('bookingModal').classList.add('hidden'); }
-
         function toggleMeetingTypeFields(type) {
-            const physFields = document.getElementById('physical-fields');
-            const virtFields = document.getElementById('virtual-fields');
-            const physLabel = document.getElementById('label-type-physical');
-            const virtLabel = document.getElementById('label-type-virtual');
-            const submitBtnText = document.getElementById('booking-submit-text');
-            const submitBtnIcon = document.getElementById('booking-submit-icon');
-
+            const physFields=document.getElementById('physical-fields'), virtFields=document.getElementById('virtual-fields');
+            const physLabel=document.getElementById('label-type-physical'), virtLabel=document.getElementById('label-type-virtual');
+            const submitBtnText=document.getElementById('booking-submit-text'), submitBtnIcon=document.getElementById('booking-submit-icon');
             if (type === 'physical') {
-                physFields.classList.remove('hidden');
-                virtFields.classList.add('hidden');
-                physLabel.className = "flex items-center p-3 border-2 rounded-xl cursor-pointer transition border-emerald-600 bg-emerald-50/50";
-                virtLabel.className = "flex items-center p-3 border-2 rounded-xl cursor-pointer transition border-slate-200 bg-slate-50";
-                if (submitBtnText) submitBtnText.innerText = "Confirm Physical Meeting Appointment";
-                if (submitBtnIcon) submitBtnIcon.className = "fa-solid fa-calendar-check text-yellow-400";
+                physFields.classList.remove('hidden'); virtFields.classList.add('hidden');
+                physLabel.className='flex items-center p-3 border-2 rounded-xl cursor-pointer transition border-emerald-600 bg-emerald-50/50';
+                virtLabel.className='flex items-center p-3 border-2 rounded-xl cursor-pointer transition border-slate-200 bg-slate-50';
+                if (submitBtnText) submitBtnText.innerText='Submit Appointment Request';
+                if (submitBtnIcon) submitBtnIcon.className='fa-solid fa-calendar-check text-yellow-400';
             } else {
-                physFields.classList.add('hidden');
-                virtFields.classList.remove('hidden');
-                virtLabel.className = "flex items-center p-3 border-2 rounded-xl cursor-pointer transition border-emerald-600 bg-emerald-50/50";
-                physLabel.className = "flex items-center p-3 border-2 rounded-xl cursor-pointer transition border-slate-200 bg-slate-50";
-                if (submitBtnText) submitBtnText.innerText = "Pay Online Fee & Confirm Escrow Booking";
-                if (submitBtnIcon) submitBtnIcon.className = "fa-solid fa-lock text-yellow-400";
+                physFields.classList.add('hidden'); virtFields.classList.remove('hidden');
+                virtLabel.className='flex items-center p-3 border-2 rounded-xl cursor-pointer transition border-emerald-600 bg-emerald-50/50';
+                physLabel.className='flex items-center p-3 border-2 rounded-xl cursor-pointer transition border-slate-200 bg-slate-50';
+                if (submitBtnText) submitBtnText.innerText='Submit Virtual Appointment Request';
+                if (submitBtnIcon) submitBtnIcon.className='fa-solid fa-calendar-check text-yellow-400';
             }
         }
-
-        function handleBookingSubmit(e) {
+        async function handleBookingSubmit(e) {
             e.preventDefault();
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const lawyerName = document.getElementById('booking-lawyer-name').value;
-            const fee = parseInt(document.getElementById('booking-lawyer-fee').value) || 5000;
-            const meetingType = document.querySelector('input[name="meeting_type"]:checked').value;
-            const notes = document.getElementById('booking-notes').value;
-
-            let newBooking = {
-                id: 'b_' + Date.now(),
-                clientName: user.full_name || 'Client',
-                clientPhone: user.email || '0300-0000000',
-                lawyerName: lawyerName,
-                fee: fee,
-                type: meetingType,
-                notes: notes,
-                createdAt: Date.now(),
-                status: meetingType === 'virtual' ? 'In Escrow Hold' : 'Pending Confirmation'
-            };
-
-            if (meetingType === 'physical') {
-                newBooking.chamber = document.getElementById('booking-chamber-address').value;
-                newBooking.date = document.getElementById('booking-physical-date').value || '2026-10-30';
-                newBooking.time = document.getElementById('booking-physical-time').value || '16:00';
-            } else {
-                newBooking.mode = document.querySelector('input[name="virtual_mode"]:checked').value;
-                newBooking.date = document.getElementById('booking-virtual-date').value || '2026-10-30';
-                newBooking.time = document.getElementById('booking-virtual-time').value || '18:00';
+            if (!isLoggedIn() || readLocalState('user', {}).role !== 'client') {
+                showToast('Appointment book karne ke liye client account se sign in karein.', 'error'); return;
             }
-
-            bookings.unshift(newBooking);
-            saveStateToLocalStorage();
-            closeBookingModal();
-            showToast(meetingType === 'physical' ? "Chamber Meeting appointment submitted!" : "Consultation booked! Fee locked safely in Escrow.");
-            switchTab('bookings-tab');
+            if (!activeBookingLawyerId) { showToast('Verified advocate select nahi hua. Directory refresh karein.', 'error'); return; }
+            const meetingType=document.querySelector('input[name="meeting_type"]:checked')?.value || 'physical';
+            const isVirtual=meetingType==='virtual';
+            const dateField=document.getElementById(isVirtual?'booking-virtual-date':'booking-physical-date');
+            const timeField=document.getElementById(isVirtual?'booking-virtual-time':'booking-physical-time');
+            const bookingDate=dateField.value, timeSlot=timeField.value, notes=document.getElementById('booking-notes').value.trim();
+            if (!bookingDate || !timeSlot || !notes) { showToast('Date, time aur case summary tamam fill karein.', 'error'); return; }
+            const meetingMode=isVirtual?(document.querySelector('input[name="virtual_mode"]:checked')?.value || 'video_call'):'chamber';
+            const submitBtn=document.getElementById('booking-submit-btn'), originalHtml=submitBtn?.innerHTML;
+            if (submitBtn) { submitBtn.disabled=true; submitBtn.innerText='Submitting…'; }
+            try {
+                await apiRequest('/api/appointments', { method:'POST', body:JSON.stringify({ lawyer_id:activeBookingLawyerId, booking_date:bookingDate, time_slot:timeSlot, meeting_type:meetingType, meeting_mode:meetingMode, case_summary:notes, location:null }) });
+                closeBookingModal(); await loadMyAppointments();
+                showToast('Appointment request server par save ho gayi. Fee abhi collect ya escrow mein hold nahi hui.', 'success');
+                switchTab('bookings-tab');
+            } catch (error) { showToast(`Appointment save nahi hui: ${error.message}`, 'error'); }
+            finally { if (submitBtn) { submitBtn.disabled=false; submitBtn.innerHTML=originalHtml || 'Submit Appointment Request'; } }
         }
 
         function renderMyBookings() {
-            const container = document.getElementById('bookings-list-container');
-            if (!container) return;
-
-            if (bookings.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-slate-500 text-sm">Koi booked consultation nahi hai.</div>`;
-                return;
+            const container=document.getElementById('bookings-list-container'); if (!container) return;
+            if (!Array.isArray(bookings) || bookings.length===0) {
+                container.innerHTML='<div class="text-center py-8 text-slate-500 text-sm">Abhi koi server-saved appointment nahi hai.</div>'; return;
             }
-
-            container.innerHTML = bookings.map(b => {
-                let statusBadge = `<span class="bg-emerald-700 text-white text-[10px] font-bold px-2 py-0.5 rounded">${b.status}</span>`;
-                if (b.status.includes('Cancelled')) {
-                    statusBadge = `<span class="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">${b.status}</span>`;
-                }
-
-                return `
-                    <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${b.type === 'virtual' ? 'border-l-4 border-l-emerald-600' : 'border-l-4 border-l-yellow-600'}">
-                        <div>
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="${b.type === 'virtual' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-amber-100 text-amber-800 border-amber-200'} text-[10px] font-extrabold px-2.5 py-0.5 rounded border">
-                                    <i class="fa-solid ${b.type === 'virtual' ? 'fa-video' : 'fa-building-user'} mr-1"></i> ${b.type === 'virtual' ? 'Virtual Call Session' : 'Physical Chamber Visit'}
-                                </span>
-                                ${statusBadge}
-                            </div>
-                            <h4 class="font-bold text-slate-900 text-sm">${b.lawyerName}</h4>
-                            <p class="text-xs text-slate-600 mt-1"><i class="fa-regular fa-clock text-emerald-700 mr-1"></i> Scheduled: ${b.date} - ${b.time} | <strong>Fee: ${b.type === 'virtual' ? 'PKR ' + (b.fee || 5000).toLocaleString() : 'Direct Chamber Payment'}</strong></p>
-                            <p class="text-xs text-slate-500 mt-0.5"><i class="fa-regular fa-comment text-slate-400 mr-1"></i> Notes: ${b.notes}</p>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-2">
-                            ${(b.status === 'In Escrow Hold' || b.status === 'Pending Confirmation') ? `
-                                <button onclick="cancelBookingByClient('${b.id}')" class="bg-red-100 hover:bg-red-200 text-red-800 text-xs font-bold px-3 py-2 rounded-xl transition border border-red-300">
-                                    <i class="fa-solid fa-xmark mr-1"></i> Cancel & Refund
-                                </button>
-                            ` : ''}
-
-                            <button onclick="openDirectMessage('${b.lawyerName}')" class="bg-slate-900 hover:bg-slate-800 text-yellow-400 text-xs font-bold px-3 py-2 rounded-xl transition shadow-sm">
-                                <i class="fa-solid fa-comments"></i> Chat Advocate
-                            </button>
-                        </div>
-                    </div>
-                `;
+            container.innerHTML=bookings.map(b=>{
+                const status=String(b.status||'Pending Confirmation');
+                const terminal=['Cancelled','Rejected','Completed'].includes(status);
+                const type=b.type==='virtual'?'virtual':'physical';
+                const fee=Math.max(0,finiteNumber(b.fee,0));
+                return `<div class="border border-slate-200 rounded-2xl p-4 bg-slate-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${type==='virtual'?'border-l-4 border-l-emerald-600':'border-l-4 border-l-yellow-600'}">
+                    <div><div class="flex items-center gap-2 mb-1"><span class="bg-blue-100 text-blue-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded border">${type==='virtual'?'Virtual appointment':'Chamber appointment'}</span><span class="${terminal?'bg-slate-600':'bg-emerald-700'} text-white text-[10px] font-bold px-2 py-0.5 rounded">${escapeHTML(status)}</span></div>
+                    <h4 class="font-bold text-slate-900 text-sm">${escapeHTML(b.lawyerName||'Advocate')}</h4><p class="text-xs text-slate-600 mt-1">Scheduled: ${escapeHTML(b.date||'Date unavailable')} · ${escapeHTML(b.time||'Time unavailable')}</p>
+                    <p class="text-xs text-slate-600">${fee>0?`Consultation fee: PKR ${fee.toLocaleString()} (not paid through LawNexa)`:'Fee not specified'} </p><p class="text-xs text-slate-500 mt-1">Case notes: ${escapeHTML(b.notes||'')}</p></div>
+                    <div class="flex flex-wrap gap-2">${['Pending Confirmation','Confirmed'].includes(status)?`<button data-booking-id="${escapeHTML(b.id)}" data-booking-action="cancel-client" class="booking-action bg-red-100 hover:bg-red-200 text-red-800 text-xs font-bold px-3 py-2 rounded-xl border border-red-300">Cancel Request</button>`:''}</div>
+                </div>`;
             }).join('');
+            container.querySelectorAll('.booking-action').forEach(button=>button.addEventListener('click',()=>cancelBookingByClient(button.dataset.bookingId||'')));
         }
 
         function renderClientRequests() {
-            const container = document.getElementById('requests-list-container');
-            if (!container) return;
-
-            container.innerHTML = bookings.map(b => `
-                <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50 border-l-4 border-l-emerald-700 shadow-sm">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-3">
-                        <div>
-                            <div class="flex items-center space-x-2">
-                                <span class="bg-blue-100 text-blue-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded border border-blue-200"><i class="fa-solid fa-user text-xs mr-1"></i> Lead Request</span>
-                                <span class="text-xs text-slate-400 font-semibold">${b.date} - ${b.time}</span>
-                                <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200">Fee: ${b.type === 'virtual' ? 'PKR ' + (b.fee || 5000).toLocaleString() : 'Chamber Direct'}</span>
-                            </div>
-                            <h4 class="font-bold text-slate-900 text-base mt-1">Client: ${b.clientName}</h4>
-                            <p class="text-xs text-slate-600"><i class="fa-solid fa-phone text-emerald-700 mr-1"></i> Contact: ${b.clientPhone}</p>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            ${b.status === 'In Escrow Hold' ? `
-                                <button onclick="completeSessionAndReleaseEscrow('${b.id}')" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-3 py-2 rounded-xl transition shadow">
-                                    <i class="fa-solid fa-check-double text-yellow-400"></i> Finish Session
-                                </button>
-                                <button onclick="cancelBookingByLawyer('${b.id}')" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition shadow">
-                                    <i class="fa-solid fa-trash"></i> Cancel & Refund Client
-                                </button>
-                            ` : ''}
-                            <button onclick="openDirectMessage('${b.clientName}')" class="bg-slate-900 hover:bg-slate-800 text-yellow-400 text-xs font-bold px-3 py-2 rounded-xl transition">
-                                <i class="fa-solid fa-comments"></i> Chat Client
-                            </button>
-                        </div>
-                    </div>
-                    <div class="bg-white p-3 rounded-xl border border-slate-200 text-xs text-slate-700">
-                        <strong>Case Notes:</strong> "${b.notes}"
-                    </div>
-                </div>
-            `).join('');
+            const container=document.getElementById('requests-list-container'); if (!container) return;
+            if (readLocalState('user',{}).role!=='advocate') { container.innerHTML='<div class="p-5 text-sm text-slate-500">Advocate account se sign in karein.</div>'; return; }
+            if (!Array.isArray(bookings) || bookings.length===0) { container.innerHTML='<div class="p-5 text-sm text-slate-500">Abhi koi appointment request nahi aayi.</div>'; return; }
+            container.innerHTML=bookings.map((b,index)=>{
+                const status=String(b.status||'Pending Confirmation'), type=b.type==='virtual'?'Virtual':'Chamber';
+                const actionButtons=status==='Pending Confirmation'?`<button data-index="${index}" data-action="confirm" class="request-action bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg">Confirm</button><button data-index="${index}" data-action="reject" class="request-action bg-red-600 text-white text-xs font-bold px-3 py-2 rounded-lg">Reject</button>`:status==='Confirmed'?`<button data-index="${index}" data-action="complete" class="request-action bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg">Mark completed</button><button data-index="${index}" data-action="cancel" class="request-action bg-red-600 text-white text-xs font-bold px-3 py-2 rounded-lg">Cancel</button>`:'';
+                return `<div class="border border-slate-200 rounded-2xl p-4 bg-slate-50 border-l-4 border-l-emerald-700 shadow-sm mb-3"><div class="flex flex-col md:flex-row justify-between gap-3"><div><div class="font-bold text-slate-900">Client: ${escapeHTML(b.clientName||'Client')}</div><p class="text-xs text-slate-500 mt-1">${escapeHTML(type)} · ${escapeHTML(b.date||'Date unavailable')} · ${escapeHTML(b.time||'Time unavailable')}</p><p class="text-xs text-slate-600 mt-2">Status: <strong>${escapeHTML(status)}</strong></p><p class="text-xs text-slate-700 mt-2">Case summary: ${escapeHTML(b.notes||'')}</p><p class="text-xs text-slate-500 mt-1">Fee: ${b.fee>0?'PKR '+Math.round(b.fee).toLocaleString():'Not set'} · payments not connected</p></div><div class="flex gap-2 flex-wrap items-start">${actionButtons}</div></div></div>`;
+            }).join('');
+            container.querySelectorAll('.request-action').forEach(button=>button.addEventListener('click',()=>{
+                const item=bookings[Number(button.dataset.index)]; if (!item) return;
+                const action=button.dataset.action; const map={confirm:['confirmed','Appointment confirmed. Payment is not collected by LawNexa.'],reject:['rejected','Appointment request rejected.'],complete:['completed','Appointment marked completed; no payment was released.'],cancel:['cancelled','Appointment cancelled; no refund was processed.']};
+                if (map[action]) void changeAppointmentStatus(item.id,map[action][0],map[action][1]);
+            }));
         }
 
         // --- DIRECT CHAT LOGIC ---
@@ -2044,19 +1940,18 @@
                 openAuthModal();
                 return;
             }
+            contactName = String(contactName || 'Advocate').slice(0, 200);
             activeChatLawyer = contactName;
             document.getElementById('chat-lawyer-name').innerText = contactName;
 
-            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+            const currentUser = readLocalState('user', {});
             const isLawyer = currentUser.role === 'advocate';
 
-            if (!chats[contactName]) {
+            if (!Object.prototype.hasOwnProperty.call(chats, contactName)) {
                 if (isLawyer) {
                     chats[contactName] = [];
                 } else {
-                    chats[contactName] = [
-                        { sender: 'other', text: `Assalam-o-Alaikum! Main ${contactName} (Advocate) hoon. Aap apne case ki details yahan share karein.` }
-                    ];
+                    chats[contactName] = [];
                 }
             }
 
@@ -2072,7 +1967,7 @@
 
             let headerHTML = `
                 <div class="text-center my-2">
-                    <span class="bg-slate-800 text-slate-400 text-[10px] px-3 py-1 rounded-full border border-slate-700">🔒 Direct End-to-End Encrypted Workspace</span>
+                    <span class="bg-slate-800 text-slate-400 text-[10px] px-3 py-1 rounded-full border border-slate-700">Local-only preview — NOT end-to-end encrypted; do not share confidential case details</span>
                 </div>
             `;
 
@@ -2090,9 +1985,9 @@
                 let attachmentHTML = '';
                 if (msg.attachment) {
                     if (msg.attachment.type === 'image') {
-                        attachmentHTML = `<img src="${msg.attachment.url}" class="max-h-40 rounded-lg mb-1.5 border border-slate-700">`;
+                        attachmentHTML = `<img src="${escapeHTML(safeMediaSource(msg.attachment.url))}" alt="Chat attachment" loading="lazy" class="max-h-40 rounded-lg mb-1.5 border border-slate-700">`;
                     } else {
-                        attachmentHTML = `<div class="bg-slate-800 p-2 rounded-lg mb-1.5 flex items-center gap-2 border border-slate-700"><i class="fa-solid fa-file-pdf text-red-400 text-base"></i> <span class="truncate">${msg.attachment.name}</span></div>`;
+                        attachmentHTML = `<div class="bg-slate-800 p-2 rounded-lg mb-1.5 flex items-center gap-2 border border-slate-700"><i class="fa-solid fa-file-pdf text-red-400 text-base"></i> <span class="truncate">${escapeHTML(msg.attachment.name || 'Attachment')}</span></div>`;
                     }
                 }
 
@@ -2100,7 +1995,7 @@
                     <div class="flex ${isMe ? 'justify-end' : 'items-start space-x-2'}">
                         <div class="${isMe ? 'bg-emerald-700 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'} p-2.5 rounded-2xl max-w-[80%] shadow-sm leading-relaxed">
                             ${attachmentHTML}
-                            ${msg.text}
+                            ${escapeHTML(msg.text || '')}
                         </div>
                     </div>
                 `;
@@ -2110,15 +2005,44 @@
         }
 
         function handleChatFileSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const maxBytes = 1 * 1024 * 1024;
+            if (file.size > maxBytes) {
+                showToast('Attachment 1 MB se chhoti honi chahiye.', 'error');
+                event.target.value = '';
+                return;
+            }
+
+            const mime = String(file.type || '').toLowerCase();
+            const name = String(file.name || 'Attachment').replace(/[\r\n]/g, '').slice(0, 180);
+            const imageTypes = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+            const allowedDocs = new Set(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']);
+            const lowerName = name.toLowerCase();
+            const isAllowedDoc = allowedDocs.has(mime) || /\.(pdf|doc|docx)$/.test(lowerName);
+
+            if (imageTypes.has(mime)) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    chatAttachmentData = { name: file.name, type: file.type.startsWith('image/') ? 'image' : 'file', url: e.target.result };
-                    document.getElementById('chat-attachment-name').innerText = `📎 ${file.name}`;
+                    const safeUrl = safeMediaSource(e.target.result);
+                    if (!safeUrl) {
+                        showToast('Image format supported nahi hai.', 'error');
+                        return;
+                    }
+                    chatAttachmentData = { name, type: 'image', url: safeUrl };
+                    document.getElementById('chat-attachment-name').innerText = `📎 ${name}`;
                     document.getElementById('chat-attachment-preview').classList.remove('hidden');
                 };
+                reader.onerror = () => showToast('File read nahi ho saki.', 'error');
                 reader.readAsDataURL(file);
+            } else if (isAllowedDoc) {
+                // Do not store document contents as base64 in localStorage; the current demo chat only stores a label.
+                chatAttachmentData = { name, type: 'file', url: '' };
+                document.getElementById('chat-attachment-name').innerText = `📎 ${name}`;
+                document.getElementById('chat-attachment-preview').classList.remove('hidden');
+            } else {
+                showToast('Sirf PNG/JPG/GIF/WebP image ya PDF/DOC/DOCX allowed hain.', 'error');
+                event.target.value = '';
             }
         }
 
@@ -2147,23 +2071,11 @@
             saveStateToLocalStorage();
             renderChatThread();
 
-            setTimeout(() => {
-                const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-                const isLawyer = currentUser.role === 'advocate';
-
-                chats[activeChatLawyer].push({
-                    sender: 'other',
-                    text: isLawyer 
-                        ? 'Shukriya Advocate Sahib! Main case ke baqi documents aur details ready kar leta hoon.'
-                        : 'Shukriya details share karne ka. Main points review karke aapko update karta hoon.'
-                });
-                saveStateToLocalStorage();
-                renderChatThread();
-            }, 1200);
+            showToast('Message sirf is browser ke local preview mein save hua hai; doosre user ko deliver nahi hua.', 'info');
         }
 
-        function initiateVoiceCall() { startCallOverlay('Voice Call', activeChatLawyer); }
-        function initiateVideoCall() { startCallOverlay('Video Call', activeChatLawyer); }
+        function initiateVoiceCall() { showToast('Live voice calling abhi connected nahi hai. Koi call place nahi hui.', 'error'); }
+        function initiateVideoCall() { showToast('Live video calling abhi connected nahi hai. Koi call place nahi hui.', 'error'); }
 
         function startCallOverlay(type, name) {
             document.getElementById('call-type-badge').innerText = type;
@@ -2205,11 +2117,7 @@
 
         function toggleCallSpeaker() { showToast("Speaker mode toggled", "info"); }
 
-        function triggerVoiceRecordMock() {
-            const input = document.getElementById('chat-msg-input');
-            input.value = "🎙️ [Voice Note Recorded 0:08]";
-            sendDirectMessage();
-        }
+        function triggerVoiceRecordMock() { showToast('Voice recording/message delivery feature abhi connected nahi hai.', 'error'); }
 
         // --- BAR FEED LOGIC ---
         let currentFeedPostType = 'Bar Campaign';
@@ -2239,19 +2147,41 @@
         }
 
         function handlePostMediaSelect(event, type) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    attachedFeedMedia = { type: type, url: e.target.result };
-                    document.getElementById('post-media-status-badge').classList.remove('hidden');
-                    document.getElementById('post-media-preview-container').classList.remove('hidden');
-                    document.getElementById('media-preview-content').innerHTML = type === 'image' ? 
-                        `<img src="${e.target.result}" class="max-h-48 mx-auto rounded-lg">` : 
-                        `<video src="${e.target.result}" controls class="max-h-48 mx-auto rounded-lg"></video>`;
-                };
-                reader.readAsDataURL(file);
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const maxBytes = 1 * 1024 * 1024;
+            const allowedImages = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+            const allowedVideos = new Set(['video/mp4', 'video/webm']);
+            const mime = String(file.type || '').toLowerCase();
+            const isAllowed = type === 'image' ? allowedImages.has(mime) : type === 'video' && allowedVideos.has(mime);
+            if (!isAllowed) {
+                showToast('Sirf PNG/JPG/GIF/WebP images ya MP4/WebM videos allowed hain.', 'error');
+                event.target.value = '';
+                return;
             }
+            if (file.size > maxBytes) {
+                showToast('Feed media 1 MB se chhoti honi chahiye.', 'error');
+                event.target.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const mediaUrl = safeMediaSource(e.target.result, true);
+                if (!mediaUrl) {
+                    showToast('Media format supported nahi hai.', 'error');
+                    event.target.value = '';
+                    return;
+                }
+                attachedFeedMedia = { type, url: mediaUrl };
+                document.getElementById('post-media-status-badge').classList.remove('hidden');
+                document.getElementById('post-media-preview-container').classList.remove('hidden');
+                document.getElementById('media-preview-content').innerHTML = type === 'image'
+                    ? `<img src="${escapeHTML(mediaUrl)}" alt="Selected post media" class="max-h-48 mx-auto rounded-lg">`
+                    : `<video src="${escapeHTML(mediaUrl)}" controls preload="metadata" class="max-h-48 mx-auto rounded-lg"></video>`;
+            };
+            reader.onerror = () => showToast('Media file read nahi ho saki.', 'error');
+            reader.readAsDataURL(file);
         }
 
         function removeAttachedMedia() {
@@ -2261,7 +2191,7 @@
         }
 
         function publishNewPost() {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const user = readLocalState('user', {});
             if (user.role !== 'advocate') {
                 showToast("Sirf Verified Advocates hi Feed par post ya debate create kar sakte hain.", "error");
                 return;
@@ -2296,11 +2226,11 @@
             document.getElementById('post-text-input').value = '';
             removeAttachedMedia();
             renderFeedPosts();
-            showToast(isDebate ? "New Peer Legal Debate published for voting!" : "Post published on Bar Feed!");
+            showToast('Post sirf is browser ke local preview mein save hui hai; doosre users ko publish nahi hui.', 'info');
         }
 
         function castDebateVote(postId, voteType) {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const user = readLocalState('user', {});
             if (user.role !== 'advocate') {
                 showToast("Sirf Verified Advocates hi Debate mein vote kar sakte hain.", "error");
                 return;
@@ -2326,7 +2256,7 @@
 
             saveStateToLocalStorage();
             renderFeedPosts();
-            showToast(`Vote cast: ${voteType === 'for' ? 'Haq Mein (Support)' : 'Mukhalifat Mein (Oppose)'}`, 'info');
+            showToast('Vote sirf local preview mein record hua hai; server par submit nahi hua.', 'info');
         }
 
         function toggleLikePost(postId) {
@@ -2358,7 +2288,7 @@
             const runAdBtn = document.getElementById('run-campaign-ad-btn');
             if (!container) return;
 
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const user = readLocalState('user', {});
             const isLawyer = user.role === 'advocate';
 
             // Sirf Advocates ko Create Post Card dikhao
@@ -2379,11 +2309,18 @@
                 }
             }
 
-            container.innerHTML = feedPosts.map(post => {
+            const safePosts = Array.isArray(feedPosts) ? feedPosts.filter(post => post && typeof post === 'object') : [];
+            if (safePosts.length === 0) {
+                container.innerHTML = `<div class="p-5 rounded-2xl border border-amber-200 bg-amber-50 text-sm text-amber-950"><strong>Bar Feed server par connected nahi hai.</strong><p class="mt-1">Posts, likes, comments and campaign ads currently save only in this browser. Real shared feed and ad payment endpoints are not implemented yet.</p></div>`;
+                return;
+            }
+            container.innerHTML = `<div class="p-3 mb-3 rounded-xl border border-amber-200 bg-amber-50 text-xs text-amber-950"><strong>Local-only preview:</strong> Feed posts, votes and comments are not published to other users or saved to the server.</div>` + safePosts.map(post => {
                 const isDebate = post.category === 'Peer Legal Debate';
-                const totalVotes = (post.votes?.for || 0) + (post.votes?.against || 0);
-                const forPercent = totalVotes > 0 ? Math.round((post.votes.for / totalVotes) * 100) : 50;
-                const againstPercent = totalVotes > 0 ? Math.round((post.votes.against / totalVotes) * 100) : 50;
+                const votesFor = Math.max(0, Math.floor(finiteNumber(post.votes?.for, 0)));
+                const votesAgainst = Math.max(0, Math.floor(finiteNumber(post.votes?.against, 0)));
+                const totalVotes = votesFor + votesAgainst;
+                const forPercent = totalVotes > 0 ? Math.max(0, Math.min(100, Math.round((votesFor / totalVotes) * 100))) : 50;
+                const againstPercent = totalVotes > 0 ? 100 - forPercent : 50;
 
                 return `
                     <div class="bg-white rounded-2xl border ${post.isAd ? 'border-2 border-amber-500 shadow-md' : isDebate ? 'border-2 border-purple-300 shadow-sm' : 'border-slate-200 shadow-sm'} p-4 sm:p-5 space-y-3.5 relative">
@@ -2398,25 +2335,25 @@
 
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-3">
-                                <img src="${post.avatar}" class="w-10 h-10 rounded-full object-cover border-2 ${isDebate ? 'border-purple-600' : 'border-emerald-600'} shadow-sm">
+                                <img src="${escapeHTML(safeMediaSource(post.avatar) || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png')}" alt="Post author" loading="lazy" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full object-cover border-2 ${isDebate ? 'border-purple-600' : 'border-emerald-600'} shadow-sm">
                                 <div>
-                                    <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">${post.author}</h4>
-                                    <p class="text-[11px] text-slate-500 font-medium">${post.title} • ${post.timestamp}</p>
+                                    <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">${escapeHTML(post.author || 'Advocate')}</h4>
+                                    <p class="text-[11px] text-slate-500 font-medium">${escapeHTML(post.title || '')} • ${escapeHTML(post.timestamp || '')}</p>
                                 </div>
                             </div>
-                            <span class="text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${post.categoryClass}">${post.category}</span>
+                            <span class="text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${post.categoryClass === 'bg-purple-100 text-purple-900 border-purple-300 font-extrabold' ? 'bg-purple-100 text-purple-900 border-purple-300 font-extrabold' : post.isAd ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-yellow-100 text-yellow-900 border-yellow-300 font-bold'}">${escapeHTML(post.category || 'General')}</span>
                         </div>
 
-                        <p class="text-xs md:text-sm text-slate-800 leading-relaxed font-semibold">${post.text}</p>
+                        <p class="text-xs md:text-sm text-slate-800 leading-relaxed font-semibold whitespace-pre-wrap">${escapeHTML(post.text || '')}</p>
 
                         ${isDebate ? `
                             <div class="bg-slate-50 p-4 rounded-2xl border border-purple-200 space-y-3">
                                 <div class="flex justify-between text-xs font-bold">
                                     <span class="text-emerald-700 flex items-center gap-1">
-                                        <i class="fa-solid fa-circle-check"></i> Haq Mein (In Favor): ${post.votes?.for || 0} Votes (${forPercent}%)
+                                        <i class="fa-solid fa-circle-check"></i> Haq Mein (In Favor): ${votesFor} Votes (${forPercent}%)
                                     </span>
                                     <span class="text-red-600 flex items-center gap-1">
-                                        <i class="fa-solid fa-circle-xmark"></i> Mukhalifat Mein (Against): ${post.votes?.against || 0} Votes (${againstPercent}%)
+                                        <i class="fa-solid fa-circle-xmark"></i> Mukhalifat Mein (Against): ${votesAgainst} Votes (${againstPercent}%)
                                     </span>
                                 </div>
 
@@ -2426,10 +2363,10 @@
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-3 pt-1">
-                                    <button onclick="castDebateVote(${post.id}, 'for')" class="py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 ${post.votes?.userVoted === 'for' ? 'bg-emerald-700 text-white border-emerald-700 shadow' : 'bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-50'}">
+                                    <button onclick="castDebateVote(${finiteNumber(post.id, 0)}, 'for')" class="py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 ${post.votes?.userVoted === 'for' ? 'bg-emerald-700 text-white border-emerald-700 shadow' : 'bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-50'}">
                                         <i class="fa-solid fa-thumbs-up"></i> Support (Taaid)
                                     </button>
-                                    <button onclick="castDebateVote(${post.id}, 'against')" class="py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 ${post.votes?.userVoted === 'against' ? 'bg-red-600 text-white border-red-600 shadow' : 'bg-white text-red-700 border-red-300 hover:bg-red-50'}">
+                                    <button onclick="castDebateVote(${finiteNumber(post.id, 0)}, 'against')" class="py-2 px-3 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 ${post.votes?.userVoted === 'against' ? 'bg-red-600 text-white border-red-600 shadow' : 'bg-white text-red-700 border-red-300 hover:bg-red-50'}">
                                         <i class="fa-solid fa-thumbs-down"></i> Oppose (Mukhalifat)
                                     </button>
                                 </div>
@@ -2438,24 +2375,24 @@
 
                         ${post.media ? `
                             <div class="rounded-xl overflow-hidden border border-slate-200 max-h-72 bg-slate-900">
-                                ${post.media.type === 'image' ? `<img src="${post.media.url}" class="w-full h-full object-cover">` : `<video src="${post.media.url}" controls class="w-full h-full"></video>`}
+                                ${post.media.type === 'image' ? `<img src="${escapeHTML(safeMediaSource(post.media.url))}" alt="Post media" loading="lazy" class="w-full h-full object-cover">` : `<video src="${escapeHTML(safeMediaSource(post.media.url, true))}" controls preload="metadata" class="w-full h-full"></video>`}
                             </div>
                         ` : ''}
 
                         <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-500">
-                            <button onclick="toggleLikePost(${post.id})" class="flex items-center gap-1.5 hover:text-emerald-700 font-bold transition ${post.liked ? 'text-emerald-700' : ''}">
-                                <i class="fa-solid fa-thumbs-up"></i> ${post.likes} Likes
+                            <button onclick="toggleLikePost(${finiteNumber(post.id, 0)})" class="flex items-center gap-1.5 hover:text-emerald-700 font-bold transition ${post.liked ? 'text-emerald-700' : ''}">
+                                <i class="fa-solid fa-thumbs-up"></i> ${Math.max(0, finiteNumber(post.likes, 0))} Likes
                             </button>
-                            <span>${post.comments.length} Discussion Opinions</span>
+                            <span>${(Array.isArray(post.comments) ? post.comments.length : 0)} Discussion Opinions</span>
                         </div>
 
                         <div class="space-y-2 pt-2 bg-slate-50 p-3 rounded-xl">
                             <div class="space-y-1">
-                                ${post.comments.map(c => `<div class="bg-white p-2 rounded-lg text-xs border border-slate-200">💬 ${c}</div>`).join('')}
+                                ${(Array.isArray(post.comments) ? post.comments : []).map(c => `<div class="bg-white p-2 rounded-lg text-xs border border-slate-200">💬 ${escapeHTML(c)}</div>`).join('')}
                             </div>
                             <div class="flex gap-2">
-                                <input type="text" id="comment-input-${post.id}" placeholder="Advocate argument/comment..." class="flex-1 border rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-emerald-600">
-                                <button onclick="addCommentToPost(${post.id}, 'comment-input-${post.id}')" class="bg-slate-900 text-white text-xs px-3 py-1 rounded-lg font-bold">Post Argument</button>
+                                <input type="text" id="comment-input-${finiteNumber(post.id, 0)}" placeholder="Advocate argument/comment..." class="flex-1 border rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-emerald-600">
+                                <button onclick="addCommentToPost(${finiteNumber(post.id, 0)}, 'comment-input-${finiteNumber(post.id, 0)}')" class="bg-slate-900 text-white text-xs px-3 py-1 rounded-lg font-bold">Post Argument</button>
                             </div>
                         </div>
                     </div>
@@ -2717,7 +2654,7 @@
                 fields: [
                     { id: 'court_title', label: 'Court Title (عدالت کا نام)', placeholder: 'In the High Court of Sindh / Sessions Court' },
                     { id: 'client_name', label: 'Client / Appellant Name', placeholder: 'Usman Tariq' },
-                    { id: 'lawyer_fullname', label: 'Advocate Name', placeholder: 'Advocate Muhammad Ali' },
+                    { id: 'lawyer_fullname', label: 'Advocate Name', placeholder: 'Advocate Name' },
                     { id: 'case_title', label: 'Case Title', placeholder: 'Usman Tariq VS The State' }
                 ],
                 bodyText: (d) => `
@@ -2836,7 +2773,7 @@
         };
 
         function renderDocTemplatesDropdown() {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const user = readLocalState('user', {});
             const isLawyer = user.role === 'advocate';
             const selectEl = document.getElementById('doc-type-select');
             const roleBadge = document.getElementById('doc-role-badge');
@@ -2866,7 +2803,7 @@
         }
 
         function getActiveTemplateDict() {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const user = readLocalState('user', {});
             return user.role === 'advocate' ? advocateDocTemplates : clientDocTemplates;
         }
 
@@ -2894,20 +2831,23 @@
             const tmpl = dict[selectVal] || Object.values(dict)[0];
             if (!tmpl) return;
 
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const user = readLocalState('user', {});
             const isLawyer = user.role === 'advocate';
 
             let data = {};
+            const rawFormData = {};
             tmpl.fields.forEach(f => {
-                data[f.id] = document.getElementById(`doc_field_${f.id}`)?.value || '';
+                const rawValue = document.getElementById(`doc_field_${f.id}`)?.value || '';
+                rawFormData[f.id] = rawValue;
+                data[f.id] = escapeHTML(rawValue);
             });
 
             let fullDocumentHTML = '';
 
             if (isLawyer) {
-                const chamberName = user.chamber || "Room 102, High Court Bar Association, Karachi";
-                const barNo = user.bar_no || "BC-7890/LHC";
-                const advocateName = user.full_name || "Advocate Muhammad Ali";
+                const chamberName = escapeHTML(user.chamber_address || user.chamber || "Chamber address not provided");
+                const barNo = escapeHTML(user.bar_council_no || user.bar_no || "Bar Council number not provided");
+                const advocateName = escapeHTML(user.full_name || "Advocate name not provided");
 
                 fullDocumentHTML = `
                     <div style="border: 2px solid #0f172a; padding: 25px; background: #fff; color: #000; min-height: 700px; box-sizing: border-box;">
@@ -2928,21 +2868,21 @@
                         <div style="border: 2px solid #166534; padding: 12px; background: #f0fdf4; margin-bottom: 25px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; border-b: 1px solid #bbf7d0; padding-bottom: 8px;">
                                 <div style="font-size: 10px; font-bold; color: #14532d;">
-                                    <strong>GOVERNMENT OF PAKISTAN</strong><br>
-                                    e-Stamp Verification Services
+                                    <strong>LAWNEXA DOCUMENT DRAFT</strong><br>
+                                    Sample template — not government-issued
                                 </div>
                                 <div style="text-align: center;">
-                                    <span style="border: 2px solid #15803d; padding: 3px 10px; font-size: 12px; font-weight: bold; color: #15803d; background: #fff;">STAMP VALUE: RS 100/-</span>
+                                    <span style="border: 2px solid #b91c1c; padding: 3px 10px; font-size: 12px; font-weight: bold; color: #b91c1c; background: #fff;">DRAFT ONLY — NO STAMP DUTY PAID</span>
                                 </div>
                                 <div style="font-size: 10px; text-align: right; color: #14532d;">
-                                    <strong>Serial:</strong> PB-LHR-2026-98745<br>
-                                    <strong>Date:</strong> 28/10/2026
+                                    <strong>Reference:</strong> Local draft<br>
+                                    <strong>Issue status:</strong> Not official
                                 </div>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 9px; color: #166534;">
                                 <span><strong>First Party:</strong> ${data.landlord || data.applicant_name || data.seller || data.lender || 'Public Applicant'}</span>
                                 <span><strong>Second Party:</strong> ${data.tenant || data.accused_details || data.buyer || data.borrower || 'Government / Public'}</span>
-                                <span><strong>Status:</strong> Verified Official Draft</span>
+                                <span><strong>Status:</strong> Draft — verify applicable legal and stamp requirements</span>
                             </div>
                         </div>
 
@@ -2951,6 +2891,14 @@
                 `;
             }
 
+            const draftNotice = `<div style="border:1px solid #b91c1c;background:#fef2f2;color:#991b1b;padding:8px 10px;margin-bottom:12px;font: bold 11px Arial,sans-serif;text-align:center;">DRAFT ONLY — Review all facts, applicable law, and filing/execution requirements before use. This is not an official court or government-issued document.</div>`;
+            fullDocumentHTML = fullDocumentHTML.replace(/(<div[^>]*>)/i, `$1${draftNotice}`);
+            latestGeneratedDocument = {
+                doc_type: String(selectVal || '').slice(0, 50),
+                title: String(tmpl.title || selectVal || 'Legal document draft').slice(0, 200),
+                form_data: rawFormData,
+                generated_html: fullDocumentHTML
+            };
             document.getElementById('preview-screen-wrapper').innerHTML = fullDocumentHTML;
             document.getElementById('printable-document-wrapper').innerHTML = fullDocumentHTML;
         }
@@ -2964,11 +2912,47 @@
             window.print();
         }
 
-        function saveDocumentToAccount() { showToast("Document saved to your LawNexa account."); }
+        async function saveDocumentToAccount() {
+            const token = sessionStorage.getItem('token') || '';
+            if (!token || !isLoggedIn()) {
+                showToast('Please sign in before saving a document to your account.', 'error');
+                return;
+            }
+            if (!latestGeneratedDocument || !latestGeneratedDocument.generated_html) {
+                showToast('Generate a document preview first.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${resolveApiBase(window.location)}/api/documents/save`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        ...latestGeneratedDocument,
+                        user_email: readLocalState('user', {}).email || null
+                    })
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    const detail = result.detail;
+                    const message = Array.isArray(detail)
+                        ? detail.map(item => item.msg || 'Invalid document data').join(', ')
+                        : (detail || 'Document could not be saved.');
+                    showToast(message, 'error');
+                    return;
+                }
+                showToast('Document saved securely to your LawNexa account.', 'success');
+            } catch (error) {
+                showToast('Could not connect to LawNexa. The document has not been saved.', 'error');
+            }
+        }
 
         // --- PROFILE EDIT ---
         function openProfileModal() {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const user = readLocalState('user', {});
             document.getElementById('edit-fullname').value = user.full_name || '';
             document.getElementById('edit-email').value = user.email || '';
             document.getElementById('edit-address').value = user.address || '';
@@ -2992,33 +2976,47 @@
         function closeProfileModal() { document.getElementById('profileModal').classList.add('hidden'); }
 
         function previewProfileImage(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    editProfileImageBase64 = e.target.result;
-                    document.getElementById('profile-img-preview').src = e.target.result;
-                };
-                reader.readAsDataURL(file);
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+            if (!allowedTypes.has(String(file.type || '').toLowerCase()) || file.size > 1 * 1024 * 1024) {
+                editProfileImageBase64 = '';
+                event.target.value = '';
+                showToast('Profile photo PNG/JPG/GIF/WebP ho aur 1 MB se chhoti ho.', 'error');
+                return;
             }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const mediaUrl = safeMediaSource(e.target.result);
+                if (!mediaUrl) {
+                    showToast('Profile photo format supported nahi hai.', 'error');
+                    return;
+                }
+                editProfileImageBase64 = mediaUrl;
+                document.getElementById('profile-img-preview').src = mediaUrl;
+            };
+            reader.onerror = () => showToast('Profile photo read nahi ho saki.', 'error');
+            reader.readAsDataURL(file);
         }
 
-        function handleProfileSave(e) {
+        async function handleProfileSave(e) {
             e.preventDefault();
-            let user = JSON.parse(localStorage.getItem('user') || '{}');
-            user.full_name = document.getElementById('edit-fullname').value;
-            user.address = document.getElementById('edit-address').value;
-            if (editProfileImageBase64) user.profile_image = editProfileImageBase64;
-
-            if (user.role === 'advocate') {
-                user.chamber = document.getElementById('edit-chamber').value;
-                user.fee = parseInt(document.getElementById('edit-fee').value) || 5000;
+            if (!isLoggedIn()) { showToast('Profile update ke liye dobara sign in karein.', 'error'); return; }
+            const currentUser=readLocalState('user',{});
+            const payload={full_name:document.getElementById('edit-fullname').value.trim(), address:document.getElementById('edit-address').value.trim()||null};
+            if (editProfileImageBase64) payload.profile_image=editProfileImageBase64;
+            if (currentUser.role==='advocate') {
+                payload.chamber_address=document.getElementById('edit-chamber').value.trim()||null;
+                const feeText=document.getElementById('edit-fee').value;
+                payload.consultation_fee=feeText===''?null:Number(feeText);
             }
-
-            localStorage.setItem('user', JSON.stringify(user));
-            closeProfileModal();
-            updateAuthUI();
-            showToast("Profile updated successfully!");
+            try {
+                const result=await apiRequest('/api/profile',{method:'PUT',body:JSON.stringify(payload)});
+                const serverUser=result.user||{};
+                const updatedUser={...currentUser,...serverUser,full_name:serverUser.full_name||payload.full_name,bar_no:serverUser.bar_council_no||null,chamber:serverUser.chamber_address||null,fee:serverUser.consultation_fee??null,exp:serverUser.experience_years??null,specializations:serverUser.specializations||[]};
+                localStorage.setItem('user',JSON.stringify(updatedUser)); editProfileImageBase64=''; closeProfileModal(); updateAuthUI();
+                await loadVerifiedLawyers(); showToast('Profile server par save ho gaya.','success');
+            } catch(error) { showToast(`Profile save nahi hua: ${error.message}`,'error'); }
         }
 
         // --- STRICT DYNAMIC AI PERSONA RESPONSES ---
@@ -3028,34 +3026,13 @@
             const input = document.getElementById('user-issue-input');
             const val = input.value.trim();
             if (!val) return;
-
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const isLawyer = (user.role === 'advocate') || (currentSelectedRole === 'advocate');
-
+            const user = readLocalState('user', {});
+            const isLawyer = user.role === 'advocate' || currentSelectedRole === 'advocate';
             renderAiMsg('user', val, isLawyer);
             input.value = '';
-
-            setTimeout(() => {
-                if (isLawyer) {
-                    let aiReply = `⚖️ **Learned Counsel Technical Analysis:**\n\n1. **Statutory Provisions:** Section 489-F PPC (Financial Liability Dishonor) & Negotiable Instruments Act 1881.\n2. **High Court / Supreme Court Precedents:**\n   - **PLD 2023 SC 142:** Financial obligation mens rea & burden of proof.\n   - **2024 MLD 88 (Lahore):** Guidelines on quashment of FIR under Section 561-A Cr.P.C.\n3. **Recommended Procedure:** Section 200 Cr.P.C. private complaint or direct Police Station FIR registration.\n4. **Action:** Is query ka technical Court Draft hamare Document Generator tab se download karein.`;
-                    renderAiMsg('assistant', aiReply, true);
-                    renderAdvocateResearchCard({
-                        category: "Criminal & Financial Litigation Research",
-                        applicable_laws: ["Pakistan Penal Code Section 489-F", "Cr.P.C. Sec 200 / 561-A"],
-                        precedents: ["PLD 2023 SC 142", "2024 MLD 88"],
-                        summary: val
-                    });
-                } else {
-                    let aiReply = "Aapke maslay ke hawaley se Section 489-F PPC ke tehat criminal legal notice bheja ja sakta hai. Niche button par click karke High Court / District Court Advocates se direct rabta karein.";
-                    renderAiMsg('assistant', aiReply, false);
-                    renderClientBriefCard({
-                        category: "Financial / Property Dispute",
-                        applicable_laws: ["Pakistan Penal Code Section 489-F"],
-                        summary: val,
-                        recommended_specialty: "Criminal & Financial Litigation Advocate"
-                    });
-                }
-            }, 800);
+            renderAiMsg('assistant', 'Live, source-verified Pakistani legal research is not connected in this MVP yet. I will not invent statutes or case citations. Please verify current law through official sources or a licensed advocate. Do not enter CNIC numbers, private client details, or confidential case documents into this preview.', isLawyer);
+            const display = document.getElementById('legal-brief-display');
+            if (display) display.innerHTML = `<div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm text-amber-950"><strong>Legal AI preview — not connected</strong><p class="mt-2">No legal advice or citation was generated. Verified-source retrieval and citation checking must be implemented before this feature can be relied on.</p></div>`;
         }
 
         function renderAiMsg(role, text, isLawyerMode = false) {
@@ -3069,7 +3046,7 @@
                         ${isUser ? 'ME' : 'AI'}
                     </div>
                     <div class="${isUser ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-800'} p-3.5 rounded-2xl shadow-sm text-sm max-w-xl leading-relaxed whitespace-pre-line">
-                        ${text}
+                        ${escapeHTML(text)}
                     </div>
                 </div>
             `);
@@ -3087,9 +3064,9 @@
                         </div>
                         <span class="text-[10px] font-extrabold bg-purple-900 text-purple-200 border border-purple-700 px-2 py-0.5 rounded-full">Advocate Mode</span>
                     </div>
-                    <p class="text-xs sm:text-sm"><strong>Research Specialty:</strong> <span class="text-yellow-300 font-semibold">${brief.category}</span></p>
-                    <p class="text-xs text-slate-300 mt-1"><strong>Statutory Sections:</strong> ${brief.applicable_laws.join(', ')}</p>
-                    <p class="text-xs text-slate-300 mt-1"><strong>Key Precedents:</strong> ${brief.precedents.join(' | ')}</p>
+                    <p class="text-xs sm:text-sm"><strong>Research Specialty:</strong> <span class="text-yellow-300 font-semibold">${escapeHTML(brief.category || 'Unspecified')}</span></p>
+                    <p class="text-xs text-slate-300 mt-1"><strong>Statutory Sections:</strong> ${(Array.isArray(brief.applicable_laws) ? brief.applicable_laws : []).map(escapeHTML).join(', ')}</p>
+                    <p class="text-xs text-slate-300 mt-1"><strong>Key Precedents:</strong> ${(Array.isArray(brief.precedents) ? brief.precedents : []).map(escapeHTML).join(' | ')}</p>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                         <button onclick="switchTab('docgen-tab')" class="bg-purple-700 hover:bg-purple-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition shadow flex items-center justify-center gap-2">
                             <i class="fa-solid fa-file-signature text-yellow-400"></i> Open Court Document Generator
@@ -3110,9 +3087,9 @@
                         <i class="fa-solid fa-microchip"></i>
                         <span>AI Preliminary Legal Research Brief (Pakistan Law)</span>
                     </div>
-                    <p class="text-xs sm:text-sm"><strong>Legal Category:</strong> <span class="text-yellow-300 font-semibold">${brief.category}</span></p>
-                    <p class="text-xs text-slate-300 mt-1"><strong>Applicable Statutes:</strong> ${brief.applicable_laws.join(', ')}</p>
-                    <p class="text-xs text-slate-300 mt-2 bg-slate-800 p-3 rounded-xl border border-slate-700"><strong>Summary:</strong> ${brief.summary}</p>
+                    <p class="text-xs sm:text-sm"><strong>Legal Category:</strong> <span class="text-yellow-300 font-semibold">${escapeHTML(brief.category || 'Unspecified')}</span></p>
+                    <p class="text-xs text-slate-300 mt-1"><strong>Applicable Statutes:</strong> ${(Array.isArray(brief.applicable_laws) ? brief.applicable_laws : []).map(escapeHTML).join(', ')}</p>
+                    <p class="text-xs text-slate-300 mt-2 bg-slate-800 p-3 rounded-xl border border-slate-700"><strong>Summary:</strong> ${escapeHTML(brief.summary || '')}</p>
                     <button onclick="switchTab('advocates-tab')" class="mt-4 w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm transition shadow flex items-center justify-center gap-2">
                         <i class="fa-solid fa-gavel text-yellow-400"></i> Connect with Verified Advocate
                     </button>
@@ -3123,8 +3100,9 @@
         // --- INIT APP ---
         document.addEventListener('DOMContentLoaded', () => {
             updateAuthUI();
-            renderLawyersGrid();
+            void loadVerifiedLawyers();
             renderFeedPosts();
+            if (isLoggedIn()) void loadMyAppointments();
         });
     </script>
 </body>

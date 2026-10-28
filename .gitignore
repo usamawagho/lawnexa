@@ -1,19 +1,46 @@
-﻿__pycache__/
+# Python
+__pycache__/
 *.py[cod]
-venv/
+.pytest_cache/
 .venv/
+venv/
+
+# Secrets and local environment
 .env
 .env.*
 !.env.example
-.pytest_cache/
+!.env.staging.example
 
-__pycache__/
-*.pyc
-lawnexa.db
-*.zip
-*.backup
-*-diff.txt
-
-lawnexa_backup_before_migration.db
+# Local databases and backups
+*.db
 *.sqlite
 *.sqlite3
+*.backup
+
+# Uploads, generated archives, logs
+uploads/
+*.zip
+*.log
+*-diff.txt
+# Secrets
+.env
+.env.*
+!.env.example
+!.env.staging.example
+
+# Local databases and archives
+*.db
+*.sqlite
+*.sqlite3
+Law zip.zip
+ZIP MAIN.zip
+
+# Python cache and test cache
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+
+# Uploaded user files
+uploads/*
+!uploads/.gitkeep
