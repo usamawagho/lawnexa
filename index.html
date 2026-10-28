@@ -72,9 +72,9 @@
 <body class="bg-slate-100 text-slate-800 antialiased selection:bg-yellow-500 selection:text-slate-900 pb-20 md:pb-0">
 
     <!-- Notification Toast (Top-Center Positioned, Zero Overflow) -->
-    <div id="toast-notification" class="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] opacity-0 -translate-y-12 pointer-events-none transition-all duration-300 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-yellow-500/30 flex items-center gap-3 max-w-[90vw] sm:max-w-md text-center">
+    <div id="toast-notification" class="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] opacity-0 -translate-y-12 pointer-events-none transition-all duration-300 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-yellow-500/30 flex items-center gap-3 max-w-[90vw] sm:max-w-sm">
         <i id="toast-icon" class="fa-solid fa-circle-check text-yellow-400 text-lg shrink-0"></i>
-        <span id="toast-message" class="text-xs font-semibold">Kamyabi se amal ho gaya hai.</span>
+        <span id="toast-message" class="text-xs font-semibold">Action completed successfully.</span>
     </div>
 
     <!-- Navigation Header -->
@@ -87,7 +87,7 @@
                 </div>
                 <div>
                     <span class="text-lg sm:text-xl font-black tracking-wide text-white block leading-none">LawNexa</span>
-                    <span class="text-[9px] sm:text-[10px] text-emerald-400 font-bold uppercase tracking-widest block mt-0.5">Pakistan Digital Legal Engine</span>
+                    <span class="text-[9px] sm:text-[10px] text-emerald-400 font-bold uppercase tracking-widest block mt-0.5">Pakistan Legal Engine</span>
                 </div>
             </div>
 
@@ -1072,7 +1072,7 @@
         let lawyerWalletBalance = 45000;
         let clientWalletBalance = 5000;
 
-        // Cleanup any dummy legacy tokens
+        // Remove legacy demo tokens. Real sessions must use a JWT returned by the API.
         const storedTokenAtStartup = localStorage.getItem('token') || '';
         if (
             storedTokenAtStartup === 'active_lawyer_token' ||
@@ -1262,7 +1262,7 @@
 
         function purchaseAdPackage(packageName) {
             closeAdPromotionModal();
-            showToast(`${packageName} package shuru ho gaya hai. Payment gateway par bhej rahe hain...`, "info");
+            showToast(`${packageName} package initiated! Redirecting to payment gateway...`, "info");
         }
 
         // --- WALLET LOGIC ---
@@ -1289,16 +1289,16 @@
             if (action === 'deposit') {
                 if (isLawyer) lawyerWalletBalance += amount;
                 else clientWalletBalance += amount;
-                showToast(`PKR ${amount.toLocaleString()} ${method} ke zariye deposit ho gaye hain!`, 'success');
+                showToast(`PKR ${amount.toLocaleString()} deposited via ${method}!`, 'success');
             } else {
                 if (isLawyer) {
-                    if (amount > lawyerWalletBalance) { showToast('Wallet mein rakam kam hai!', 'error'); return; }
+                    if (amount > lawyerWalletBalance) { showToast('Insufficient wallet balance!', 'error'); return; }
                     lawyerWalletBalance -= amount;
                 } else {
-                    if (amount > clientWalletBalance) { showToast('Wallet mein rakam kam hai!', 'error'); return; }
+                    if (amount > clientWalletBalance) { showToast('Insufficient wallet balance!', 'error'); return; }
                     clientWalletBalance -= amount;
                 }
-                showToast(`PKR ${amount.toLocaleString()} ki withdrawal request ${method} (${accNo}) par bhej di gayi hai!`, 'success');
+                showToast(`Withdrawal of PKR ${amount.toLocaleString()} sent to ${method} (${accNo})!`, 'success');
             }
 
             closeWalletModal();
@@ -1367,7 +1367,7 @@
             const val = input.value.trim();
             if (!val) return;
             if (customSpecializations.length >= 3) {
-                showToast("Ziyada se ziyada 3 specializations add kar sakte hain.", "error");
+                showToast("Maximum 3 specializations allowed.", "error");
                 return;
             }
             if (!customSpecializations.includes(val)) {
@@ -1396,7 +1396,6 @@
             `).join('');
         }
 
-        // --- UPDATED AUTH SUBMIT WITH 45S COLD START TIMEOUT & PURE ROMAN URDU ---
         async function handleAuthSubmit(e) {
             e.preventDefault();
 
@@ -1430,11 +1429,11 @@
             const apiBase = 'https://lawnexa.onrender.com';
             const originalText = submitBtn.innerText;
             submitBtn.disabled = true;
-            submitBtn.innerText = 'Server se rabta ho raha hai...';
+            submitBtn.innerText = 'Connecting...';
 
-            // Extended 45-second timeout for Render cold start
+            // 8-Second Server Timeout
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 45000);
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
 
             try {
                 const response = await fetch(`${apiBase}/api/${isRegister ? 'register' : 'login'}`, {
@@ -1449,8 +1448,8 @@
                 if (!response.ok) {
                     const detail = result.detail;
                     const message = Array.isArray(detail)
-                        ? detail.map(item => item.msg || 'Galat maloomat').join(', ')
-                        : (detail || 'Aapki maloomat durust nahi hain. Baraye meharbani dobara koshish karein.');
+                        ? detail.map(item => item.msg || 'Invalid input').join(', ')
+                        : (detail || 'Authentication failed. Please check your credentials.');
                     showToast(message, 'error');
                     return;
                 }
@@ -1489,13 +1488,13 @@
 
                 closeAuthModal();
                 updateAuthUI();
-                showToast(isRegister ? 'Account kamyabi se ban gaya hai!' : 'Khushamdeed, ' + userObj.full_name, 'success');
+                showToast(isRegister ? 'Account created successfully!' : 'Welcome back, ' + userObj.full_name, 'success');
 
             } catch (error) {
                 clearTimeout(timeoutId);
                 console.error('Authentication Error:', error);
-                showToast("Server se rabta nahi ho saka ya request timeout ho gayi. Baraye meharbani dobara koshish karein.", "error");
-            } font-family {
+                showToast("Server se connection nahi ho saka ya request timeout ho gayi. Kripya dobara koshish karein.", "error");
+            } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerText = originalText;
             }
@@ -1673,7 +1672,7 @@
             localStorage.removeItem('user');
             updateAuthUI();
             switchTab('home-tab');
-            showToast("Aap kamyabi se logout ho chuke hain.");
+            showToast("Logged out successfully.");
         }
 
         function switchTab(tabId) {
@@ -1712,7 +1711,7 @@
                 clientWalletBalance += (booking.fee || 5000);
                 saveStateToLocalStorage();
                 renderMyBookings();
-                showToast(`Booking mansookh kar di gayi hai! PKR ${(booking.fee || 5000).toLocaleString()} aapke wallet mein wapas aagaye hain.`, "info");
+                showToast(`Booking cancelled! PKR ${(booking.fee || 5000).toLocaleString()} refunded to your wallet.`, "info");
             }
         }
 
@@ -1724,7 +1723,7 @@
                 saveStateToLocalStorage();
                 renderClientRequests();
                 renderMyBookings();
-                showToast(`Session mansookh! Fee PKR ${(booking.fee || 5000).toLocaleString()} client ko wapas refund ho gayi hai.`, "info");
+                showToast(`Session cancelled! Fee PKR ${(booking.fee || 5000).toLocaleString()} refunded back to client.`, "info");
             }
         }
 
@@ -1737,7 +1736,7 @@
                 renderMyBookings();
                 renderClientRequests();
                 updateAuthUI();
-                showToast(`Session mukammal! PKR ${(booking.fee || 5000).toLocaleString()} advocate ko release ho gaye hain.`, "success");
+                showToast(`Session completed! PKR ${(booking.fee || 5000).toLocaleString()} released to advocate.`, "success");
             }
         }
 
@@ -1955,7 +1954,7 @@
             bookings.unshift(newBooking);
             saveStateToLocalStorage();
             closeBookingModal();
-            showToast(meetingType === 'physical' ? "Chamber Meeting appointment jama ho gaya hai!" : "Consultation book ho gayi! Fees Escrow mein secure hai.");
+            showToast(meetingType === 'physical' ? "Chamber Meeting appointment submitted!" : "Consultation booked! Fee locked safely in Escrow.");
             switchTab('bookings-tab');
         }
 
@@ -2196,16 +2195,16 @@
         function endActiveCall() {
             clearInterval(activeCallTimerInterval);
             document.getElementById('activeCallOverlay').classList.add('hidden');
-            showToast("Call khatam ho gayi.");
+            showToast("Call ended.");
         }
 
         function toggleCallMute() {
             const btn = document.getElementById('call-mute-btn');
             btn.classList.toggle('bg-red-600');
-            showToast("Mute state badal di gayi hai", "info");
+            showToast("Mute toggled", "info");
         }
 
-        function toggleCallSpeaker() { showToast("Speaker mode badal diya gaya hai", "info"); }
+        function toggleCallSpeaker() { showToast("Speaker mode toggled", "info"); }
 
         function triggerVoiceRecordMock() {
             const input = document.getElementById('chat-msg-input');
@@ -2284,7 +2283,7 @@
                 avatar: user.profile_image || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
                 category: currentFeedPostType,
                 categoryClass: isDebate ? 'bg-purple-100 text-purple-900 border-purple-300 font-extrabold' : 'bg-yellow-100 text-yellow-900 border-yellow-300 font-bold',
-                timestamp: 'Abhi abhi',
+                timestamp: 'Just now',
                 text: text,
                 media: attachedFeedMedia ? { ...attachedFeedMedia } : null,
                 votes: isDebate ? { for: 0, against: 0, userVoted: null } : null,
@@ -2298,7 +2297,7 @@
             document.getElementById('post-text-input').value = '';
             removeAttachedMedia();
             renderFeedPosts();
-            showToast(isDebate ? "Nayi Peer Legal Debate voting ke liye shaya ho gayi!" : "Post Bar Feed par shaya ho gayi!");
+            showToast(isDebate ? "New Peer Legal Debate published for voting!" : "Post published on Bar Feed!");
         }
 
         function castDebateVote(postId, voteType) {
@@ -2949,13 +2948,13 @@
         function printGeneratedDocument() {
             const printContent = document.getElementById('printable-document-wrapper').innerHTML;
             if (!printContent) {
-                showToast("Pehle document preview tayar karein.", "error");
+                showToast("Pehele document preview tayar karein.", "error");
                 return;
             }
             window.print();
         }
 
-        function saveDocumentToAccount() { showToast("Document aapke LawNexa account mein mahfooz ho gaya hai."); }
+        function saveDocumentToAccount() { showToast("Document saved to your LawNexa account."); }
 
         // --- PROFILE EDIT ---
         function openProfileModal() {
@@ -3009,11 +3008,11 @@
             localStorage.setItem('user', JSON.stringify(user));
             closeProfileModal();
             updateAuthUI();
-            showToast("Profile kamyabi se update ho gayi hai!");
+            showToast("Profile updated successfully!");
         }
 
         // --- STRICT DYNAMIC AI PERSONA RESPONSES ---
-        function handleAiAttachmentSelect(e) { showToast("File AI legal query ke saath attach ho gayi", "info"); }
+        function handleAiAttachmentSelect(e) { showToast("File attached to AI legal query", "info"); }
 
         function sendLegalMessage() {
             const input = document.getElementById('user-issue-input');
@@ -3085,7 +3084,7 @@
                         <button onclick="switchTab('docgen-tab')" class="bg-purple-700 hover:bg-purple-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition shadow flex items-center justify-center gap-2">
                             <i class="fa-solid fa-file-signature text-yellow-400"></i> Open Court Document Generator
                         </button>
-                        <button onclick="showToast('Citations & Precedents copy ho gaye hain!', 'info')" class="bg-slate-800 hover:bg-slate-700 text-yellow-400 font-bold py-2.5 px-4 rounded-xl text-xs transition border border-slate-700 flex items-center justify-center gap-2">
+                        <button onclick="showToast('Citations & Precedents copied to clipboard!', 'info')" class="bg-slate-800 hover:bg-slate-700 text-yellow-400 font-bold py-2.5 px-4 rounded-xl text-xs transition border border-slate-700 flex items-center justify-center gap-2">
                             <i class="fa-solid fa-copy"></i> Copy Citations & Case Law
                         </button>
                     </div>
