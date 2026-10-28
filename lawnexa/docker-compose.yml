@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./lawnexa.db
+      - SECRET_KEY=LAWNEXA_SUPER_SECRET_KEY_32_CHARS_LONG_PROD
+      - ALLOWED_ORIGINS=*
+    volumes:
+      - .:/app
+    restart: always

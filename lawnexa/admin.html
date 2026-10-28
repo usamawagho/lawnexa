@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LawNexa — Admin Governance Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    [x-cloak]{display:none!important}
+    body{background:#020617;color:#e2e8f0}
+    .panel{background:#0f172a;border:1px solid #1e293b;border-radius:1rem}
+    .field{width:100%;background:#020617;border:1px solid #334155;border-radius:.65rem;padding:.7rem;color:#f8fafc}
+    .btn{border-radius:.6rem;padding:.55rem .85rem;font-weight:700}
+  </style>
+</head>
+
+<body class="min-h-screen" x-data="adminPortal()" x-init="init()">
+
+<header class="border-b border-slate-800 bg-slate-900/90">
+  <div class="max-w-7xl mx-auto px-4 py-5 flex items-center justify-between">
+    <div>
+      <p class="text-xs uppercase tracking-[.25em] text-amber-400">Restricted Access</p>
+      <h1 class="text-2xl font-black">LAWNEXA <span class="text-amber-400">ADMIN</span></h1>
+    </div>
+    <div class="flex gap-2" x-show="authenticated">
+      <button class="btn bg-amber-400 text-slate-950" @click="refreshAll()">Refresh Data</button>
+      <button class="btn bg-rose-700" @click="logout()">Sign Out</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
+
+  <section x-show="!authenticated" class="panel max-w-lg mx-auto p-6 space-y-4">
+    <h2 class="text-xl font-bold">Administrator Sign In</h2>
+    <p class="text-sm text-slate-400">Restricted access portal for advocate license verifications and governance.</p>
+
+    <form @submit.prevent="login()" class="space-y-3">
+      <label class="block text-sm">
+        Admin Email
+        <input class="field mt-1" type="email" x-model.trim="email" required>
+      </label>
+      <label class="block text-sm">
+        Password
+        <input class="field mt-1" type="password" x-model="password" required>
+      </label>
+      <button class="btn bg-amber-400 text-slate-950 w-full">Sign In</button>
+    </form>
+  </section>
+
+  <section x-show="authenticated" x-cloak class="space-y-6">
+
+    <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div class="panel p-5">
+        <p class="text-sm text-slate-400">Total Registered Clients</p>
+        <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.total_clients"></p>
+      </div>
+      <div class="panel p-5">
+        <p class="text-sm text-slate-400">Verified Advocates</p>
+        <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.total_lawyers"></p>
+      </div>
+      <div class="panel p-5">
+        <p class="text-sm text-slate-400">Pending Bar Verifications</p>
+        <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.pending_lawyers"></p>
+      </div>
+      <div class="panel p-5">
+        <p class="text-sm text-slate-400">Escrow Vault Balance</p>
+        <p class="text-3xl font-black text-amber-400 mt-2" x-text="stats.escrow_balance"></p>
+      </div>
+    </div>
+
+    <section class="panel p-5 space-y-4">
+      <div>
+        <h2 class="text-lg font-bold">Pending Advocate Verifications</h2>
+        <p class="text-sm text-slate-400">Approve only after verifying credentials against official Bar Council registers.</p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs uppercase text-slate-400 bg-slate-800">
+            <tr>
+              <th class="p-3">Name</th>
+              <th class="p-3">Bar License No.</th>
+              <th class="p-3">Bar Association</th>
+              <th class="p-3">Jurisdiction</th>
+              <th class="p-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="lawyer in pendingLawyers" :key="lawyer.id">
+              <tr class="border-t border-slate-800">
+                <td class="p-3 font-semibold" x-text="lawyer.name"></td>
+                <td class="p-3 font-mono text-amber-300" x-text="lawyer.license_number || 'Not Provided'"></td>
+                <td class="p-3" x-text="lawyer.bar_association || '—'"></td>
+                <td class="p-3" x-text="lawyer.jurisdiction || 'High Court'"></td>
+                <td class="p-3 space-x-2">
+                  <button class="btn bg-emerald-700" @click="reviewLawyer(lawyer.id, 'approve')">Approve Advocate</button>
+                  <button class="btn bg-rose-700" @click="reviewLawyer(lawyer.id, 'reject')">Reject Application</button>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="pendingLawyers.length === 0">
+              <td colspan="5" class="p-5 text-center text-slate-400">No pending advocate verification requests found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </section>
+
+</main>
+
+<script>
+function adminPortal() {
+  return {
+    authenticated: false,
+    email: '',
+    password: '',
+    stats: { total_clients: 0, total_lawyers: 0, pending_lawyers: 0, escrow_balance: 'PKR 0.00' },
+    pendingLawyers: [],
+
+    async init() {
+      try {
+        const res = await fetch('/api/v1/auth/me');
+        if (res.ok) {
+          const user = await res.json();
+          if (user.role === 'admin') {
+            this.authenticated = true;
+            await this.refreshAll();
+          }
+        }
+      } catch (e) {}
+    },
+
+    async login() {
+      const form = new URLSearchParams();
+      form.set('username', this.email);
+      form.set('password', this.password);
+
+      const res = await fetch('/api/v1/auth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: form
+      });
+
+      if (res.ok) {
+        this.authenticated = true;
+        await this.refreshAll();
+      } else {
+        alert('Authentication failed. Admin privileges required.');
+      }
+    },
+
+    async refreshAll() {
+      const overviewRes = await fetch('/api/v1/admin/overview');
+      if (overviewRes.ok) {
+        this.stats = await overviewRes.json();
+      }
+
+      const pendingRes = await fetch('/api/v1/admin/lawyers/pending');
+      if (pendingRes.ok) {
+        this.pendingLawyers = await pendingRes.json();
+      }
+    },
+
+    async reviewLawyer(id, action) {
+      const res = await fetch(`/api/v1/admin/lawyers/${id}/${action}`, { method: 'POST' });
+      if (res.ok) {
+        await this.refreshAll();
+      }
+    },
+
+    logout() {
+      this.authenticated = false;
+      window.location.reload();
+    }
+  };
+}
+</script>
+</body>
+</html>

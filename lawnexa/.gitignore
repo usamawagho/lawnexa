@@ -1,0 +1,15 @@
+﻿__pycache__/
+*.py[cod]
+venv/
+.venv/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+
+__pycache__/
+*.pyc
+lawnexa.db
+*.zip
+*.backup
+*-diff.txt

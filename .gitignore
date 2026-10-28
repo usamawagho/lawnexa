@@ -13,3 +13,7 @@ lawnexa.db
 *.zip
 *.backup
 *-diff.txt
+
+lawnexa_backup_before_migration.db
+*.sqlite
+*.sqlite3
