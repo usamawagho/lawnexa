@@ -421,3 +421,13 @@ def test_appointment_booking_conflicts_and_state_transitions():
         json={"status": "cancelled"},
     )
     assert invalid_cancel.status_code == 409
+import atexit
+
+
+def _cleanup_test_database():
+    client.close()
+    database.engine.dispose(close=True)
+    _TEST_DIR.cleanup()
+
+
+atexit.register(_cleanup_test_database)
