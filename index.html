@@ -423,7 +423,7 @@
                         <p class="text-slate-400 text-xs md:text-sm mt-1">Wukala ki Bar Elections campaigns, Legal Amendments, aur Live Advocates Peer Legal Debate & Voting Forum.</p>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
-                        <button onclick="openAdPromotionModal()" class="bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-slate-950 text-xs font-extrabold px-3.5 py-2.5 rounded-xl transition shadow flex items-center gap-1.5">
+                        <button id="run-campaign-ad-btn" onclick="openAdPromotionModal()" class="hidden bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-slate-950 text-xs font-extrabold px-3.5 py-2.5 rounded-xl transition shadow flex items-center gap-1.5">
                             <i class="fa-solid fa-rectangle-ad"></i> Run Election Campaign Ad
                         </button>
                     </div>
@@ -2356,16 +2356,27 @@
         function renderFeedPosts() {
             const container = document.getElementById('posts-feed-container');
             const createCard = document.getElementById('create-post-card');
+            const runAdBtn = document.getElementById('run-campaign-ad-btn');
             if (!container) return;
 
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             const isLawyer = user.role === 'advocate';
 
+            // Sirf Advocates ko Create Post Card dikhao
             if (createCard) {
                 if (isLawyer) {
                     createCard.classList.remove('hidden');
                 } else {
                     createCard.classList.add('hidden');
+                }
+            }
+
+            // Sirf Advocates ko "Run Election Campaign Ad" Button dikhao
+            if (runAdBtn) {
+                if (isLawyer) {
+                    runAdBtn.classList.remove('hidden');
+                } else {
+                    runAdBtn.classList.add('hidden');
                 }
             }
 
