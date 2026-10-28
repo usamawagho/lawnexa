@@ -8,6 +8,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Times+New+Roman&display=swap" rel="stylesheet">
     <style>
+        *, ::before, ::after {
+            box-sizing: border-box;
+        }
+        html, body {
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
             -webkit-tap-highlight-color: transparent;
@@ -32,6 +39,7 @@
                 margin: 0 !important;
                 padding: 0 !important;
                 font-family: 'Times New Roman', Georgia, serif !important;
+                overflow: visible !important;
             }
             body * {
                 visibility: hidden !important;
@@ -56,45 +64,45 @@
         }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased selection:bg-yellow-500 selection:text-slate-900 pb-20 md:pb-0">
+<body class="bg-slate-100 text-slate-800 antialiased selection:bg-yellow-500 selection:text-slate-900 pb-20 md:pb-0 w-full overflow-x-hidden">
 
-    <!-- Notification Toast -->
-    <div id="toast-notification" class="fixed top-5 right-5 z-50 transform translate-x-full transition-transform duration-300 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-yellow-500/30 flex items-center gap-3 max-w-sm">
-        <i id="toast-icon" class="fa-solid fa-circle-check text-yellow-400 text-lg"></i>
-        <span id="toast-message" class="text-xs font-semibold">Action completed successfully.</span>
+    <!-- Notification Toast (Positioned cleanly & elevated Z-index so it shows over modals without causing canvas overflow) -->
+    <div id="toast-notification" class="fixed top-5 right-5 z-[9999] transform translate-x-full transition-transform duration-300 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-yellow-500/30 flex items-center gap-3 max-w-[calc(100vw-2.5rem)] sm:max-w-sm pointer-events-auto">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-yellow-400 text-lg shrink-0"></i>
+        <span id="toast-message" class="text-xs font-semibold leading-tight">Action completed successfully.</span>
     </div>
 
     <!-- Navigation Header -->
-    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-40 no-print border-b border-emerald-900/50">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center gap-4">
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-40 no-print border-b border-emerald-900/50 w-full">
+        <div class="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 flex justify-between items-center gap-2 sm:gap-4 min-w-0">
             
-            <div class="flex items-center space-x-3 cursor-pointer shrink-0" onclick="switchTab('home-tab')">
-                <div class="w-10 h-10 bg-emerald-700 rounded-xl flex items-center justify-center border border-yellow-500/40 shadow-sm">
-                    <i class="fa-solid fa-scale-balanced text-yellow-400 text-xl"></i>
+            <div class="flex items-center space-x-2 sm:space-x-3 cursor-pointer shrink-0" onclick="switchTab('home-tab')">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 bg-emerald-700 rounded-xl flex items-center justify-center border border-yellow-500/40 shadow-sm shrink-0">
+                    <i class="fa-solid fa-scale-balanced text-yellow-400 text-lg sm:text-xl"></i>
                 </div>
-                <div>
-                    <span class="text-xl font-black tracking-wide text-white block leading-none">LawNexa</span>
-                    <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-widest block mt-0.5">Pakistan Legal Engine</span>
+                <div class="shrink-0">
+                    <span class="text-lg sm:text-xl font-black tracking-wide text-white block leading-none">LawNexa</span>
+                    <span class="text-[9px] sm:text-[10px] text-emerald-400 font-bold uppercase tracking-widest block mt-0.5">Pakistan Legal Engine</span>
                 </div>
             </div>
 
             <!-- Desktop Nav Container -->
-            <nav id="dynamic-nav-container" class="hidden md:flex items-center space-x-1 lg:space-x-3 text-xs lg:text-sm font-semibold whitespace-nowrap overflow-x-auto py-1">
+            <nav id="dynamic-nav-container" class="hidden md:flex items-center space-x-1 lg:space-x-3 text-xs lg:text-sm font-semibold whitespace-nowrap overflow-x-auto py-1 min-w-0 flex-1 justify-center">
             </nav>
 
             <div class="flex items-center space-x-2 shrink-0 ml-auto">
                 <!-- Desktop Auth Buttons -->
-                <div id="auth-buttons-container" class="hidden md:flex items-center"></div>
+                <div id="auth-buttons-container" class="hidden md:flex items-center shrink-0"></div>
 
                 <!-- Emergency SOS Trigger Button -->
-                <button onclick="openSosModal()" class="bg-red-600 hover:bg-red-700 text-white font-extrabold px-3 py-1.5 rounded-xl text-xs transition flex items-center gap-1.5 shadow-md animate-pulse">
+                <button onclick="openSosModal()" class="bg-red-600 hover:bg-red-700 text-white font-extrabold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs transition flex items-center gap-1.5 shadow-md animate-pulse shrink-0">
                     <i class="fa-solid fa-shield-cat"></i>
                     <span class="hidden sm:inline">SOS Help</span>
                 </button>
 
                 <!-- Mobile Drawer Toggle Hamburger -->
-                <button onclick="toggleMobileDrawer()" class="md:hidden bg-slate-800 text-yellow-400 p-2.5 rounded-xl border border-slate-700 hover:bg-slate-700 transition">
-                    <i class="fa-solid fa-bars text-lg"></i>
+                <button onclick="toggleMobileDrawer()" class="md:hidden bg-slate-800 text-yellow-400 p-2 sm:p-2.5 rounded-xl border border-slate-700 hover:bg-slate-700 transition shrink-0">
+                    <i class="fa-solid fa-bars text-base sm:text-lg"></i>
                 </button>
             </div>
         </div>
@@ -180,7 +188,7 @@
     </div>
 
     <!-- Main Content Container -->
-    <main class="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 no-print">
+    <main class="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 no-print w-full min-w-0">
 
         <!-- HOME / AI ASSISTANT TAB -->
         <section id="home-tab" class="tab-content block">
@@ -226,14 +234,14 @@
             </div>
 
             <!-- Client / Lawyer Adaptive AI Workspace -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-6 w-full min-w-0">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                     <div>
                         <div id="ai-mode-badge" class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold mb-2">
                             <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
                             AI Legal Research Engine (Pakistan Law)
                         </div>
-                        <h2 id="ai-workspace-heading" class="text-xl sm:text-2xl font-bold text-slate-900 mb-1">AI Legal Assistant</h2>
+                        <h2 id="ai-workspace-heading" class="text-xl sm:text-2xl font-bold text-slate-900 mb-1">AI Interactive Legal Assistant</h2>
                         <p id="ai-workspace-subheading" class="text-slate-600 text-xs sm:text-sm">Apna masla sadah alfaz mein bayan karein. AI Assistant Pakistani Laws ke mutabiq legal guidance aur case brief tayar karega.</p>
                     </div>
                     <div class="flex items-center space-x-2 bg-slate-50 p-2 rounded-xl border border-slate-200 shrink-0">
@@ -247,26 +255,27 @@
                     </div>
                 </div>
 
-                <div id="chat-thread" class="space-y-4 mb-4 max-h-96 overflow-y-auto p-3 sm:p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                <div id="chat-thread" class="space-y-4 mb-4 max-h-96 overflow-y-auto p-3 sm:p-4 bg-slate-50 border border-slate-200 rounded-xl w-full">
                 </div>
 
-                <div class="flex items-center space-x-2 border border-slate-300 rounded-xl p-1.5 sm:p-2 bg-white shadow-sm focus-within:border-emerald-600 transition">
+                <!-- Chat Input Container (Fully Responsive with min-w-0 and shrink-0 to prevent Send Button Overflow) -->
+                <div class="flex items-center gap-1.5 sm:gap-2 border border-slate-300 rounded-xl p-1.5 sm:p-2 bg-white shadow-sm focus-within:border-emerald-600 transition w-full min-w-0 box-border">
                     <input type="file" id="document-upload" class="hidden" accept="image/*,.pdf,.doc,.docx" onchange="handleAiAttachmentSelect(event)">
                     <input type="file" id="camera-upload" class="hidden" accept="image/*" capture="environment" onchange="handleAiAttachmentSelect(event)">
                     
-                    <button type="button" onclick="document.getElementById('document-upload').click()" class="text-slate-500 hover:text-emerald-700 p-2 transition" title="Attach Document">
-                        <i class="fa-solid fa-paperclip text-lg"></i>
+                    <button type="button" onclick="document.getElementById('document-upload').click()" class="text-slate-500 hover:text-emerald-700 p-1.5 sm:p-2 transition shrink-0" title="Attach Document">
+                        <i class="fa-solid fa-paperclip text-base sm:text-lg"></i>
                     </button>
 
-                    <button type="button" onclick="document.getElementById('camera-upload').click()" class="text-slate-500 hover:text-emerald-700 p-2 transition" title="Capture Photo">
-                        <i class="fa-solid fa-camera text-lg"></i>
+                    <button type="button" onclick="document.getElementById('camera-upload').click()" class="text-slate-500 hover:text-emerald-700 p-1.5 sm:p-2 transition shrink-0" title="Capture Photo">
+                        <i class="fa-solid fa-camera text-base sm:text-lg"></i>
                     </button>
 
                     <input type="text" id="user-issue-input" placeholder="Query yahan likhein..." 
-                           class="flex-1 text-xs sm:text-sm focus:outline-none px-2"
+                           class="flex-1 min-w-0 w-0 text-xs sm:text-sm focus:outline-none px-1 sm:px-2"
                            onkeypress="if(event.key === 'Enter') sendLegalMessage()">
 
-                    <button onclick="sendLegalMessage()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3.5 sm:px-5 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition flex items-center space-x-2 shadow-sm">
+                    <button onclick="sendLegalMessage()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 sm:space-x-2 shadow-sm shrink-0 whitespace-nowrap">
                         <span>Send</span>
                         <i class="fa-solid fa-paper-plane text-xs text-yellow-400"></i>
                     </button>
@@ -278,7 +287,7 @@
 
         <!-- DYNAMIC ROLE-BASED LEGAL DOCUMENT GENERATOR TAB -->
         <section id="docgen-tab-content" class="tab-content hidden">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-6 w-full min-w-0">
                 <div class="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-200 mb-6 gap-4">
                     <div>
                         <div id="doc-role-badge" class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 mb-1">
@@ -320,7 +329,7 @@
 
                     <!-- ON-SCREEN PREVIEW CONTAINER -->
                     <div class="lg:col-span-7 bg-slate-200/60 p-3 sm:p-6 rounded-2xl border border-slate-300 shadow-inner overflow-x-auto">
-                        <div id="preview-screen-wrapper" class="bg-white mx-auto shadow-2xl border border-slate-300 p-4 sm:p-8 min-h-[600px] text-slate-900 text-xs">
+                        <div id="preview-screen-wrapper" class="bg-white mx-auto shadow-2xl border border-slate-300 p-4 sm:p-8 min-h-[600px] text-slate-900 text-xs max-w-full overflow-x-auto">
                         </div>
                     </div>
                 </div>
@@ -329,7 +338,7 @@
 
         <!-- ADVOCATES TAB -->
         <section id="advocates-tab-content" class="tab-content hidden">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 w-full min-w-0">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                     <div>
                         <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Find & Hire Verified Advocates</h2>
@@ -358,7 +367,7 @@
 
         <!-- MY BOOKINGS TAB (CLIENT) -->
         <section id="bookings-tab-content" class="tab-content hidden">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 w-full min-w-0">
                 <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-1 flex items-center gap-2">
                     <i class="fa-solid fa-calendar-check text-yellow-600"></i>
                     <span>My Booked Consultations</span>
@@ -372,7 +381,7 @@
 
         <!-- CLIENT REQUESTS TAB (LAWYER) -->
         <section id="requests-tab-content" class="tab-content hidden">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 w-full min-w-0">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div>
                         <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -393,13 +402,13 @@
 
         <!-- DYNAMIC ESCROW TAB -->
         <section id="escrow-tab-content" class="tab-content hidden">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6" id="escrow-dynamic-wrapper">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 w-full min-w-0" id="escrow-dynamic-wrapper">
             </div>
         </section>
 
         <!-- BAR CAMPAIGNS & FEED TAB -->
         <section id="feed-tab-content" class="tab-content hidden">
-            <div class="max-w-4xl mx-auto space-y-6">
+            <div class="max-w-4xl mx-auto space-y-6 w-full min-w-0">
                 <div class="bg-slate-900 text-white p-5 sm:p-6 rounded-2xl shadow-lg border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs font-semibold mb-3">
@@ -483,8 +492,8 @@
     </div>
 
     <!-- NEW TOOL 1: COURT FEE & STAMP DUTY CALCULATOR MODAL -->
-    <div id="courtFeeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 relative max-h-[90vh] overflow-y-auto">
+    <div id="courtFeeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-w-[calc(100vw-2rem)] p-5 sm:p-6 relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeCourtFeeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -525,8 +534,8 @@
     </div>
 
     <!-- NEW TOOL 2: PAKISTAN CASE CITATIONS & SECTION FINDER MODAL -->
-    <div id="citationModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 relative max-h-[90vh] overflow-y-auto">
+    <div id="citationModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-w-[calc(100vw-2rem)] p-5 sm:p-6 relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeCitationModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -547,8 +556,8 @@
     </div>
 
     <!-- NEW TOOL 3: EMERGENCY SOS HELPLINE MODAL -->
-    <div id="sosModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
-        <div class="bg-slate-900 text-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative border border-red-600/50">
+    <div id="sosModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 no-print">
+        <div class="bg-slate-900 text-white rounded-2xl shadow-2xl max-w-md w-full max-w-[calc(100vw-2rem)] p-5 sm:p-6 relative border border-red-600/50">
             <button onclick="closeSosModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -571,8 +580,8 @@
     </div>
 
     <!-- UNIVERSAL WALLET MODAL -->
-    <div id="walletModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+    <div id="walletModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-w-[calc(100vw-2rem)] p-5 sm:p-6 relative">
             <button onclick="closeWalletModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -623,8 +632,8 @@
     </div>
 
     <!-- AD PROMOTION MODAL -->
-    <div id="adPromotionModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 relative max-h-[90vh] overflow-y-auto">
+    <div id="adPromotionModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-w-[calc(100vw-2rem)] p-5 sm:p-6 relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeAdPromotionModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -702,25 +711,25 @@
     <div id="directChatModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4 no-print">
         <div class="bg-slate-900 text-slate-100 rounded-2xl shadow-2xl max-w-lg w-full flex flex-col h-[85vh] max-h-[650px] border border-slate-800 overflow-hidden">
             <div class="bg-slate-900 border-b border-slate-800 p-3.5 flex items-center justify-between shrink-0">
-                <div class="flex items-center space-x-3">
-                    <div class="relative">
+                <div class="flex items-center space-x-3 min-w-0">
+                    <div class="relative shrink-0">
                         <img id="chat-lawyer-avatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="w-10 h-10 rounded-full object-cover border-2 border-emerald-500">
                         <span class="w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full absolute bottom-0 right-0"></span>
                     </div>
-                    <div>
-                        <h3 id="chat-lawyer-name" class="font-bold text-sm text-white">Contact</h3>
-                        <p class="text-[11px] text-emerald-400 font-medium"><i class="fa-solid fa-circle text-[8px] mr-1"></i>Online | Active Workspace</p>
+                    <div class="min-w-0">
+                        <h3 id="chat-lawyer-name" class="font-bold text-sm text-white truncate">Contact</h3>
+                        <p class="text-[11px] text-emerald-400 font-medium truncate"><i class="fa-solid fa-circle text-[8px] mr-1"></i>Online | Active Workspace</p>
                     </div>
                 </div>
                 
-                <div class="flex items-center space-x-3 text-slate-300">
-                    <button onclick="initiateVoiceCall()" class="hover:text-yellow-400 p-2 rounded-lg transition" title="Voice Call">
+                <div class="flex items-center space-x-2 sm:space-x-3 text-slate-300 shrink-0">
+                    <button onclick="initiateVoiceCall()" class="hover:text-yellow-400 p-1.5 sm:p-2 rounded-lg transition" title="Voice Call">
                         <i class="fa-solid fa-phone text-base"></i>
                     </button>
-                    <button onclick="initiateVideoCall()" class="hover:text-yellow-400 p-2 rounded-lg transition" title="Video Call">
+                    <button onclick="initiateVideoCall()" class="hover:text-yellow-400 p-1.5 sm:p-2 rounded-lg transition" title="Video Call">
                         <i class="fa-solid fa-video text-base"></i>
                     </button>
-                    <button onclick="closeDirectChatModal()" class="hover:text-red-400 p-2 rounded-lg transition text-lg" title="Close Chat">
+                    <button onclick="closeDirectChatModal()" class="hover:text-red-400 p-1.5 sm:p-2 rounded-lg transition text-lg" title="Close Chat">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
@@ -730,31 +739,31 @@
             </div>
 
             <div id="chat-attachment-preview" class="hidden bg-slate-900 px-4 py-2 border-t border-slate-800 flex items-center justify-between text-xs">
-                <span id="chat-attachment-name" class="text-yellow-400 font-medium truncate max-w-[250px]"></span>
+                <span id="chat-attachment-name" class="text-yellow-400 font-medium truncate max-w-[180px] sm:max-w-[250px]"></span>
                 <button onclick="clearChatAttachment()" class="text-slate-400 hover:text-red-400 font-bold ml-2">&times;</button>
             </div>
 
-            <div class="bg-slate-900 p-3 border-t border-slate-800 flex items-center space-x-2 shrink-0">
+            <div class="bg-slate-900 p-2.5 sm:p-3 border-t border-slate-800 flex items-center gap-1.5 sm:gap-2 shrink-0 w-full min-w-0">
                 <input type="file" id="chat-file-input" class="hidden" accept="image/*,.pdf,.doc,.docx" onchange="handleChatFileSelect(event)">
                 <input type="file" id="chat-camera-input" class="hidden" accept="image/*" capture="environment" onchange="handleChatFileSelect(event)">
 
-                <button type="button" onclick="document.getElementById('chat-file-input').click()" class="text-slate-400 hover:text-emerald-400 p-2 transition" title="Attach Document / File">
-                    <i class="fa-solid fa-paperclip text-lg"></i>
+                <button type="button" onclick="document.getElementById('chat-file-input').click()" class="text-slate-400 hover:text-emerald-400 p-1.5 sm:p-2 transition shrink-0" title="Attach Document / File">
+                    <i class="fa-solid fa-paperclip text-base sm:text-lg"></i>
                 </button>
 
-                <button type="button" onclick="document.getElementById('chat-camera-input').click()" class="text-slate-400 hover:text-emerald-400 p-2 transition" title="Take Photo">
-                    <i class="fa-solid fa-camera text-lg"></i>
+                <button type="button" onclick="document.getElementById('chat-camera-input').click()" class="text-slate-400 hover:text-emerald-400 p-1.5 sm:p-2 transition shrink-0" title="Take Photo">
+                    <i class="fa-solid fa-camera text-base sm:text-lg"></i>
                 </button>
 
-                <button type="button" onclick="triggerVoiceRecordMock()" class="text-slate-400 hover:text-emerald-400 p-2 transition" title="Voice Message">
-                    <i class="fa-solid fa-microphone text-lg"></i>
+                <button type="button" onclick="triggerVoiceRecordMock()" class="text-slate-400 hover:text-emerald-400 p-1.5 sm:p-2 transition shrink-0" title="Voice Message">
+                    <i class="fa-solid fa-microphone text-base sm:text-lg"></i>
                 </button>
 
                 <input type="text" id="chat-msg-input" placeholder="Message likhein..." 
-                       class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                       class="flex-1 min-w-0 w-0 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
                        onkeypress="if(event.key === 'Enter') sendDirectMessage()">
 
-                <button onclick="sendDirectMessage()" class="bg-emerald-700 hover:bg-emerald-800 text-white p-2.5 rounded-xl transition font-bold shadow-sm flex items-center justify-center">
+                <button onclick="sendDirectMessage()" class="bg-emerald-700 hover:bg-emerald-800 text-white p-2.5 rounded-xl transition font-bold shadow-sm flex items-center justify-center shrink-0">
                     <i class="fa-solid fa-paper-plane text-xs text-yellow-400"></i>
                 </button>
             </div>
@@ -762,8 +771,8 @@
     </div>
 
     <!-- SIGN IN / REGISTER MODAL -->
-    <div id="authModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 relative max-h-[90vh] overflow-y-auto">
+    <div id="authModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-w-[calc(100vw-2rem)] p-5 sm:p-6 relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -867,8 +876,8 @@
     </div>
 
     <!-- BOOKING MODAL -->
-    <div id="bookingModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 relative max-h-[90vh] overflow-y-auto">
+    <div id="bookingModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-w-[calc(100vw-2rem)] p-5 sm:p-6 relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeBookingModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -975,8 +984,8 @@
     </div>
 
     <!-- PROFILE EDIT MODAL -->
-    <div id="profileModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 relative max-h-[90vh] overflow-y-auto">
+    <div id="profileModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-w-[calc(100vw-2rem)] p-5 sm:p-6 relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -986,7 +995,7 @@
 
             <form id="profile-edit-form" onsubmit="handleProfileSave(event)" class="space-y-3">
                 <div class="flex items-center space-x-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <img id="profile-img-preview" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="w-16 h-16 rounded-full object-cover border-2 border-emerald-600 shadow-sm">
+                    <img id="profile-img-preview" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="w-16 h-16 rounded-full object-cover border-2 border-emerald-600 shadow-sm shrink-0">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">Upload Profile Photo</label>
                         <input type="file" id="profile-img-file" accept="image/*" onchange="previewProfileImage(event)" class="text-xs text-slate-500 cursor-pointer">
@@ -1184,11 +1193,11 @@
 
             message.innerText = msg;
             if (type === 'error') {
-                icon.className = "fa-solid fa-circle-xmark text-red-400 text-lg";
+                icon.className = "fa-solid fa-circle-xmark text-red-400 text-lg shrink-0";
             } else if (type === 'info') {
-                icon.className = "fa-solid fa-circle-info text-blue-400 text-lg";
+                icon.className = "fa-solid fa-circle-info text-blue-400 text-lg shrink-0";
             } else {
-                icon.className = "fa-solid fa-circle-check text-yellow-400 text-lg";
+                icon.className = "fa-solid fa-circle-check text-yellow-400 text-lg shrink-0";
             }
 
             toast.classList.remove('translate-x-full');
@@ -1435,7 +1444,6 @@
                     return;
                 }
 
-                // Keep legacy UI property names while storing the real API identity.
                 const userObj = {
                     ...result.user,
                     full_name: result.user.full_name || payload.full_name || email.split('@')[0],
@@ -1450,7 +1458,6 @@
                 localStorage.setItem('token', result.token);
                 localStorage.setItem('user', JSON.stringify(userObj));
 
-                // Preserve the current local lawyer-card behavior after a successful advocate registration.
                 if (isRegister && userObj.role === 'advocate') {
                     const newLawyer = {
                         id: 'lawyer_' + Date.now(),
@@ -1541,7 +1548,7 @@
                 if (drawerUserCard) {
                     drawerUserCard.innerHTML = `
                         <div class="flex items-center space-x-3">
-                            <img src="${avatarImg}" class="w-10 h-10 rounded-full object-cover border-2 border-yellow-400">
+                            <img src="${avatarImg}" class="w-10 h-10 rounded-full object-cover border-2 border-yellow-400 shrink-0">
                             <div class="overflow-hidden">
                                 <h4 class="font-bold text-sm text-white truncate">${displayEmail}</h4>
                                 <span class="text-[9px] font-black px-2 py-0.5 rounded ${roleBadgeBg} uppercase inline-block">${roleLabel}</span>
@@ -1606,17 +1613,17 @@
                 if (drawerNavContainer) drawerNavContainer.innerHTML = navLinksHTML;
 
                 container.innerHTML = `
-                    <div class="flex items-center space-x-2 text-xs">
+                    <div class="flex items-center space-x-2 text-xs shrink-0">
                         <div class="flex items-center space-x-1.5 bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-700 shadow-sm max-w-[180px]">
                             <img id="header-avatar" src="${avatarImg}" class="w-5 h-5 rounded-full object-cover border border-yellow-400 shrink-0">
                             <span class="text-slate-200 font-semibold truncate text-[11px]">${displayEmail}</span>
                             <span class="text-[9px] font-black px-1.5 py-0.5 rounded ${roleBadgeBg} shrink-0">${roleLabel}</span>
                         </div>
-                        <button onclick="openProfileModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1 border border-yellow-500/30">
+                        <button onclick="openProfileModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1 border border-yellow-500/30 shrink-0">
                             <i class="fa-solid fa-user-pen text-xs text-yellow-400"></i>
                             <span class="hidden sm:inline">Profile</span>
                         </button>
-                        <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg border border-slate-700 text-slate-300 transition">Logout</button>
+                        <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg border border-slate-700 text-slate-300 transition shrink-0">Logout</button>
                     </div>
                 `;
             } else {
@@ -1644,7 +1651,7 @@
                     <a href="#" id="escrow-tab" onclick="switchTab('escrow-tab')" class="hover:text-yellow-400 transition px-2 py-1">My Wallet</a>
                 `;
                 container.innerHTML = `
-                    <button onclick="openAuthModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-4 py-2 rounded-xl text-xs lg:text-sm transition shadow-sm border border-yellow-500/30">
+                    <button onclick="openAuthModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-4 py-2 rounded-xl text-xs lg:text-sm transition shadow-sm border border-yellow-500/30 shrink-0">
                         Sign In / Register
                     </button>
                 `;
@@ -1840,9 +1847,9 @@
                     <div>
                         <div class="flex items-center space-x-3 mb-3">
                             <img src="${lawyer.avatar}" class="w-12 h-12 rounded-full object-cover border-2 ${lawyer.isFeatured ? 'border-yellow-500' : 'border-emerald-600'} shadow-sm shrink-0">
-                            <div>
-                                <h3 class="font-bold text-slate-900 text-base">${lawyer.name}</h3>
-                                <span class="text-xs text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">${lawyer.specialtyBadge || lawyer.specialty}</span>
+                            <div class="min-w-0">
+                                <h3 class="font-bold text-slate-900 text-base truncate">${lawyer.name}</h3>
+                                <span class="text-xs text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block truncate max-w-full">${lawyer.specialtyBadge || lawyer.specialty}</span>
                             </div>
                         </div>
                         <p class="text-xs text-slate-600 mb-3 leading-relaxed">${lawyer.desc}</p>
@@ -1962,7 +1969,7 @@
                 return `
                     <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${b.type === 'virtual' ? 'border-l-4 border-l-emerald-600' : 'border-l-4 border-l-yellow-600'}">
                         <div>
-                            <div class="flex items-center gap-2 mb-1">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
                                 <span class="${b.type === 'virtual' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-amber-100 text-amber-800 border-amber-200'} text-[10px] font-extrabold px-2.5 py-0.5 rounded border">
                                     <i class="fa-solid ${b.type === 'virtual' ? 'fa-video' : 'fa-building-user'} mr-1"></i> ${b.type === 'virtual' ? 'Virtual Call Session' : 'Physical Chamber Visit'}
                                 </span>
@@ -1996,7 +2003,7 @@
                 <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50 border-l-4 border-l-emerald-700 shadow-sm">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-3">
                         <div>
-                            <div class="flex items-center space-x-2">
+                            <div class="flex items-center space-x-2 flex-wrap gap-y-1">
                                 <span class="bg-blue-100 text-blue-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded border border-blue-200"><i class="fa-solid fa-user text-xs mr-1"></i> Lead Request</span>
                                 <span class="text-xs text-slate-400 font-semibold">${b.date} - ${b.time}</span>
                                 <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200">Fee: ${b.type === 'virtual' ? 'PKR ' + (b.fee || 5000).toLocaleString() : 'Chamber Direct'}</span>
@@ -2085,7 +2092,7 @@
 
                 return `
                     <div class="flex ${isMe ? 'justify-end' : 'items-start space-x-2'}">
-                        <div class="${isMe ? 'bg-emerald-700 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'} p-2.5 rounded-2xl max-w-[80%] shadow-sm leading-relaxed">
+                        <div class="${isMe ? 'bg-emerald-700 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'} p-2.5 rounded-2xl max-w-[85%] sm:max-w-[80%] shadow-sm leading-relaxed">
                             ${attachmentHTML}
                             ${msg.text}
                         </div>
@@ -2374,7 +2381,7 @@
 
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-3">
-                                <img src="${post.avatar}" class="w-10 h-10 rounded-full object-cover border-2 ${isDebate ? 'border-purple-600' : 'border-emerald-600'} shadow-sm">
+                                <img src="${post.avatar}" class="w-10 h-10 rounded-full object-cover border-2 ${isDebate ? 'border-purple-600' : 'border-emerald-600'} shadow-sm shrink-0">
                                 <div>
                                     <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">${post.author}</h4>
                                     <p class="text-[11px] text-slate-500 font-medium">${post.title} • ${post.timestamp}</p>
