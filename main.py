@@ -2,6 +2,8 @@
 import json
 import logging
 import os
+import hashlib
+import uuid
 from datetime import datetime, date, time
 from zoneinfo import ZoneInfo
 from typing import Any, Optional
@@ -16,6 +18,8 @@ from fastapi import (
     Depends,
     HTTPException,
     status,
+    Request,
+    Header,
 )
 from fastapi.responses import FileResponse
 from alembic import command as alembic_command
@@ -32,6 +36,9 @@ import models
 import schemas
 from html_sanitizer import sanitize_document_html
 from admin_bootstrap import provision_admin_from_environment
+import httpx
+from urllib.parse import urlencode
+from safepay_security import verify_webhook_signature
 
 
 # ============================================================
@@ -1049,6 +1056,322 @@ def update_appointment_status(
         "status": "success",
         "appointment": appointment_response(appointment, db),
     }
+
+
+
+
+# ============================================================
+# PHASE 5 — SAFEPAY SANDBOX PAYMENTS
+# ============================================================
+
+class PaymentCheckoutRequest(BaseModel):
+    idempotency_key: str = Field(min_length=16, max_length=128)
+
+
+def _payment_env() -> tuple[str, str, str, str]:
+    environment = os.getenv("SAFEPAY_ENVIRONMENT", "sandbox").strip().lower()
+    if environment not in {"sandbox", "production"}:
+        raise HTTPException(status_code=503, detail="Safepay environment configuration is invalid.")
+    api_key = os.getenv("SAFEPAY_API_KEY", "").strip()
+    webhook_secret = os.getenv("SAFEPAY_WEBHOOK_SECRET", "").strip()
+    api_base = "https://api.getsafepay.com" if environment == "production" else "https://sandbox.api.getsafepay.com"
+    checkout_base = "https://getsafepay.com/checkout/pay" if environment == "production" else "https://sandbox.api.getsafepay.com/checkout/pay"
+    return environment, api_key, webhook_secret, api_base + "|" + checkout_base
+
+
+def _payment_view(payment: models.Payment) -> dict[str, Any]:
+    return {
+        "id": payment.public_id,
+        "appointment_id": payment.appointment_id,
+        "amount_minor": payment.amount_minor,
+        "amount_pkr": payment.amount_minor / 100,
+        "currency": payment.currency,
+        "status": payment.status,
+        "provider": payment.provider,
+        "provider_tracker": payment.provider_tracker,
+        "checkout_url": payment.checkout_url if payment.status in {"pending", "processing"} else None,
+        "created_at": payment.created_at.isoformat() if payment.created_at else None,
+        "updated_at": payment.updated_at.isoformat() if payment.updated_at else None,
+    }
+
+
+def _ledger(db: Session, payment: models.Payment, event_key: str, event_type: str, amount_minor: int, state: str, reference: Optional[str] = None, note: Optional[str] = None) -> None:
+    # The unique event_key is the final database-level idempotency barrier.
+    existing = db.query(models.PaymentLedgerEntry).filter(models.PaymentLedgerEntry.event_key == event_key).first()
+    if existing:
+        return
+    db.add(models.PaymentLedgerEntry(
+        payment_id=payment.id, event_key=event_key, event_type=event_type,
+        amount_minor=amount_minor, currency=payment.currency, status=state,
+        provider_reference=reference, note=(note or "")[:255] or None,
+    ))
+
+
+def _safepay_create_tracker(payment: models.Payment, client_user: models.User) -> tuple[str, str]:
+    environment, api_key, _webhook_secret, bases = _payment_env()
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Safepay sandbox is not configured. Set SAFEPAY_API_KEY in the server environment.")
+    api_base, checkout_base = bases.split("|", 1)
+    if not client_user.email or not client_user.phone:
+        raise HTTPException(status_code=422, detail="A valid account email and phone are required to create a Safepay checkout.")
+    names = (client_user.full_name or "LawNexa Client").strip().split(maxsplit=1)
+    guest_payload = {"first_name": names[0][:80], "last_name": (names[1] if len(names) > 1 else "Client")[:80], "email": client_user.email, "phone": client_user.phone, "country": "PK"}
+    try:
+        guest_response = httpx.post(f"{api_base}/user/v1/guest/", json=guest_payload, headers={"Content-Type": "application/json"}, timeout=15.0)
+        guest_response.raise_for_status()
+        guest_result = guest_response.json()
+        guest_data = guest_result.get("data") if isinstance(guest_result.get("data"), dict) else {}
+        guest_token = guest_data.get("token")
+        guest_session = guest_data.get("session")
+        if not isinstance(guest_token, str) or not isinstance(guest_session, str):
+            raise ValueError("Safepay guest response did not contain a token and session")
+        payload = {
+            "merchant_api_key": api_key, "user": guest_token,
+            "intent": "CYBERSOURCE", "mode": "payment",
+            "currency": payment.currency, "amount": payment.amount_minor,
+            "entry_mode": "raw",
+            "metadata": {"source": "lawnexa", "payment_id": payment.public_id, "appointment_id": payment.appointment_id},
+        }
+        response = httpx.post(
+            f"{api_base}/order/payments/v3/", json=payload,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {guest_session}"}, timeout=15.0,
+        )
+        response.raise_for_status()
+        result = response.json()
+    except (httpx.HTTPError, ValueError, TypeError) as exc:
+        logger.warning("Safepay tracker creation failed: %s", type(exc).__name__)
+        raise HTTPException(status_code=502, detail="Safepay could not create a checkout session. No payment was confirmed.") from exc
+    data_obj = result.get("data") if isinstance(result.get("data"), dict) else {}
+    tracker_obj = result.get("tracker") if isinstance(result.get("tracker"), dict) else {}
+    if not tracker_obj and isinstance(data_obj.get("tracker"), dict):
+        tracker_obj = data_obj["tracker"]
+    tracker = (tracker_obj.get("token") or tracker_obj.get("tracker") or
+               (data_obj.get("tracker") if isinstance(data_obj.get("tracker"), str) else None) or
+               (result.get("tracker") if isinstance(result.get("tracker"), str) else None) or
+               data_obj.get("token") or result.get("token"))
+    if not isinstance(tracker, str) or not tracker.strip():
+        logger.error("Safepay tracker response did not contain a tracker token")
+        raise HTTPException(status_code=502, detail="Safepay returned an invalid checkout session. No payment was confirmed.")
+    query = urlencode({
+        "tracker": tracker, "source": "hosted",
+        "redirect_url": os.getenv("SAFEPAY_REDIRECT_URL", "https://lawnexa.vercel.app/?payment=return"),
+        "cancel_url": os.getenv("SAFEPAY_CANCEL_URL", "https://lawnexa.vercel.app/?payment=cancelled"),
+    })
+    return tracker, f"{checkout_base}?{query}"
+
+
+@app.post("/api/payments/appointments/{appointment_id}/checkout", status_code=status.HTTP_201_CREATED)
+def create_payment_checkout(
+    appointment_id: int, data: PaymentCheckoutRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    require_role(current_user, "client")
+    existing = db.query(models.Payment).filter(models.Payment.idempotency_key == data.idempotency_key).first()
+    if existing:
+        if existing.client_id != current_user.id or existing.appointment_id != appointment_id:
+            raise HTTPException(status_code=409, detail="Idempotency key is already associated with another payment.")
+        return {"status": "success", "payment": _payment_view(existing), "idempotent_replay": True}
+
+    appointment = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found.")
+    if appointment.client_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only pay for your own appointment.")
+    if (appointment.status or "").lower() != "confirmed":
+        raise HTTPException(status_code=409, detail="Only confirmed appointments can be paid.")
+    fee = appointment.consultation_fee
+    if fee is None or fee <= 0:
+        raise HTTPException(status_code=409, detail="This appointment has no valid server-set consultation fee.")
+    already_paid = db.query(models.Payment).filter(
+        models.Payment.appointment_id == appointment.id,
+        models.Payment.status.in_(["succeeded", "refund_requested", "partially_refunded"]),
+    ).first()
+    if already_paid:
+        raise HTTPException(status_code=409, detail="A successful payment already exists for this appointment.")
+
+    payment = models.Payment(
+        public_id=str(uuid.uuid4()), appointment_id=appointment.id, client_id=current_user.id,
+        amount_minor=int(fee) * 100, currency="PKR", status="pending",
+        idempotency_key=data.idempotency_key,
+    )
+    db.add(payment)
+    try:
+        db.flush()
+        _ledger(db, payment, f"{payment.public_id}:created", "checkout_created", payment.amount_minor, "pending", note="Checkout intent created; no funds confirmed")
+        db.commit()
+        db.refresh(payment)
+    except IntegrityError as exc:
+        db.rollback()
+        duplicate = db.query(models.Payment).filter(models.Payment.idempotency_key == data.idempotency_key).first()
+        if duplicate and duplicate.client_id == current_user.id and duplicate.appointment_id == appointment_id:
+            return {"status": "success", "payment": _payment_view(duplicate), "idempotent_replay": True}
+        raise HTTPException(status_code=409, detail="Duplicate payment request.") from exc
+
+    try:
+        tracker, checkout_url = _safepay_create_tracker(payment, current_user)
+        payment.provider_tracker = tracker
+        payment.checkout_url = checkout_url
+        payment.status = "processing"
+        _ledger(db, payment, f"{payment.public_id}:tracker", "provider_tracker_created", payment.amount_minor, "processing", reference=tracker)
+        db.commit()
+        db.refresh(payment)
+    except HTTPException:
+        payment.status = "failed"
+        _ledger(db, payment, f"{payment.public_id}:checkout_error", "checkout_creation_failed", payment.amount_minor, "failed", note="Provider checkout creation failed")
+        db.commit()
+        raise
+    return {"status": "success", "payment": _payment_view(payment), "idempotent_replay": False}
+
+
+@app.get("/api/payments/{payment_id}")
+def get_payment_status(
+    payment_id: str, current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    payment = db.query(models.Payment).filter(models.Payment.public_id == payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found.")
+    if (current_user.role or "").lower() != "admin" and payment.client_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You cannot view this payment.")
+    return {"status": "success", "payment": _payment_view(payment)}
+
+
+@app.post("/api/webhooks/safepay")
+async def safepay_webhook(
+    request: Request,
+    signature: Optional[str] = Header(default=None, alias="X-SFPY-SIGNATURE"),
+    event_id_header: Optional[str] = Header(default=None, alias="X-SFPY-EVENT-ID"),
+    db: Session = Depends(database.get_db),
+):
+    _environment, _api_key, webhook_secret, _bases = _payment_env()
+    if not webhook_secret:
+        raise HTTPException(status_code=503, detail="Safepay webhook verification is not configured.")
+    raw_body = await request.body()
+    if not verify_webhook_signature(raw_body, signature, webhook_secret):
+        raise HTTPException(status_code=401, detail="Invalid Safepay webhook signature.")
+    try:
+        payload = json.loads(raw_body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid webhook JSON.") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Invalid webhook payload.")
+
+    tracker_obj = payload.get("tracker") if isinstance(payload.get("tracker"), dict) else {}
+    metadata = tracker_obj.get("metadata") if isinstance(tracker_obj.get("metadata"), dict) else {}
+    metadata = metadata or (payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {})
+    tracker = tracker_obj.get("token") or payload.get("tracker_token") or payload.get("tracker")
+    provider_transaction = payload.get("transaction_token") or payload.get("transaction_id") or (payload.get("transaction") or {}).get("token") if isinstance(payload.get("transaction"), dict) else payload.get("transaction_token") or payload.get("transaction_id")
+    payment_id = metadata.get("payment_id") or payload.get("payment_id")
+    query = db.query(models.Payment)
+    payment = query.filter(models.Payment.provider_tracker == tracker).first() if tracker else None
+    if not payment and payment_id:
+        payment = query.filter(models.Payment.public_id == str(payment_id)).first()
+    if not payment:
+        logger.warning("Verified Safepay webhook did not match a payment")
+        raise HTTPException(status_code=404, detail="Payment for this webhook was not found.")
+
+    event_id = event_id_header or payload.get("event_id") or payload.get("id")
+    if not event_id:
+        event_id = hashlib.sha256(raw_body).hexdigest()
+    if payment.last_provider_event_id == str(event_id) or db.query(models.PaymentLedgerEntry).filter(models.PaymentLedgerEntry.event_key == f"safepay:{event_id}").first():
+        return {"status": "ok", "duplicate": True}
+
+    state = str(tracker_obj.get("state") or payload.get("state") or payload.get("status") or payload.get("event") or "").strip().lower()
+    amount = payload.get("amount") or tracker_obj.get("amount")
+    currency = str(payload.get("currency") or tracker_obj.get("currency") or payment.currency).upper()
+    if amount is not None:
+        try:
+            if int(amount) != payment.amount_minor:
+                raise HTTPException(status_code=409, detail="Webhook amount does not match the payment record.")
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail="Webhook amount is invalid.") from exc
+    if currency != payment.currency:
+        raise HTTPException(status_code=409, detail="Webhook currency does not match the payment record.")
+
+    if "refund" in state and any(term in state for term in ("complete", "success", "succeed", "processed", "refunded")):
+        refunded_amount = int(payload.get("refund_amount") or payload.get("amount") or payment.amount_minor)
+        if refunded_amount < 1 or refunded_amount > payment.amount_minor - payment.refund_amount_minor:
+            raise HTTPException(status_code=409, detail="Refund amount is outside the refundable balance.")
+        payment.refund_amount_minor += refunded_amount
+        payment.status = "refunded" if payment.refund_amount_minor >= payment.amount_minor else "partially_refunded"
+        _ledger(db, payment, f"safepay:{event_id}", "refund_confirmed", refunded_amount, "succeeded", reference=str(provider_transaction or tracker or ""), note="Refund confirmed by verified provider webhook")
+    elif state in {"complete", "completed", "success", "succeeded", "paid", "captured", "payment.complete", "payment.completed", "payment.succeeded", "payment.captured"} or state.endswith((".completed", ".succeeded", ".captured")):
+        payment.provider_transaction = str(provider_transaction) if provider_transaction else payment.provider_transaction
+        already_captured = db.query(models.PaymentLedgerEntry).filter(
+            models.PaymentLedgerEntry.payment_id == payment.id,
+            models.PaymentLedgerEntry.event_type == "payment_captured",
+            models.PaymentLedgerEntry.status == "succeeded",
+        ).first()
+        payment.status = "succeeded" if payment.status not in {"refunded", "partially_refunded", "refund_requested"} else payment.status
+        if not already_captured:
+            _ledger(db, payment, f"safepay:{event_id}", "payment_captured", payment.amount_minor, "succeeded", reference=str(provider_transaction or tracker or ""), note="Payment confirmed by verified provider webhook")
+        else:
+            _ledger(db, payment, f"safepay:{event_id}", "provider_event", 0, payment.status, reference=str(provider_transaction or tracker or ""), note="Duplicate captured state; no second capture ledger entry")
+    elif state in {"failed", "declined", "payment.failed", "cancelled", "canceled", "void"}:
+        if payment.status not in {"succeeded", "refunded"}:
+            payment.status = "failed"
+        _ledger(db, payment, f"safepay:{event_id}", "payment_failed", payment.amount_minor, "failed", reference=str(provider_transaction or tracker or ""), note="Provider reported payment failure")
+    else:
+        payment.status = "processing" if payment.status == "pending" else payment.status
+        _ledger(db, payment, f"safepay:{event_id}", "provider_event", payment.amount_minor, payment.status, reference=str(provider_transaction or tracker or ""), note=f"Provider state: {state[:100]}")
+    payment.last_provider_event_id = str(event_id)
+    payment.updated_at = models.utcnow_naive()
+    db.commit()
+    return {"status": "ok", "duplicate": False}
+
+
+class RefundRequest(BaseModel):
+    idempotency_key: str = Field(min_length=16, max_length=128)
+    amount_minor: Optional[int] = Field(default=None, ge=1)
+    reason: str = Field(min_length=5, max_length=255)
+
+
+@app.post("/api/admin/payments/{payment_id}/refund-request")
+def request_payment_refund(
+    payment_id: str, data: RefundRequest,
+    current_admin: models.User = Depends(get_admin),
+    db: Session = Depends(database.get_db),
+):
+    payment = db.query(models.Payment).filter(models.Payment.public_id == payment_id).with_for_update().first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found.")
+    if payment.status not in {"succeeded", "partially_refunded"}:
+        raise HTTPException(status_code=409, detail="Only captured payments can be submitted for refund review.")
+    event_key = f"{payment.public_id}:refund-request:{data.idempotency_key}"
+    previous_request = db.query(models.PaymentLedgerEntry).filter(models.PaymentLedgerEntry.event_key == event_key).first()
+    if previous_request:
+        return {"status": "refund_requested", "payment": _payment_view(payment), "idempotent_replay": True, "message": "This refund request was already recorded; no additional request was created."}
+    amount = data.amount_minor or (payment.amount_minor - payment.refund_amount_minor)
+    if amount <= 0 or amount > payment.amount_minor - payment.refund_amount_minor:
+        raise HTTPException(status_code=400, detail="Refund amount exceeds the refundable balance.")
+    payment.status = "refund_requested"
+    _ledger(db, payment, event_key, "refund_requested", amount, "pending_manual_review", reference=payment.provider_transaction or payment.provider_tracker, note=f"Admin {current_admin.id}: {data.reason}")
+    db.commit()
+    # Safepay's published one-time tracker docs do not specify a universal refund API path.
+    # Do not call a guessed endpoint or claim a refund happened; reconcile the actual refund via provider dashboard/webhook.
+    return {"status": "refund_requested", "payment": _payment_view(payment), "message": "Refund request recorded for provider processing. Funds are not marked refunded until a verified Safepay confirmation is received."}
+
+
+@app.get("/api/admin/payments/reconciliation")
+def payment_reconciliation(
+    current_admin: models.User = Depends(get_admin),
+    db: Session = Depends(database.get_db),
+):
+    payments = db.query(models.Payment).order_by(models.Payment.id.desc()).limit(500).all()
+    rows = []
+    mismatches = []
+    for payment in payments:
+        entries = db.query(models.PaymentLedgerEntry).filter(models.PaymentLedgerEntry.payment_id == payment.id).all()
+        captured = sum(e.amount_minor for e in entries if e.event_type == "payment_captured" and e.status == "succeeded")
+        refunded = sum(e.amount_minor for e in entries if e.event_type == "refund_confirmed" and e.status == "succeeded")
+        expected_captured = payment.amount_minor if payment.status in {"succeeded", "partially_refunded", "refunded", "refund_requested"} else 0
+        mismatch = captured != expected_captured or refunded > payment.amount_minor or (payment.status == "refunded" and refunded < payment.amount_minor)
+        row = {"payment_id": payment.public_id, "status": payment.status, "currency": payment.currency, "amount_minor": payment.amount_minor, "ledger_captured_minor": captured, "ledger_refunded_minor": refunded, "mismatch": mismatch}
+        rows.append(row)
+        if mismatch:
+            mismatches.append(row)
+    return {"status": "success", "checked_count": len(rows), "mismatch_count": len(mismatches), "mismatches": mismatches, "payments": rows}
 
 
 # ============================================================

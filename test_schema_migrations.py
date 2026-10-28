@@ -76,7 +76,9 @@ def test_old_schema_is_migrated_idempotently_without_losing_rows(tmp_path):
         revision = connection.execute(
             text("SELECT version_num FROM alembic_version")
         ).scalar_one()
-        assert revision == "20261029_0003"
+        assert revision == "20261029_0004"
+        assert "payments" in inspector.get_table_names()
+        assert "payment_ledger_entries" in inspector.get_table_names()
         # Legacy advocates get a directory profile, but not public verification.
         advocate = connection.execute(
             text("SELECT user_id, name, chamber_address, is_verified, address "

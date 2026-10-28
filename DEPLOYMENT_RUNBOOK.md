@@ -68,3 +68,17 @@ Current audit results: Python compilation passed; 12 API integration tests, one 
 - Verified legal research and authoritative case-law retrieval are not connected. Do not cite model-generated statutes/cases as verified law.
 - The deployment target must provide persistent object storage before user-uploaded media is enabled for production; local filesystem upload storage is not durable across many hosting restarts.
 - Before public launch, verify actual bar-license records through authoritative sources, test access isolation between multiple accounts, exercise backups/restores, and complete manual browser/mobile testing.
+
+
+## Phase 5 — Safepay sandbox configuration
+
+Set these only in the backend's private environment settings (Render), never in Vercel/frontend code or committed files:
+
+- `SAFEPAY_ENVIRONMENT=sandbox`
+- `SAFEPAY_API_KEY` — sandbox merchant API key/secret required by the Safepay order API
+- `SAFEPAY_WEBHOOK_SECRET` — secret used to validate the configured webhook signature
+- `SAFEPAY_REDIRECT_URL` and `SAFEPAY_CANCEL_URL` — HTTPS frontend return URLs
+
+Register `https://<your-render-service>/api/webhooks/safepay` as the provider webhook URL. Use Safepay sandbox cards only. The return URL is informational; it never marks a payment paid. Verify the actual signature header and signing algorithm shown in your Safepay dashboard/docs before accepting real webhooks.
+
+Payment checkout is server-priced from a confirmed appointment and uses PKR minor units (100 paisa per PKR). `/api/admin/payments/reconciliation` is admin-only. Refund requests are recorded in the audit ledger; they remain pending until Safepay confirms the refund. Automatic refund submission to Safepay is still gated on confirmation of the supported one-time-payment refund API for this merchant account. Do not enable production mode or advertise escrow until provider-side refund processing, webhook signatures, reconciliation and a restore drill are verified end-to-end.

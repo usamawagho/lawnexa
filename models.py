@@ -8,6 +8,8 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Float,
+    UniqueConstraint,
+    Index,
 )
 from sqlalchemy.orm import relationship
 from database import Base
@@ -123,3 +125,47 @@ class Appointment(Base):
     meeting_type = Column(String(20), default="physical", nullable=True)
     meeting_mode = Column(String(20), default="chamber", nullable=True)
     consultation_fee = Column(Integer, nullable=True)
+
+
+class Payment(Base):
+    """Server-authoritative Safepay payment record; amounts are stored in minor units."""
+    __tablename__ = "payments"
+    __table_args__ = (
+        UniqueConstraint("idempotency_key", name="uq_payments_idempotency_key"),
+        UniqueConstraint("provider_tracker", name="uq_payments_provider_tracker"),
+        Index("ix_payments_appointment_status", "appointment_id", "status"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    public_id = Column(String(36), nullable=False, unique=True, index=True)
+    appointment_id = Column(Integer, ForeignKey("appointments.id"), nullable=False, index=True)
+    client_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    amount_minor = Column(Integer, nullable=False)
+    currency = Column(String(3), nullable=False, default="PKR")
+    status = Column(String(32), nullable=False, default="pending")
+    provider = Column(String(32), nullable=False, default="safepay")
+    provider_tracker = Column(String(120), nullable=True)
+    provider_transaction = Column(String(120), nullable=True)
+    idempotency_key = Column(String(128), nullable=False)
+    checkout_url = Column(Text, nullable=True)
+    refund_amount_minor = Column(Integer, nullable=False, default=0)
+    last_provider_event_id = Column(String(180), nullable=True)
+    created_at = Column(DateTime, nullable=False, default=utcnow_naive)
+    updated_at = Column(DateTime, nullable=False, default=utcnow_naive, onupdate=utcnow_naive)
+
+
+class PaymentLedgerEntry(Base):
+    """Append-only payment audit/ledger events; never store card data or secrets."""
+    __tablename__ = "payment_ledger_entries"
+    __table_args__ = (Index("ix_payment_ledger_payment_created", "payment_id", "created_at"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    payment_id = Column(Integer, ForeignKey("payments.id"), nullable=False, index=True)
+    event_key = Column(String(180), nullable=False, unique=True)
+    event_type = Column(String(40), nullable=False)
+    amount_minor = Column(Integer, nullable=False)
+    currency = Column(String(3), nullable=False, default="PKR")
+    status = Column(String(32), nullable=False)
+    provider_reference = Column(String(120), nullable=True)
+    note = Column(String(255), nullable=True)
+    created_at = Column(DateTime, nullable=False, default=utcnow_naive)

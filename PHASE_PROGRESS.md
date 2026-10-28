@@ -61,8 +61,16 @@ This document tracks the **top-level project only**. The `nonpay/`, `regfix/`, a
 - Inline JavaScript syntax checks for both `index.html` and `admin.html`: passed.
 - Full browser-based test against the live Render/Vercel deployment has **not** been run here; deploy configuration, real email/payment integrations, and multi-browser/manual smoke testing remain release gates.
 
+## Phase 5 — Safepay sandbox payments (implementation in progress)
+
+- Added additive Alembic migration `20261029_0004` for payment records and append-only ledger events; it does not alter existing appointment/user rows.
+- Added server-priced appointment checkout, PKR minor-unit amounts, per-request idempotency, provider tracker creation, and a hosted checkout URL. Checkout creation is disabled until sandbox credentials are configured.
+- Added webhook HMAC verification against the exact raw request body, provider-event deduplication, amount/currency checks, and server-only payment status updates. Browser redirects do not confirm payment. Confirm the exact signature header/algorithm against the merchant's current Safepay webhook configuration before deploying.
+- Added admin reconciliation endpoint and idempotent refund-request ledger workflow. A refund is **not** marked complete unless a verified provider event confirms it. Safepay's published one-time tracker reference did not provide a definitive universal refund endpoint, so automatic provider-side refund initiation remains gated pending confirmation from Safepay; do not claim this part is production-ready yet.
+- Automated tests cover checkout idempotency, webhook signature rejection/acceptance, successful webhook reconciliation, duplicate event delivery, and additive migration. Tests in this audit environment use temporary test-only auth/password shims because `python-jose` and `passlib` are not installed here; those shims are not included in the project.
+
 ## Next phases
 
-- **Phase 5 — Payment and money movement:** integrate the selected provider in sandbox first, verify signed webhooks, idempotency, reconciliation, refunds, and audit ledger. Do not enable wallet/escrow UI until this passes.
+- **Phase 6 — Legal AI and research:** connect a real retrieval/citation source, jurisdiction/date aware workflows, and adversarial citation tests; no invented legal authority.
 - **Phase 6 — Legal AI and research:** connect a real retrieval/citation source, jurisdiction/date aware workflows, and adversarial citation tests; no invented legal authority.
 - **Phase 7 — Production readiness:** run the full suite using the actual production dependency set, secure upload storage, CI/security scans, deployment smoke tests, logs/alerting, and a backup/restore exercise.

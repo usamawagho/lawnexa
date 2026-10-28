@@ -22,25 +22,3 @@ uploads/
 *.zip
 *.log
 *-diff.txt
-# Secrets
-.env
-.env.*
-!.env.example
-!.env.staging.example
-
-# Local databases and archives
-*.db
-*.sqlite
-*.sqlite3
-Law zip.zip
-ZIP MAIN.zip
-
-# Python cache and test cache
-__pycache__/
-.pytest_cache/
-.venv/
-venv/
-
-# Uploaded user files
-uploads/*
-!uploads/.gitkeep
