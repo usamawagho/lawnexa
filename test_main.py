@@ -431,3 +431,31 @@ def _cleanup_test_database():
 
 
 atexit.register(_cleanup_test_database)
+
+def test_legal_research_requires_authentication():
+    response = client.post(
+        "/api/ai-legal-research",
+        json={"user_input": "What are my legal options?"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_legal_research_does_not_invent_legal_authorities():
+    payload = client_payload("legal-research@example.com")
+    registered = register(payload)
+
+    response = client.post(
+        "/api/ai-legal-research",
+        headers=token_headers(registered),
+        json={
+            "user_input": "What are my legal options?",
+            "language": "roman_urdu",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert result["status"] == "unavailable"
+    assert result["case_brief"] is None
+    assert "not connected" in result["reply"].lower()

@@ -1,4 +1,4 @@
-
+﻿
 import json
 import logging
 import os
@@ -1926,37 +1926,27 @@ class LegalResearchRequest(BaseModel):
     language: Optional[str] = "roman_urdu"
 
 
+
 @app.post("/api/ai-legal-research")
-async def process_legal_research(req: LegalResearchRequest):
+async def process_legal_research(
+    req: LegalResearchRequest,
+    current_user: models.User = Depends(get_current_user),
+):
     if not req.user_input.strip():
         raise HTTPException(
             status_code=400,
             detail="Please enter your legal question or case facts.",
         )
 
-    if len(req.history) < 3:
-        return {
-            "status": "clarifying",
-            "reply": (
-                "Aapke case ko behtar samajhne ke liye batayein: "
-                "kya is waqye mein kisi ko physical injury hui hai, "
-                "ya sirf vehicle/property damage hua hai?"
-            ),
-            "case_brief": None,
-        }
-
-    # This is a placeholder, not a live legal research engine.
+    # Phase 6: Do not claim legal research is complete until
+    # trusted source retrieval and citation verification are implemented.
     return {
-        "status": "completed",
+        "status": "unavailable",
         "reply": (
-            "Initial case summary tayyar hai. Final legal advice ya "
-            "applicable laws confirm karne ke liye relevant facts, "
-            "jurisdiction aur original legal sources verify karein."
+            "Verified Pakistani legal research is not connected yet. "
+            "No legal authorities or case citations have been generated. "
+            "Please verify applicable law through official sources or "
+            "a qualified advocate."
         ),
-        "case_brief": {
-            "category": "Preliminary review",
-            "applicable_laws": [],
-            "summary": req.user_input,
-            "recommended_specialty": None,
-        },
+        "case_brief": None,
     }
