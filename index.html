@@ -909,13 +909,13 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Chamber Name <span class="text-red-600">*</span></label>
-                        <input type="text" id="reg-chamber-name" placeholder="e.g. Ali Legal Chamber" required maxlength="150" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-600">
+                        <input type="text" id="reg-chamber-name" placeholder="e.g. Ali Legal Chamber" maxlength="150" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-600">
                         <p class="text-[11px] text-slate-500 mt-1">This name will appear on documents generated under your advocate account.</p>
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Chamber Address *</label>
-                        <input type="text" id="reg-chamber" placeholder="Chamber 102, High Court Bar" required class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-600">
+                        <input type="text" id="reg-chamber" placeholder="Chamber 102, High Court Bar" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-600">
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
@@ -1513,48 +1513,93 @@
         }
 
         async function handleAuthSubmit(e) {
-            e.preventDefault();
+            if (e) e.preventDefault();
 
             const submitBtn = document.getElementById('auth-submit-btn');
-            const email = document.getElementById('reg-email').value.trim().toLowerCase();
-            const password = document.getElementById('reg-password').value;
+            const originalText = submitBtn ? submitBtn.innerText : 'Sign In';
             const isRegister = currentAuthMode === 'register';
-
-            const payload = { email, password };
-
-            if (isRegister) {
-                payload.full_name = document.getElementById('reg-fullname').value.trim();
-                payload.phone = document.getElementById('reg-phone').value.trim() || null;
-                payload.address = document.getElementById('reg-address').value.trim() || null;
-                payload.role = currentSelectedRole;
-
-                const cityField = document.getElementById('reg-city');
-                payload.city = cityField ? (cityField.value.trim() || null) : null;
-
-                if (currentSelectedRole === 'advocate') {
-                    payload.bar_council_no = document.getElementById('reg-bar-no').value.trim() || null;
-                    payload.bar_association = document.getElementById('reg-bar-association').value.trim() || null;
-                    payload.chamber_name = document.getElementById('reg-chamber-name').value.trim();
-                    payload.chamber_address = document.getElementById('reg-chamber').value.trim();
-                    if (!payload.chamber_name) { showToast('Chamber Name is required.', 'error'); document.getElementById('reg-chamber-name').focus(); return; }
-                    const expValue = document.getElementById('reg-exp').value;
-                    const feeValue = document.getElementById('reg-fee').value;
-                    payload.experience_years = expValue === '' ? null : Number(expValue);
-                    payload.consultation_fee = feeValue === '' ? null : Number(feeValue);
-                    payload.specializations = [...customSpecializations];
-                }
-            }
-
-            const apiBase = resolveApiBase(window.location);
-            const originalText = submitBtn.innerText;
-            submitBtn.disabled = true;
-            submitBtn.innerText = 'Connecting...';
-
-            // 8-Second Server Timeout
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            let timeoutId = null;
 
             try {
+                // Login and registration share these fields; do not touch registration-only
+                // fields until registration mode has been confirmed.
+                const emailEl = document.getElementById('reg-email');
+                const passwordEl = document.getElementById('reg-password');
+                if (!emailEl || !passwordEl) {
+                    showToast('Authentication fields are missing. Please reload the page.', 'error');
+                    return;
+                }
+
+                const email = emailEl.value.trim().toLowerCase();
+                const password = passwordEl.value;
+                if (!email || !password) {
+                    showToast('Please enter your email and password.', 'error');
+                    (!email ? emailEl : passwordEl).focus();
+                    return;
+                }
+
+                const payload = { email, password };
+                if (isRegister) {
+                    const fullNameEl = document.getElementById('reg-fullname');
+                    const phoneEl = document.getElementById('reg-phone');
+                    const addressEl = document.getElementById('reg-address');
+                    if (!fullNameEl || !phoneEl || !addressEl) {
+                        showToast('Registration fields are missing. Please reload the page.', 'error');
+                        return;
+                    }
+                    payload.full_name = fullNameEl.value.trim();
+                    if (!payload.full_name) {
+                        showToast('Please enter your full name.', 'error');
+                        fullNameEl.focus();
+                        return;
+                    }
+                    payload.phone = phoneEl.value.trim() || null;
+                    payload.address = addressEl.value.trim() || null;
+                    payload.role = currentSelectedRole;
+
+                    const cityField = document.getElementById('reg-city');
+                    payload.city = cityField ? (cityField.value.trim() || null) : null;
+
+                    if (currentSelectedRole === 'advocate') {
+                        const chamberNameEl = document.getElementById('reg-chamber-name');
+                        const chamberAddressEl = document.getElementById('reg-chamber');
+                        if (!chamberNameEl || !chamberAddressEl) {
+                            showToast('Chamber fields are missing. Please reload the page.', 'error');
+                            return;
+                        }
+                        payload.chamber_name = chamberNameEl.value.trim();
+                        payload.chamber_address = chamberAddressEl.value.trim();
+                        if (!payload.chamber_name) {
+                            showToast('Chamber Name is required.', 'error');
+                            chamberNameEl.focus();
+                            return;
+                        }
+                        if (!payload.chamber_address) {
+                            showToast('Chamber Address is required.', 'error');
+                            chamberAddressEl.focus();
+                            return;
+                        }
+
+                        const barNoEl = document.getElementById('reg-bar-no');
+                        const barAssociationEl = document.getElementById('reg-bar-association');
+                        const expEl = document.getElementById('reg-exp');
+                        const feeEl = document.getElementById('reg-fee');
+                        payload.bar_council_no = barNoEl ? (barNoEl.value.trim() || null) : null;
+                        payload.bar_association = barAssociationEl ? (barAssociationEl.value.trim() || null) : null;
+                        payload.experience_years = expEl && expEl.value !== '' ? Number(expEl.value) : null;
+                        payload.consultation_fee = feeEl && feeEl.value !== '' ? Number(feeEl.value) : null;
+                        payload.specializations = [...customSpecializations];
+                    }
+                }
+
+                const apiBase = resolveApiBase(window.location);
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Processing...';
+                }
+
+                const controller = new AbortController();
+                timeoutId = setTimeout(() => controller.abort(), 12000);
                 const response = await fetch(`${apiBase}/api/${isRegister ? 'register' : 'login'}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1562,6 +1607,7 @@
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
+                timeoutId = null;
 
                 const result = await response.json().catch(() => ({}));
                 if (!response.ok) {
@@ -1573,23 +1619,22 @@
                     return;
                 }
 
+                const userData = result.user || result;
                 const userObj = {
-                    ...result.user,
-                    full_name: result.user.full_name || payload.full_name || email.split('@')[0],
-                    profile_image: result.user.profile_image || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-                    bar_no: result.user.bar_council_no || payload.bar_council_no || null,
-                    chamber_name: result.user.chamber_name || payload.chamber_name || null,
-                    chamber: result.user.chamber_address || payload.chamber_address || null,
-                    fee: result.user.consultation_fee ?? payload.consultation_fee ?? null,
-                    exp: result.user.experience_years ?? payload.experience_years ?? null,
-                    specializations: result.user.specializations || payload.specializations || []
+                    ...userData,
+                    full_name: userData.full_name || payload.full_name || email.split('@')[0],
+                    profile_image: userData.profile_image || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+                    bar_no: userData.bar_council_no || payload.bar_council_no || null,
+                    chamber_name: userData.chamber_name || payload.chamber_name || null,
+                    chamber: userData.chamber_address || payload.chamber_address || null,
+                    fee: userData.consultation_fee ?? payload.consultation_fee ?? null,
+                    exp: userData.experience_years ?? payload.experience_years ?? null,
+                    specializations: userData.specializations || payload.specializations || []
                 };
 
-                sessionStorage.setItem('token', result.token);
+                const token = result.access_token || result.token;
+                if (token) sessionStorage.setItem('token', token);
                 localStorage.setItem('user', JSON.stringify(userObj));
-
-                // Advocate accounts are never inserted into the public directory by the browser.
-                // Publication requires admin approval and manual license verification.
 
                 closeAuthModal();
                 updateAuthUI();
@@ -1598,14 +1643,17 @@
                 showToast(isRegister && userObj.role === 'advocate'
                     ? 'Account created. Public directory mein aane se pehle admin approval aur license verification zaroori hai.'
                     : (isRegister ? 'Account created successfully!' : 'Welcome back, ' + userObj.full_name), 'success');
-
             } catch (error) {
-                clearTimeout(timeoutId);
+                if (timeoutId) clearTimeout(timeoutId);
                 console.error('Authentication Error:', error);
-                showToast("Server se connection nahi ho saka ya request timeout ho gayi. Kripya dobara koshish karein.", "error");
+                showToast(error && error.name === 'AbortError'
+                    ? 'Server response timed out. Please try again.'
+                    : (error.message || 'An unexpected authentication error occurred.'), 'error');
             } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerText = originalText;
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = currentAuthMode === 'register' ? 'Complete Registration' : originalText;
+                }
             }
         }
 
