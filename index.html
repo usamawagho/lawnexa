@@ -77,6 +77,27 @@
         <span id="toast-message" class="text-xs font-semibold">Action completed successfully.</span>
     </div>
 
+    <style>
+        /* Keep the desktop navigation tidy while allowing safe overflow on narrower laptops. */
+        #dynamic-nav-container {
+            -ms-overflow-style: none; /* Legacy Edge / IE */
+            scrollbar-width: none; /* Firefox */
+            overscroll-behavior-x: contain;
+        }
+        #dynamic-nav-container::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+        #dynamic-nav-container > a {
+            flex: 0 0 auto;
+            padding-left: 0.375rem;
+            padding-right: 0.375rem;
+            font-size: 0.75rem;
+        }
+        @media (min-width: 1024px) {
+            #dynamic-nav-container > a { font-size: 0.8125rem; }
+        }
+    </style>
+
     <!-- Navigation Header -->
     <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-40 no-print border-b border-emerald-900/50 w-full overflow-hidden">
         <div class="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 flex justify-between items-center gap-2 sm:gap-4 min-w-0">
@@ -92,7 +113,7 @@
             </div>
 
             <!-- Desktop Nav Container -->
-            <nav id="dynamic-nav-container" class="hidden md:flex items-center space-x-1 lg:space-x-3 text-xs lg:text-sm font-semibold whitespace-nowrap overflow-x-auto py-1 min-w-0 flex-1 justify-center">
+            <nav id="dynamic-nav-container" class="hidden md:flex items-center space-x-0.5 lg:space-x-1 text-xs lg:text-sm font-semibold whitespace-nowrap overflow-x-auto py-1 min-w-0 flex-1 justify-start">
             </nav>
 
             <div class="flex items-center space-x-2 shrink-0 ml-auto">
@@ -1140,6 +1161,26 @@
             return 'https://lawnexa.onrender.com';
         }
 
+        let invalidSessionResetInProgress = false;
+
+        function resetInvalidAuthSession(message = 'Your session has expired or your account was not found. Please sign in again.') {
+            // Avoid repeated toasts/UI refreshes when several requests fail at once.
+            if (invalidSessionResetInProgress) return;
+            invalidSessionResetInProgress = true;
+            sessionStorage.removeItem('token');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            try {
+                if (typeof updateAuthUI === 'function') updateAuthUI();
+                if (typeof switchTab === 'function') switchTab('home-tab');
+            } catch (uiError) {
+                console.warn('Could not fully refresh the UI after clearing an invalid session.', uiError);
+            }
+            showToast(message, 'error');
+            // Let a later, intentional sign-in attempt proceed normally.
+            invalidSessionResetInProgress = false;
+        }
+
         async function apiRequest(path, options = {}) {
             const headers = { 'Accept': 'application/json', ...(options.headers || {}) };
             if (options.body !== undefined && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
@@ -1149,8 +1190,19 @@
             const result = await response.json().catch(() => ({}));
             if (!response.ok) {
                 const detail = result.detail;
-                const message = Array.isArray(detail) ? detail.map(item => item.msg || 'Invalid request').join(', ') : (detail || `Request failed (${response.status})`);
-                throw new Error(message);
+                const message = Array.isArray(detail) ? detail.map(item => item.msg || 'Invalid request').join(', ') : String(detail || `Request failed (${response.status})`);
+                const normalizedMessage = message.toLowerCase();
+                const unavailableAccount = normalizedMessage.includes('user account is unavailable') || normalizedMessage.includes('user not found') || normalizedMessage.includes('account not found');
+                // 401 always means the current credentials are not accepted. Only clear on
+                // 403 when the API explicitly says the authenticated account is unavailable;
+                // ordinary permission-denied responses must not unexpectedly log users out.
+                if (response.status === 401 || unavailableAccount) {
+                    resetInvalidAuthSession();
+                }
+                const error = new Error(message);
+                error.status = response.status;
+                error.authSessionReset = response.status === 401 || unavailableAccount;
+                throw error;
             }
             return result;
         }
@@ -1193,7 +1245,11 @@
                 renderMyBookings(); renderClientRequests();
             } catch (error) {
                 console.error('Appointment list failed to load:', error);
-                showToast(`Appointments server se load nahi huin: ${error.message}`, 'error');
+                // apiRequest already cleared an invalid/expired session and showed the
+                // re-login message. Avoid a second, confusing appointment error toast.
+                if (!error.authSessionReset) {
+                    showToast(`Appointments server se load nahi huin: ${error.message}`, 'error');
+                }
             }
         }
 
@@ -1607,7 +1663,7 @@
                         <a href="#" onclick="switchTab('escrow-tab'); toggleMobileDrawer();" class="block p-2 text-xs font-semibold hover:text-yellow-400">Earnings & Wallet</a>
                     `;
                     navContainer.innerHTML = `
-                        <a href="#" onclick="switchTab('home-tab')" class="hover:text-yellow-400 transition px-2 py-1">Practice Dashboard</a>
+                        <a href="#" onclick="switchTab('home-tab')" class="bg-emerald-800 hover:bg-emerald-700 text-yellow-400 font-extrabold transition px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm border border-yellow-500/40 shrink-0"><i class="fa-solid fa-robot text-sm" aria-hidden="true"></i> AI Legal Assistant</a>
                         <a href="#" id="requests-tab" onclick="switchTab('requests-tab')" class="hover:text-yellow-400 transition px-2 py-1">Client Leads</a>
                         <a href="#" id="feed-tab" onclick="switchTab('feed-tab')" class="hover:text-yellow-400 transition px-2 py-1 flex items-center gap-1">
                             <i class="fa-solid fa-scale-unbalanced-flip text-yellow-400 text-xs"></i> Bar Feed & Debates
@@ -1625,7 +1681,7 @@
                         <a href="#" onclick="switchTab('escrow-tab'); toggleMobileDrawer();" class="block p-2 text-xs font-semibold hover:text-yellow-400">My Wallet</a>
                     `;
                     navContainer.innerHTML = `
-                        <a href="#" onclick="switchTab('home-tab')" class="hover:text-yellow-400 transition px-2 py-1">Home</a>
+                        <a href="#" onclick="switchTab('home-tab')" class="bg-emerald-800 hover:bg-emerald-700 text-yellow-400 font-extrabold transition px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm border border-yellow-500/40 shrink-0"><i class="fa-solid fa-robot text-sm" aria-hidden="true"></i> AI Legal Assistant</a>
                         <a href="#" id="advocates-tab" onclick="switchTab('advocates-tab')" class="hover:text-yellow-400 transition px-2 py-1">Advocates</a>
                         <a href="#" id="bookings-tab" onclick="switchTab('bookings-tab')" class="hover:text-yellow-400 transition px-2 py-1">My Bookings</a>
                         <a href="#" id="docgen-tab" onclick="switchTab('docgen-tab')" class="hover:text-yellow-400 transition px-2 py-1">Public Document Generator</a>
@@ -1667,7 +1723,7 @@
                     kpiContainer.classList.remove('grid');
                 }
                 navContainer.innerHTML = `
-                    <a href="#" onclick="switchTab('home-tab')" class="hover:text-yellow-400 transition px-2 py-1">Home</a>
+                    <a href="#" onclick="switchTab('home-tab')" class="bg-emerald-800 hover:bg-emerald-700 text-yellow-400 font-extrabold transition px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm border border-yellow-500/40 shrink-0"><i class="fa-solid fa-robot text-sm" aria-hidden="true"></i> AI Legal Assistant</a>
                     <a href="#" id="advocates-tab" onclick="switchTab('advocates-tab')" class="hover:text-yellow-400 transition px-2 py-1">Advocates</a>
                     <a href="#" id="bookings-tab" onclick="switchTab('bookings-tab')" class="hover:text-yellow-400 transition px-2 py-1">My Bookings</a>
                     <a href="#" id="docgen-tab" onclick="switchTab('docgen-tab')" class="hover:text-yellow-400 transition px-2 py-1">Doc Generator</a>
@@ -1680,6 +1736,9 @@
                     </button>
                 `;
             }
+
+            // Ensure the first navigation item (AI Assistant) is always visible after role changes.
+            if (navContainer) navContainer.scrollLeft = 0;
 
             renderDocTemplatesDropdown();
         }
@@ -1694,6 +1753,10 @@
         }
 
         function switchTab(tabId) {
+            if (tabId === 'home-tab') {
+                const navContainer = document.getElementById('dynamic-nav-container');
+                if (navContainer) navContainer.scrollLeft = 0;
+            }
             if (tabId !== 'home-tab' && !isLoggedIn()) {
                 openAuthModal();
                 return false;
@@ -2817,12 +2880,26 @@
 
             form.innerHTML = tmpl.fields.map(f => `
                 <div>
-                    <label class="block text-xs font-bold text-slate-800 mb-1">${f.label} *</label>
-                    <input type="text" id="doc_field_${f.id}" placeholder="${f.placeholder}" class="w-full border border-slate-300 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-emerald-600 bg-white shadow-xs">
+                    <label class="block text-xs font-bold text-slate-800 mb-1">${escapeHTML(f.label)} *</label>
+                    <input type="text" id="doc_field_${escapeHTML(f.id)}" placeholder="${escapeHTML(f.placeholder)}" required aria-required="true" class="w-full border border-slate-300 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-emerald-600 bg-white shadow-xs">
                 </div>
             `).join('');
 
             updateLiveDocumentPreview();
+        }
+
+        function validateActiveDocumentFields(showMessage = true) {
+            const selectVal = document.getElementById('doc-type-select')?.value;
+            const tmpl = getActiveTemplateDict()[selectVal];
+            if (!tmpl) return false;
+            const missing = tmpl.fields.filter(f => !String(document.getElementById(`doc_field_${f.id}`)?.value || '').trim());
+            if (missing.length) {
+                if (showMessage) showToast(`Please complete required fields: ${missing.map(f => f.label).join(', ')}`, 'error');
+                const first = document.getElementById(`doc_field_${missing[0].id}`);
+                if (first) first.focus();
+                return false;
+            }
+            return true;
         }
 
         function updateLiveDocumentPreview() {
@@ -2852,7 +2929,7 @@
                 fullDocumentHTML = `
                     <div style="border: 2px solid #0f172a; padding: 25px; background: #fff; color: #000; min-height: 700px; box-sizing: border-box;">
                         <!-- ADVOCATE CHAMBER LETTERHEAD -->
-                        <div style="border-b: 3px double #0f172a; pb: 12px; margin-bottom: 25px; text-align: center;">
+                        <div style="border-bottom: 3px double #0f172a; padding-bottom: 12px; margin-bottom: 25px; text-align: center;">
                             <h1 style="font-size: 20px; font-weight: bold; font-family: 'Times New Roman', serif; text-transform: uppercase; margin: 0; color: #0f172a;">CHAMBERS OF ${advocateName}</h1>
                             <p style="font-size: 11px; font-weight: bold; margin: 4px 0 0 0; color: #1e3a8a;">ADVOCATE HIGH COURT & SUPREME COURT OF PAKISTAN</p>
                             <p style="font-size: 10px; margin: 2px 0 0 0; color: #475569;"><strong>Bar Council Reg No:</strong> ${barNo} &nbsp;|&nbsp; <strong>Chamber Address:</strong> ${chamberName}</p>
@@ -2866,8 +2943,8 @@
                     <div style="border: 3px solid #15803d; padding: 20px; background: #fff; color: #000; min-height: 700px; box-sizing: border-box;">
                         <!-- GOVERNMENT E-STAMP HEADER EMBLEM -->
                         <div style="border: 2px solid #166534; padding: 12px; background: #f0fdf4; margin-bottom: 25px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; border-b: 1px solid #bbf7d0; padding-bottom: 8px;">
-                                <div style="font-size: 10px; font-bold; color: #14532d;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #bbf7d0; padding-bottom: 8px;">
+                                <div style="font-size: 10px; font-weight: bold; color: #14532d;">
                                     <strong>LAWNEXA DOCUMENT DRAFT</strong><br>
                                     Sample template — not government-issued
                                 </div>
@@ -2922,6 +2999,7 @@
                 showToast('Generate a document preview first.', 'error');
                 return;
             }
+            if (!validateActiveDocumentFields(true)) return;
 
             try {
                 const response = await fetch(`${resolveApiBase(window.location)}/api/documents/save`, {
@@ -2944,7 +3022,7 @@
                     showToast(message, 'error');
                     return;
                 }
-                showToast('Document saved securely to your LawNexa account.', 'success');
+                showToast('Document saved to your LawNexa account.', 'success');
             } catch (error) {
                 showToast('Could not connect to LawNexa. The document has not been saved.', 'error');
             }

@@ -1,4 +1,4 @@
-﻿
+
 import json
 import logging
 import os
@@ -9,7 +9,6 @@ from zoneinfo import ZoneInfo
 from typing import Any, Optional
 from pathlib import Path
 from dotenv import load_dotenv
-from legal_sources import get_legal_sources
 
 APP_DIR = Path(__file__).resolve().parent
 load_dotenv(APP_DIR / ".env", override=False)
@@ -1927,38 +1926,37 @@ class LegalResearchRequest(BaseModel):
     language: Optional[str] = "roman_urdu"
 
 
-
-
-
 @app.post("/api/ai-legal-research")
-async def process_legal_research(
-    req: LegalResearchRequest,
-    current_user: models.User = Depends(get_current_user),
-):
-    user_input = req.user_input.strip()
-
-    if not user_input:
+async def process_legal_research(req: LegalResearchRequest):
+    if not req.user_input.strip():
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail="Please enter your legal question or case facts.",
         )
-    # Phase 6.1: expose curated source portals without pretending
-    # that relevant legislation or judgments have been retrieved.
-    logger.info(
-        "Legal source discovery requested by user_id=%s",
-        current_user.id,
-    )
 
+    if len(req.history) < 3:
+        return {
+            "status": "clarifying",
+            "reply": (
+                "Aapke case ko behtar samajhne ke liye batayein: "
+                "kya is waqye mein kisi ko physical injury hui hai, "
+                "ya sirf vehicle/property damage hua hai?"
+            ),
+            "case_brief": None,
+        }
+
+    # This is a placeholder, not a live legal research engine.
     return {
-        "status": "unavailable",
+        "status": "completed",
         "reply": (
-            "Verified Pakistani legal research is not connected yet. "
-            "The official legal-source directory is provided for discovery only. "
-            "LawNexa has not yet retrieved or verified legislation, amendments, "
-            "or court judgments for your specific question. "
-            "Please check relevant Gazette notifications and consult a "
-            "qualified advocate where appropriate."
+            "Initial case summary tayyar hai. Final legal advice ya "
+            "applicable laws confirm karne ke liye relevant facts, "
+            "jurisdiction aur original legal sources verify karein."
         ),
-        "case_brief": None,
-        "sources": get_legal_sources(),
+        "case_brief": {
+            "category": "Preliminary review",
+            "applicable_laws": [],
+            "summary": req.user_input,
+            "recommended_specialty": None,
+        },
     }

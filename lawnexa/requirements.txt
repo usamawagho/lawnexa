@@ -1,4 +1,4 @@
-﻿```text
+﻿@"
 fastapi>=0.100.0
 uvicorn[standard]>=0.22.0
 sqlalchemy>=2.0.0
@@ -13,3 +13,4 @@ psycopg2-binary>=2.9.6
 psycopg[binary]>=3.1.0
 python-dotenv>=1.0.0
 httpx>=0.25.0
+"@ | Set-Content -Path .\requirements.txt -Encoding utf8

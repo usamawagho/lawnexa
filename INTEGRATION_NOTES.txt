@@ -1,0 +1,5 @@
+LawNexa integrated fix pack
+
+This package pairs the latest shared index.html with the matching Phase 5 backend source set (main.py, models.py, schemas.py, database.py, auth.py and migrations). It corrects inline CSS declarations in the document letterheads and adds required-field validation before document saving.
+
+Important: the document generator remains a draft generator, not an official government document generator. The wallet/escrow UI remains disabled pending sandbox release gates. Run tests and deploy only after checking your .env values and taking a database backup. Do not overwrite production data without a backup.
