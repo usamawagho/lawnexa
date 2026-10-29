@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from typing import Any, Optional
 from pathlib import Path
 from dotenv import load_dotenv
+from legal_sources import get_legal_sources
 
 APP_DIR = Path(__file__).resolve().parent
 load_dotenv(APP_DIR / ".env", override=False)
@@ -1927,26 +1928,37 @@ class LegalResearchRequest(BaseModel):
 
 
 
+
+
 @app.post("/api/ai-legal-research")
 async def process_legal_research(
     req: LegalResearchRequest,
     current_user: models.User = Depends(get_current_user),
 ):
-    if not req.user_input.strip():
+    user_input = req.user_input.strip()
+
+    if not user_input:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Please enter your legal question or case facts.",
         )
+    # Phase 6.1: expose curated source portals without pretending
+    # that relevant legislation or judgments have been retrieved.
+    logger.info(
+        "Legal source discovery requested by user_id=%s",
+        current_user.id,
+    )
 
-    # Phase 6: Do not claim legal research is complete until
-    # trusted source retrieval and citation verification are implemented.
     return {
         "status": "unavailable",
         "reply": (
             "Verified Pakistani legal research is not connected yet. "
-            "No legal authorities or case citations have been generated. "
-            "Please verify applicable law through official sources or "
-            "a qualified advocate."
+            "The official legal-source directory is provided for discovery only. "
+            "LawNexa has not yet retrieved or verified legislation, amendments, "
+            "or court judgments for your specific question. "
+            "Please check relevant Gazette notifications and consult a "
+            "qualified advocate where appropriate."
         ),
         "case_brief": None,
+        "sources": get_legal_sources(),
     }
