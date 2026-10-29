@@ -908,8 +908,14 @@
                     </div>
 
                     <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Chamber Name <span class="text-red-600">*</span></label>
+                        <input type="text" id="reg-chamber-name" placeholder="e.g. Ali Legal Chamber" required maxlength="150" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-600">
+                        <p class="text-[11px] text-slate-500 mt-1">This name will appear on documents generated under your advocate account.</p>
+                    </div>
+
+                    <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Chamber Address *</label>
-                        <input type="text" id="reg-chamber" placeholder="Chamber 102, High Court Bar" class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-600">
+                        <input type="text" id="reg-chamber" placeholder="Chamber 102, High Court Bar" required class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-600">
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
@@ -1528,7 +1534,9 @@
                 if (currentSelectedRole === 'advocate') {
                     payload.bar_council_no = document.getElementById('reg-bar-no').value.trim() || null;
                     payload.bar_association = document.getElementById('reg-bar-association').value.trim() || null;
-                    payload.chamber_address = document.getElementById('reg-chamber').value.trim() || null;
+                    payload.chamber_name = document.getElementById('reg-chamber-name').value.trim();
+                    payload.chamber_address = document.getElementById('reg-chamber').value.trim();
+                    if (!payload.chamber_name) { showToast('Chamber Name is required.', 'error'); document.getElementById('reg-chamber-name').focus(); return; }
                     const expValue = document.getElementById('reg-exp').value;
                     const feeValue = document.getElementById('reg-fee').value;
                     payload.experience_years = expValue === '' ? null : Number(expValue);
@@ -1570,6 +1578,7 @@
                     full_name: result.user.full_name || payload.full_name || email.split('@')[0],
                     profile_image: result.user.profile_image || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
                     bar_no: result.user.bar_council_no || payload.bar_council_no || null,
+                    chamber_name: result.user.chamber_name || payload.chamber_name || null,
                     chamber: result.user.chamber_address || payload.chamber_address || null,
                     fee: result.user.consultation_fee ?? payload.consultation_fee ?? null,
                     exp: result.user.experience_years ?? payload.experience_years ?? null,
@@ -2949,7 +2958,8 @@
             let fullDocumentHTML = '';
 
             if (isLawyer) {
-                const chamberName = escapeHTML(user.chamber_address || user.chamber || "Chamber address not provided");
+                const chamberName = escapeHTML(user.chamber_name || user.chamberName || "Chamber name not provided");
+                const chamberAddress = escapeHTML(user.chamber_address || user.chamber || "Chamber address not provided");
                 const barNo = escapeHTML(user.bar_council_no || user.bar_no || "Bar Council number not provided");
                 const advocateName = escapeHTML(user.full_name || "Advocate name not provided");
 
@@ -2957,9 +2967,9 @@
                     <div style="border: 2px solid #0f172a; padding: 25px; background: #fff; color: #000; min-height: 700px; box-sizing: border-box;">
                         <!-- ADVOCATE CHAMBER LETTERHEAD -->
                         <div style="border-bottom: 3px double #0f172a; padding-bottom: 12px; margin-bottom: 25px; text-align: center;">
-                            <h1 style="font-size: 20px; font-weight: bold; font-family: 'Times New Roman', serif; text-transform: uppercase; margin: 0; color: #0f172a;">CHAMBERS OF ${advocateName}</h1>
-                            <p style="font-size: 11px; font-weight: bold; margin: 4px 0 0 0; color: #1e3a8a;">ADVOCATE HIGH COURT & SUPREME COURT OF PAKISTAN</p>
-                            <p style="font-size: 10px; margin: 2px 0 0 0; color: #475569;"><strong>Bar Council Reg No:</strong> ${barNo} &nbsp;|&nbsp; <strong>Chamber Address:</strong> ${chamberName}</p>
+                            <h1 style="font-size: 20px; font-weight: bold; font-family: 'Times New Roman', serif; text-transform: uppercase; margin: 0; color: #0f172a;">${chamberName}</h1>
+                            <p style="font-size: 11px; font-weight: bold; margin: 4px 0 0 0; color: #1e3a8a;">${advocateName}</p>
+                            <p style="font-size: 10px; margin: 2px 0 0 0; color: #475569;"><strong>Bar Council Reg No:</strong> ${barNo} &nbsp;|&nbsp; <strong>Chamber Address:</strong> ${chamberAddress}</p>
                         </div>
 
                         ${tmpl.bodyText(data)}
